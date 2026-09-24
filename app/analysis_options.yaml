@@ -1,0 +1,7 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - lib/omi_compat/**
+include: package:flutter_lints/flutter.yaml

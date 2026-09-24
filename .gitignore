@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------------
+# Remi first-version repository
+# ---------------------------------------------------------------------------
+# The first pushed version contains the active Flutter client, Go server,
+# database migrations, and migration documentation. The copied Python/web/SDK
+# baselines remain in the workspace for reference but are intentionally kept
+# out of the first commit until their Go/API parity work is complete.
+
+# Temporarily out of the first version: migrated reference baselines.
+/backend/
+/web/
+/sdks/
+
+# Flutter / Dart generated output.
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/.pub-cache/
+app/coverage/
+app/**/generated_plugin_registrant.dart
+
+# Go build output and local tooling.
+server/bin/
+server/dist/
+server/tmp/
+server/*.exe
+server/*.test
+server/*.out
+server/coverage/
+
+# Keep generated Ent source in the repository: the server must build without
+# requiring the Ent generator during deployment.
+
+# Local environment and credentials.
+**/.env
+**/.env.*
+!**/.env.example
+**/*.local
+**/*service-account*.json
+**/*credentials*.json
+**/*secret*.json
+server/config/*.yaml
+server/config/*.yml
+server/config/*.json
+
+# Local databases, caches, logs, and runtime state.
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.log
+**/.cache/
+server/data/
+server/logs/
+
+# IDE / OS files.
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary migration and test artifacts.
+*.tmp
+*.bak
+*.orig
+server/route_inventory.txt
