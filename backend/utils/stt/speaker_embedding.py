@@ -1,0 +1,239 @@
+import io
+import logging
+import os
+import struct
+import wave
+from typing import Any
+
+import numpy as np
+import httpx
+from scipy.spatial.distance import cdist
+
+from utils.executors import storage_executor, run_blocking
+from utils.http_client import get_stt_client
+from utils.observability.fallback import record_fallback
+
+logger = logging.getLogger(__name__)
+
+# The verification operating point lives in speaker_match.py (numpy-only) so the
+# decision policy can be shared and unit-tested without this module's HTTP client.
+# Re-exported here because callers and tests historically import it from this module.
+from utils.stt.speaker_match import SPEAKER_MATCH_THRESHOLD  # noqa: E402
+
+__all__ = [
+    'SPEAKER_MATCH_THRESHOLD',
+    'MIN_EMBEDDING_AUDIO_DURATION',
+    'speaker_embedding_configured',
+    'extract_embedding',
+    'extract_embedding_from_bytes',
+    'async_extract_embedding',
+    'async_extract_embedding_from_bytes',
+    'compare_embeddings',
+]
+
+# Minimum audio duration (seconds) for speaker embedding extraction.
+# Audio shorter than this crashes pyannote wespeaker fbank (see issue #4572).
+MIN_EMBEDDING_AUDIO_DURATION = float(os.getenv("MIN_EMBEDDING_AUDIO_DURATION", "0.5"))
+
+
+def _get_wav_duration(audio_data: bytes) -> float:
+    """Get duration in seconds from WAV bytes. Returns 0.0 on parse failure."""
+    try:
+        with wave.open(io.BytesIO(audio_data), "rb") as wf:
+            framerate = wf.getframerate()
+            if framerate <= 0:
+                return 0.0
+            return wf.getnframes() / framerate
+    except (wave.Error, EOFError, struct.error):
+        return 0.0
+
+
+_unconfigured_warned = False
+
+
+def _speaker_embedding_url() -> str:
+    url = os.getenv('HOSTED_SPEAKER_EMBEDDING_API_URL')
+    return url.strip() if url else ''
+
+
+def _warn_unconfigured() -> None:
+    """Emit one process-wide warning when speaker embedding is off due to config."""
+    global _unconfigured_warned
+    if _unconfigured_warned:
+        return
+    _unconfigured_warned = True
+    logger.warning('HOSTED_SPEAKER_EMBEDDING_API_URL is unset; speaker embedding is disabled on this process')
+    record_fallback(
+        component='other',
+        from_mode='speaker_embedding',
+        to_mode='unlabeled',
+        reason='config_incomplete',
+        outcome='degraded',
+        log=logger,
+    )
+
+
+def speaker_embedding_configured() -> bool:
+    """Return whether this process can call the hosted speaker-embedding API."""
+    if _speaker_embedding_url():
+        return True
+    _warn_unconfigured()
+    return False
+
+
+def _get_api_url() -> str:
+    """Get the speaker embedding API URL from environment."""
+    url = _speaker_embedding_url()
+    if not url:
+        _warn_unconfigured()
+        raise ValueError("HOSTED_SPEAKER_EMBEDDING_API_URL environment variable not set")
+    return url
+
+
+def extract_embedding(audio_path: str) -> np.ndarray[Any, Any]:
+    """
+    Extract speaker embedding from an audio file using hosted API.
+
+    Args:
+        audio_path: Path to audio file (wav format recommended)
+
+    Returns:
+        numpy array of shape (1, D) where D is embedding dimension
+    """
+    api_url = _get_api_url()
+
+    with open(audio_path, 'rb') as f:
+        files = {'file': (os.path.basename(audio_path), f, 'audio/wav')}
+        response = httpx.post(f"{api_url}/v2/embedding", files=files, timeout=300.0)
+        response.raise_for_status()
+
+    result = response.json()
+
+    # Handle both formats: direct array or {"embedding": [...]}
+    if isinstance(result, list):
+        embedding = np.array(result, dtype=np.float32)
+    else:
+        embedding = np.array(result['embedding'], dtype=np.float32)
+
+    # Ensure shape is (1, D)
+    if embedding.ndim == 1:
+        embedding = embedding.reshape(1, -1)
+
+    return embedding
+
+
+def extract_embedding_from_bytes(audio_data: bytes, filename: str = "audio.wav") -> np.ndarray[Any, Any]:
+    """
+    Extract speaker embedding from audio bytes using hosted API.
+
+    Args:
+        audio_data: Raw audio bytes (wav format)
+        filename: Filename to use in the request
+
+    Returns:
+        numpy array of shape (1, D) where D is embedding dimension
+
+    Raises:
+        ValueError: If audio is too short for speaker embedding
+    """
+    duration = _get_wav_duration(audio_data)
+    if duration < MIN_EMBEDDING_AUDIO_DURATION:
+        raise ValueError(f"Audio too short for speaker embedding: {duration:.3f}s < {MIN_EMBEDDING_AUDIO_DURATION}s")
+
+    api_url = _get_api_url()
+
+    files = {'file': (filename, audio_data, 'audio/wav')}
+    response = httpx.post(f"{api_url}/v2/embedding", files=files, timeout=300.0)
+    response.raise_for_status()
+
+    result = response.json()
+
+    # Handle both formats: direct array or {"embedding": [...]}
+    if isinstance(result, list):
+        embedding = np.array(result, dtype=np.float32)
+    else:
+        embedding = np.array(result['embedding'], dtype=np.float32)
+
+    # Ensure shape is (1, D)
+    if embedding.ndim == 1:
+        embedding = embedding.reshape(1, -1)
+
+    return embedding
+
+
+def _read_file(path: str) -> bytes:
+    with open(path, 'rb') as f:
+        return f.read()
+
+
+async def async_extract_embedding(audio_path: str) -> np.ndarray[Any, Any]:
+    """Async version of extract_embedding using httpx.AsyncClient."""
+    api_url = _get_api_url()
+    client = get_stt_client()
+
+    file_data = await run_blocking(storage_executor, _read_file, audio_path)
+
+    files = {'file': (os.path.basename(audio_path), file_data, 'audio/wav')}
+    try:
+        response = await client.post(f"{api_url}/v2/embedding", files=files)
+        response.raise_for_status()
+    except Exception as e:
+        logger.error(f"async_extract_embedding failed for {audio_path}: {e}")
+        raise
+
+    result = response.json()
+    if isinstance(result, list):
+        embedding = np.array(result, dtype=np.float32)
+    else:
+        embedding = np.array(result['embedding'], dtype=np.float32)
+
+    if embedding.ndim == 1:
+        embedding = embedding.reshape(1, -1)
+    return embedding
+
+
+async def async_extract_embedding_from_bytes(audio_data: bytes, filename: str = "audio.wav") -> np.ndarray[Any, Any]:
+    """Async version of extract_embedding_from_bytes using httpx.AsyncClient."""
+    duration = _get_wav_duration(audio_data)
+    if duration < MIN_EMBEDDING_AUDIO_DURATION:
+        raise ValueError(f"Audio too short for speaker embedding: {duration:.3f}s < {MIN_EMBEDDING_AUDIO_DURATION}s")
+
+    api_url = _get_api_url()
+    client = get_stt_client()
+
+    files = {'file': (filename, audio_data, 'audio/wav')}
+    try:
+        response = await client.post(f"{api_url}/v2/embedding", files=files)
+        response.raise_for_status()
+    except Exception as e:
+        logger.error(f"async_extract_embedding_from_bytes failed: {e}")
+        raise
+
+    result = response.json()
+    if isinstance(result, list):
+        embedding = np.array(result, dtype=np.float32)
+    else:
+        embedding = np.array(result['embedding'], dtype=np.float32)
+
+    if embedding.ndim == 1:
+        embedding = embedding.reshape(1, -1)
+    return embedding
+
+
+def compare_embeddings(embedding1: np.ndarray[Any, Any], embedding2: np.ndarray[Any, Any]) -> float:
+    """
+    Compare two speaker embeddings using cosine distance.
+
+    Args:
+        embedding1: First embedding array (1, D)
+        embedding2: Second embedding array (1, D)
+
+    Returns:
+        Cosine distance (0.0 = identical, 2.0 = opposite)
+        Lower values indicate more similar speakers.
+        Returns 2.0 (max distance) if embeddings have different dimensions.
+    """
+    if embedding1.shape[1] != embedding2.shape[1]:
+        return 2.0
+    distance = cdist(embedding1, embedding2, metric="cosine")[0, 0]
+    return float(distance)
