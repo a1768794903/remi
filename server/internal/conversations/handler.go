@@ -956,3 +956,95 @@ func (h Handler) CalendarEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, link)
 }
+
+func (h Handler) AutoCalendarEvent(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	id := r.PathValue("conversation_id")
+	item, err := h.Service.Get(r.Context(), uid, id)
+	if errors.Is(err, ErrNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Error(w, "conversation lookup failed", http.StatusInternalServerError)
+		return
+	}
+	start := item.StartedAt
+	end := start
+	if item.EndedAt != nil {
+		end = *item.EndedAt
+	}
+	if start.IsZero() {
+		http.Error(w, "Conversation has no timestamp information", http.StatusBadRequest)
+		return
+	}
+	token, err := h.calendarToken(r.Context(), uid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	query := url.Values{"timeMin": []string{start.UTC().Format(time.RFC3339)}, "timeMax": []string{end.UTC().Format(time.RFC3339)}, "singleEvents": []string{"true"}, "orderBy": []string{"startTime"}, "maxResults": []string{"50"}}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, "https://www.googleapis.com/calendar/v3/calendars/primary/events?"+query.Encode(), nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	if err != nil {
+		http.Error(w, "failed to fetch calendar events", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		http.Error(w, "Google Calendar authentication expired. Please reconnect.", http.StatusUnauthorized)
+		return
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		http.Error(w, "failed to fetch calendar events", http.StatusInternalServerError)
+		return
+	}
+	var payload struct {
+		Items []map[string]any `json:"items"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&payload) != nil {
+		http.Error(w, "invalid Google Calendar response", http.StatusBadGateway)
+		return
+	}
+	selected := ""
+	for _, raw := range payload.Items {
+		if stringValue(raw["status"]) == "cancelled" || stringValue(raw["id"]) == "" {
+			continue
+		}
+		calendarStart, startErr := parseCalendarPoint(mapValue(raw["start"]))
+		calendarEnd, endErr := parseCalendarPoint(mapValue(raw["end"]))
+		if startErr == nil && endErr == nil && calendarStart.Before(end) && calendarEnd.After(start) {
+			selected = stringValue(raw["id"])
+			break
+		}
+	}
+	if selected == "" {
+		http.Error(w, "No overlapping calendar event found", http.StatusNotFound)
+		return
+	}
+	link, err := fetchCalendarEvent(r.Context(), token, selected)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	encoded, _ := json.Marshal(link)
+	if _, err = h.Service.DB.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.calendar_event=? WHERE c.id=? AND u.external_uid=?`, encoded, id, uid); err != nil {
+		http.Error(w, "failed to link calendar event", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, link)
+}
+
+func mapValue(value any) map[string]any {
+	result, _ := value.(map[string]any)
+	return result
+}
