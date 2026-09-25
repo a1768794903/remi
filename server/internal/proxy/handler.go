@@ -212,7 +212,13 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 			}
 		}
 		resp, err = h.client().Do(req)
-		if err == nil && (!fallbackEligible(resp.StatusCode) || index == len(targets)-1) {
+		var candidateBody []byte
+		if err == nil && !streaming {
+			candidateBody, _ = io.ReadAll(io.LimitReader(resp.Body, maxGeminiBodyBytes*2))
+			_ = resp.Body.Close()
+			resp.Body = io.NopCloser(bytes.NewReader(candidateBody))
+		}
+		if err == nil && (!fallbackEligible(resp.StatusCode, candidateBody, streaming) || index == len(targets)-1) {
 			selectedOrdinal = index
 			break
 		}
@@ -293,8 +299,43 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	_, _ = io.Copy(w, observer)
 }
 
-func fallbackEligible(status int) bool {
-	return status == http.StatusNotFound || status >= 500
+func fallbackEligible(status int, body []byte, streaming bool) bool {
+	if streaming {
+		// A stream must remain untouched until it is copied to the client. The
+		// status-only route is retained for stream setup failures; once bytes
+		// have started, the terminal classifier owns the outcome.
+		return status == http.StatusNotFound || status >= 500
+	}
+	switch classifyProviderFailure(status, body) {
+	case "model_unavailable", "capacity_exhausted", "capacity_absent":
+		return true
+	default:
+		return false
+	}
+}
+
+func classifyProviderFailure(status int, body []byte) string {
+	text := strings.ToLower(string(body))
+	if status == http.StatusNotFound && strings.Contains(text, "publisher model") {
+		return "model_unavailable"
+	}
+	if status == http.StatusTooManyRequests &&
+		(strings.Contains(text, "provisioned throughput") || strings.Contains(text, "dedicated")) {
+		return "capacity_exhausted"
+	}
+	if status == http.StatusBadRequest || status == http.StatusForbidden || status == http.StatusNotFound || status == http.StatusTooManyRequests {
+		if (strings.Contains(text, "provisioned throughput") || strings.Contains(text, "dedicated")) &&
+			(strings.Contains(text, "not found") || strings.Contains(text, "no provisioned") || strings.Contains(text, "does not exist") || strings.Contains(text, "not configured")) {
+			return "capacity_absent"
+		}
+	}
+	if status >= 500 {
+		return "provider_error"
+	}
+	if status >= 400 {
+		return "provider_rejected"
+	}
+	return ""
 }
 
 func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {

@@ -82,7 +82,8 @@ func TestGeminiFallsBackAfterProviderUnavailable(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		paths = append(paths, r.URL.Path)
 		if len(paths) == 1 {
-			w.WriteHeader(http.StatusServiceUnavailable)
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"error":{"message":"provisioned throughput capacity exhausted"}}`))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -115,6 +116,24 @@ func TestProxyStatusMatchesProviderFailureContract(t *testing.T) {
 		if status != test.status || code != test.code || retryable != test.retryable {
 			t.Fatalf("upstream=%d got (%d,%q,%v)", test.upstream, status, code, retryable)
 		}
+	}
+}
+
+func TestClassifyProviderFailureKeepsFallbackNarrow(t *testing.T) {
+	if got := classifyProviderFailure(http.StatusNotFound, []byte(`{"error":{"message":"publisher model not found"}}`)); got != "model_unavailable" {
+		t.Fatalf("model unavailable classification=%q", got)
+	}
+	if !fallbackEligible(http.StatusNotFound, []byte(`{"error":{"message":"publisher model not found"}}`), false) {
+		t.Fatal("model unavailable should be fallback eligible")
+	}
+	if got := classifyProviderFailure(http.StatusServiceUnavailable, []byte(`{"error":{"message":"temporary upstream failure"}}`)); got != "provider_error" {
+		t.Fatalf("generic 5xx classification=%q", got)
+	}
+	if fallbackEligible(http.StatusServiceUnavailable, []byte(`{"error":{"message":"temporary upstream failure"}}`), false) {
+		t.Fatal("generic 5xx must not select a different model")
+	}
+	if !fallbackEligible(http.StatusTooManyRequests, []byte(`{"error":{"message":"provisioned throughput capacity exhausted"}}`), false) {
+		t.Fatal("PT exhaustion should be fallback eligible")
 	}
 }
 
