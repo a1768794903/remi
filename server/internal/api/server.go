@@ -49,6 +49,7 @@ import (
 	"remi/server/internal/mcpkeys"
 	"remi/server/internal/memories"
 	"remi/server/internal/metrics"
+	"remi/server/internal/migrationapi"
 	"remi/server/internal/mobilefeedback"
 	"remi/server/internal/notificationapi"
 	"remi/server/internal/notifications"
@@ -105,6 +106,9 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	appOAuthHandler := oauthapp.Handler{DB: db, Verifier: verifier}
 	notificationAPIHandler := notificationapi.Handler{DB: db}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/users/migration/batch-requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Batch)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/notification", Handler: notificationAPIHandler.Admin},
 		{Method: http.MethodPost, Path: "/v1/integrations/notification", Handler: notificationAPIHandler.Integration},
 		{Method: http.MethodGet, Path: "/v1/oauth/authorize", Handler: appOAuthHandler.Authorize},
