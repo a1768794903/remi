@@ -454,6 +454,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodDelete, Path: "/v1/apps/:app_id/keys/:key_id", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.AppAPIKeys)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/:app_id/refresh-manifest", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.RefreshManifest)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/mcp", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.MCP)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/apps/mcp/callback", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.MCPOAuthCallback).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/:app_id/mcp/refresh", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.MCP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/migrate-owner", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}, Verifier: verifier}.MigrateOwner)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/apps/:app_id", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Item)).ServeHTTP},

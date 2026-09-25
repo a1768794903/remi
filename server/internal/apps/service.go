@@ -5,10 +5,12 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -1733,6 +1735,10 @@ func (h Handler) RefreshManifest(w http.ResponseWriter, r *http.Request) {
 }
 
 func discoverMCP(ctx context.Context, endpoint string) ([]map[string]any, error) {
+	return discoverMCPWithToken(ctx, endpoint, "")
+}
+
+func discoverMCPWithToken(ctx context.Context, endpoint, accessToken string) ([]map[string]any, error) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	payload := map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": map[string]any{}}
@@ -1742,6 +1748,9 @@ func discoverMCP(ctx context.Context, endpoint string) ([]map[string]any, error)
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if strings.TrimSpace(accessToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -1768,6 +1777,183 @@ func discoverMCP(ctx context.Context, endpoint string) ([]map[string]any, error)
 	}
 	return result.Result.Tools, nil
 }
+
+func discoverMCPOAuthMetadata(ctx context.Context, serverURL string) (map[string]any, error) {
+	base := strings.TrimRight(serverURL, "/")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/.well-known/oauth-authorization-server", nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("oauth metadata returned %s", resp.Status)
+	}
+	var metadata map[string]any
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&metadata); err != nil {
+		return nil, err
+	}
+	return metadata, nil
+}
+
+func registerMCPClient(ctx context.Context, endpoint, redirectURI string, scopes any) (map[string]any, error) {
+	payload := map[string]any{"client_name": "Omi", "redirect_uris": []string{redirectURI}, "grant_types": []string{"authorization_code", "refresh_token"}, "response_types": []string{"code"}, "token_endpoint_auth_method": "none"}
+	if values, ok := scopes.([]any); ok && len(values) > 0 {
+		parts := make([]string, 0, len(values))
+		for _, value := range values {
+			if item, ok := value.(string); ok && item != "" {
+				parts = append(parts, item)
+			}
+		}
+		if len(parts) > 0 {
+			payload["scope"] = strings.Join(parts, " ")
+		}
+	}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(string(body)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("oauth registration returned %s", resp.Status)
+	}
+	var info map[string]any
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&info); err != nil {
+		return nil, err
+	}
+	if _, ok := info["client_id"].(string); !ok {
+		return nil, errors.New("oauth registration missing client_id")
+	}
+	return info, nil
+}
+
+func pkcePair() (string, string, error) {
+	buf := make([]byte, 64)
+	if _, err := rand.Read(buf); err != nil {
+		return "", "", err
+	}
+	verifier := base64.RawURLEncoding.EncodeToString(buf)
+	digest := sha256.Sum256([]byte(verifier))
+	return verifier, base64.RawURLEncoding.EncodeToString(digest[:]), nil
+}
+
+func htmlPage(w http.ResponseWriter, status int, title, detail string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = fmt.Fprintf(w, "<html><body><h1>%s</h1>%s</body></html>", html.EscapeString(title), html.EscapeString(detail))
+}
+
+// MCPOAuthCallback completes the OAuth flow initiated by the MCP app setup.
+// The callback is intentionally HTML because it is opened by the provider's
+// browser redirect, while all durable state remains in plugins_data.
+func (h Handler) MCPOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	parts := strings.SplitN(r.URL.Query().Get("state"), ":", 3)
+	if len(parts) < 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		htmlPage(w, http.StatusBadRequest, "Invalid state parameter", "")
+		return
+	}
+	appID, uid := parts[0], parts[1]
+	app, err := h.Service.Get(r.Context(), uid, appID)
+	if errors.Is(err, ErrAppNotFound) {
+		htmlPage(w, http.StatusNotFound, "App not found", "")
+		return
+	}
+	if err != nil {
+		htmlPage(w, http.StatusInternalServerError, "App lookup failed", "")
+		return
+	}
+	ext := map[string]any{}
+	for key, value := range app.ExternalIntegration {
+		ext[key] = value
+	}
+	oauth, ok := ext["mcp_oauth_tokens"].(map[string]any)
+	if !ok {
+		htmlPage(w, http.StatusBadRequest, "OAuth configuration missing", "")
+		return
+	}
+	tokenEndpoint, _ := oauth["token_endpoint"].(string)
+	clientID, _ := oauth["client_id"].(string)
+	redirectURI, _ := oauth["redirect_uri"].(string)
+	clientSecret, _ := oauth["client_secret"].(string)
+	codeVerifier, _ := oauth["code_verifier"].(string)
+	if tokenEndpoint == "" || clientID == "" {
+		htmlPage(w, http.StatusBadRequest, "OAuth configuration missing", "")
+		return
+	}
+	token, err := exchangeMCPOAuthCode(r.Context(), tokenEndpoint, r.URL.Query().Get("code"), redirectURI, clientID, clientSecret, codeVerifier)
+	if err != nil {
+		htmlPage(w, http.StatusBadGateway, "Token exchange failed", "Failed to exchange authorization code for access token.")
+		return
+	}
+	for key, value := range token {
+		oauth[key] = value
+	}
+	serverURL, _ := ext["mcp_server_url"].(string)
+	tools, err := discoverMCPWithToken(r.Context(), serverURL, token["access_token"].(string))
+	if err != nil {
+		htmlPage(w, http.StatusBadGateway, "Tool discovery failed", "Failed to discover tools on the MCP server.")
+		return
+	}
+	toolBytes, _ := json.Marshal(tools)
+	ext["mcp_oauth_tokens"] = oauth
+	if _, err = h.Service.DB.ExecContext(r.Context(), `UPDATE plugins_data SET status='approved',external_integration=?,chat_tools=?,updated_at=NOW(6) WHERE id=? AND uid=?`, mustJSON(ext), toolBytes, appID, uid); err != nil {
+		htmlPage(w, http.StatusInternalServerError, "App update failed", "")
+		return
+	}
+	if err = h.Service.Enable(r.Context(), uid, appID); err != nil {
+		htmlPage(w, http.StatusInternalServerError, "App enable failed", "")
+		return
+	}
+	htmlPage(w, http.StatusOK, "MCP server connected", fmt.Sprintf("%d tools connected.", len(tools)))
+}
+
+func exchangeMCPOAuthCode(ctx context.Context, endpoint, code, redirectURI, clientID, clientSecret, verifier string) (map[string]any, error) {
+	values := url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {redirectURI}, "client_id": {clientID}}
+	if clientSecret != "" {
+		values.Set("client_secret", clientSecret)
+	}
+	if verifier != "" {
+		values.Set("code_verifier", verifier)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(values.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("token endpoint returned %s", resp.Status)
+	}
+	var token map[string]any
+	if err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&token); err != nil {
+		return nil, err
+	}
+	if _, ok := token["access_token"].(string); !ok {
+		return nil, errors.New("token response missing access_token")
+	}
+	if expires, ok := token["expires_in"].(float64); ok {
+		token["expires_at"] = time.Now().Add(time.Duration(expires) * time.Second).Unix()
+	}
+	return token, nil
+}
+
+func mustJSON(value any) []byte {
+	b, _ := json.Marshal(value)
+	return b
+}
 func (h Handler) MCP(w http.ResponseWriter, r *http.Request) {
 	uid, err := auth.UserID(r.Context())
 	if err != nil {
@@ -1788,6 +1974,67 @@ func (h Handler) MCP(w http.ResponseWriter, r *http.Request) {
 		if e != nil || u.Scheme != "http" && u.Scheme != "https" {
 			http.Error(w, "invalid MCP server URL", 422)
 			return
+		}
+		metadata, metadataErr := discoverMCPOAuthMetadata(r.Context(), strings.TrimRight(in.MCPServerURL, "/"))
+		if metadataErr == nil {
+			authorizationEndpoint, _ := metadata["authorization_endpoint"].(string)
+			registrationEndpoint, _ := metadata["registration_endpoint"].(string)
+			if authorizationEndpoint != "" {
+				if registrationEndpoint == "" {
+					http.Error(w, "MCP server requires OAuth but does not support dynamic client registration", 422)
+					return
+				}
+				baseURL := strings.TrimRight(os.Getenv("BASE_API_URL"), "/")
+				if baseURL == "" {
+					http.Error(w, "BASE_API_URL is not configured", 500)
+					return
+				}
+				redirectURI := baseURL + "/v1/apps/mcp/callback"
+				clientInfo, err := registerMCPClient(r.Context(), registrationEndpoint, redirectURI, metadata["scopes_supported"])
+				if err != nil {
+					http.Error(w, "OAuth client registration failed", 502)
+					return
+				}
+				verifier, challenge, err := pkcePair()
+				if err != nil {
+					http.Error(w, "could not create PKCE verifier", 500)
+					return
+				}
+				appID := newID()
+				stateBytes := make([]byte, 16)
+				if _, err = rand.Read(stateBytes); err != nil {
+					http.Error(w, "could not create OAuth state", 500)
+					return
+				}
+				state := appID + ":" + uid + ":" + hex.EncodeToString(stateBytes)
+				clientID, _ := clientInfo["client_id"].(string)
+				clientSecret, _ := clientInfo["client_secret"].(string)
+				tokenEndpoint, _ := metadata["token_endpoint"].(string)
+				if tokenEndpoint == "" {
+					http.Error(w, "OAuth token endpoint is missing", 422)
+					return
+				}
+				authQuery := url.Values{"response_type": {"code"}, "client_id": {clientID}, "redirect_uri": {redirectURI}, "state": {state}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}}
+				if scopes, ok := metadata["scopes_supported"].([]any); ok {
+					values := make([]string, 0, len(scopes))
+					for _, scope := range scopes {
+						if value, ok := scope.(string); ok {
+							values = append(values, value)
+						}
+					}
+					if len(values) > 0 {
+						authQuery.Set("scope", strings.Join(values, " "))
+					}
+				}
+				ext, _ := json.Marshal(map[string]any{"mcp_server_url": strings.TrimRight(in.MCPServerURL, "/"), "mcp_oauth_tokens": map[string]any{"client_id": clientID, "client_secret": clientSecret, "token_endpoint": tokenEndpoint, "redirect_uri": redirectURI, "code_verifier": verifier}})
+				_, err = h.Service.DB.ExecContext(r.Context(), `INSERT INTO plugins_data (id,name,uid,private,approved,status,category,description,image,capabilities,external_integration,chat_tools,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW(6),NOW(6))`, appID, in.Name, uid, true, true, "pending_mcp_auth", "utilities-and-tools", in.Description, "", `["chat"]`, ext, []byte("[]"))
+				if err != nil {
+					http.Error(w, "failed to create pending MCP app", 500)
+					return
+				}
+				_ = writeJSON(w, map[string]any{"app_id": appID, "requires_oauth": true, "auth_url": authorizationEndpoint + "?" + authQuery.Encode()})
+				return
+			}
 		}
 		tools, e := discoverMCP(r.Context(), in.MCPServerURL)
 		if e != nil {
