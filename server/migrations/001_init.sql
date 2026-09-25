@@ -55,6 +55,23 @@ CREATE TABLE IF NOT EXISTS `feedback_events` (
     KEY `feedback_events_target` (`target_kind`,`target_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `account_cutover` (
+    `uid` varchar(255) NOT NULL,
+    `state` varchar(32) NOT NULL DEFAULT 'legacy',
+    `account_generation` bigint NOT NULL DEFAULT 0,
+    `ui_generation` bigint NOT NULL DEFAULT 0,
+    `api_generation` bigint NOT NULL DEFAULT 0,
+    `stranded_new_data` boolean NOT NULL DEFAULT false,
+    `offline_queue_instruction` varchar(32) NOT NULL DEFAULT 'none',
+    `checkpoint_phase` varchar(64) NOT NULL DEFAULT 'not_started',
+    `checkpoint_token` varchar(128) NOT NULL DEFAULT '',
+    `manifest_id` varchar(128) NOT NULL DEFAULT '',
+    `destination_backend_bound` boolean NOT NULL DEFAULT false,
+    `created_at` datetime(6) NOT NULL,
+    `updated_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `hume_callbacks` (
     `job_id` varchar(255) NOT NULL,
     `status` varchar(64) NOT NULL DEFAULT '',

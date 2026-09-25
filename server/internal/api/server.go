@@ -108,6 +108,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	appOAuthHandler := oauthapp.Handler{DB: db, Verifier: verifier}
 	notificationAPIHandler := notificationapi.Handler{DB: db}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodGet, Path: "/v1/account/cutover/control", Handler: protected(http.HandlerFunc(accountHandler.CutoverControl)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
 		{Method: http.MethodPost, Path: "/v1/agents/hume/callback", Handler: hume.Handler{DB: db}.Callback},
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
