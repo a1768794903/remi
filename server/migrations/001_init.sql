@@ -1124,6 +1124,18 @@ CREATE TABLE IF NOT EXISTS `fair_use_state` (
     CONSTRAINT `fair_use_state_user_fk` FOREIGN KEY (`user_external_uid`) REFERENCES `users` (`external_uid`) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `wrapped` (
+    `user_external_uid` varchar(255) NOT NULL,
+    `year` int NOT NULL,
+    `status` varchar(32) NOT NULL DEFAULT 'not_generated',
+    `result` json NULL,
+    `error` text NULL,
+    `progress` json NULL,
+    `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`user_external_uid`,`year`),
+    CONSTRAINT `wrapped_user_fk` FOREIGN KEY (`user_external_uid`) REFERENCES `users` (`external_uid`) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS `fair_use_events` (
     `user_external_uid` varchar(255) NOT NULL,
     `event_id` varchar(128) NOT NULL,

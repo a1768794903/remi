@@ -73,6 +73,7 @@ import (
 	"remi/server/internal/voice"
 	"remi/server/internal/voicechat"
 	"remi/server/internal/workstreams"
+	"remi/server/internal/wrapped"
 )
 
 func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audioHandler http.Handler, actionHandler actionitems.Handler, conversationHandler conversations.Handler, transcriptHandler transcripts.Handler, sttHandler stt.Handler, memoryHandler memories.Handler, userHandler users.Handler, chatHandler chat.Handler, sessionHandler chat.SessionsHandler, desktopHandler chat.DesktopHandler, notificationHandler notifications.Handler, folderHandler folders.Handler, goalHandler goals.Handler, integrationHandler integrations.Handler, accountHandler account.Handler, syncHandler syncjobs.Handler, scoreHandler scores.Handler, meetingHandler calendarmeetings.Handler, autoHandler automodel.Handler, mapHandler staticmap.Handler, csatHandler csat.Handler, fileHandler chatfiles.Handler, ttsHandler tts.Handler, realtimeHandler realtime.Handler, trendHandler trends.Handler, dailySummaryHandler dailysummaries.Handler, focusHandler focussessions.Handler, screenHandler screenactivity.Handler, peopleHandler people.Handler, usageHandler desktopusage.Handler, thumbnailStore chatfiles.ThumbnailStore, stagedHandler stagedtasks.Handler, workstreamHandler workstreams.Handler, candidateHandler candidates.Handler, speechProfileHandler speechprofile.Handler, referralHandler referrals.Handler, mobileFeedbackHandler mobilefeedback.Handler, frameRequestHandler framerequests.Handler) *rest.Server {
@@ -248,6 +249,8 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPatch, Path: "/updates/releases/promote", Handler: releases.Handler{DB: db, Secret: os.Getenv("RELEASE_SECRET")}.Promote},
 		{Method: http.MethodGet, Path: "/healthz", Handler: health.Handler(func() bool { return true }).ServeHTTP},
 		{Method: http.MethodGet, Path: "/metrics", Handler: metrics.Handler{}.ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/wrapped/:year", Handler: protected(http.HandlerFunc(wrapped.Handler{DB: db}.ServeHTTP)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/wrapped/:year/generate", Handler: protected(http.HandlerFunc(wrapped.Handler{DB: db}.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/.well-known/openai-apps-challenge", Handler: openAIAppsChallenge},
 		{Method: http.MethodPost, Path: "/v1/import/limitless", Handler: protected(http.HandlerFunc(imports.Handler{DB: db}.Create)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/import/jobs", Handler: protected(http.HandlerFunc(imports.Handler{DB: db}.List)).ServeHTTP},
@@ -272,6 +275,10 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/payments/upgrade-subscription", Handler: protected(http.HandlerFunc(payments.Handler{DB: db}.Upgrade)).ServeHTTP},
 		{Method: http.MethodDelete, Path: "/v1/payments/subscription", Handler: protected(http.HandlerFunc(payments.Handler{DB: db}.Cancel)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/payments/cancel", Handler: protected(http.HandlerFunc(payments.Handler{DB: db}.Cancel)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/payments/success", Handler: payments.Handler{DB: db}.ReturnPage},
+		{Method: http.MethodGet, Path: "/v1/payments/cancel", Handler: payments.Handler{DB: db}.ReturnPage},
+		{Method: http.MethodGet, Path: "/v1/payments/portal-return", Handler: payments.Handler{DB: db}.ReturnPage},
+		{Method: http.MethodGet, Path: "/v1/stripe/return/:account_id", Handler: payments.Handler{DB: db}.ReturnPage},
 		{Method: http.MethodPost, Path: "/v1/stripe/webhook", Handler: http.HandlerFunc(payments.Handler{DB: db}.Webhook)},
 		{Method: http.MethodPost, Path: "/v1/stripe/connect/webhook", Handler: http.HandlerFunc(payments.Handler{DB: db}.ConnectWebhook)},
 		{Method: http.MethodPost, Path: "/v1/payments/customer-portal", Handler: protected(http.HandlerFunc(payments.Handler{DB: db}.Portal)).ServeHTTP},

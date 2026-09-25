@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,6 +21,15 @@ import (
 )
 
 type Handler struct{ DB *sql.DB }
+
+func (h Handler) ReturnPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	message := "You can close this window and return to Omi."
+	if strings.HasSuffix(r.URL.Path, "/cancel") {
+		message = "Payment was cancelled. You can close this window and return to Omi."
+	}
+	_, _ = io.WriteString(w, "<!doctype html><html><body><h1>Omi payments</h1><p>"+template.HTMLEscapeString(message)+"</p></body></html>")
+}
 
 type plan struct {
 	ID          string `json:"id"`
