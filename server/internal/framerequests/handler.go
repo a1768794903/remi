@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/uuid"
 	"remi/server/internal/auth"
+	"remi/server/internal/signedurl"
 )
 
 type Handler struct {
@@ -584,6 +585,12 @@ func (h Handler) promote(w http.ResponseWriter, r *http.Request, uid string) {
 }
 
 func (h Handler) photo(w http.ResponseWriter, r *http.Request, uid string) {
+	if r.URL.Query().Get("expires") != "" || r.URL.Query().Get("sig") != "" {
+		if !signedurl.Verify(pathWithoutQuery(r.URL.Path), uid, r.URL.Query(), time.Now().UTC()) {
+			http.Error(w, "invalid or expired screenshot URL", http.StatusForbidden)
+			return
+		}
+	}
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) < 6 {
 		http.NotFound(w, r)

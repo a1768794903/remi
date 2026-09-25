@@ -21,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	"remi/server/internal/auth"
 	"remi/server/internal/framerequests"
+	"remi/server/internal/signedurl"
 )
 
 type Handler struct {
@@ -306,7 +307,7 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 		cleanup()
 		return nil, err
 	}
-	return frameSetFromPhotos(in.Subject.ID, photos), nil
+	return frameSetFromPhotos(uid, in.Subject.ID, photos), nil
 }
 
 func Validate(in Request) error {
@@ -394,14 +395,19 @@ func emptyFrameSet() map[string]any {
 	return map[string]any{"revision": 0, "banner": nil, "strip": []any{}}
 }
 
-func frameSetFromPhotos(conversationID string, photos []map[string]any) map[string]any {
+func frameSetFromPhotos(uid, conversationID string, photos []map[string]any) map[string]any {
 	strip := make([]map[string]any, 0, len(photos))
 	for index, photo := range photos {
 		id, _ := photo["id"].(string)
 		if id == "" {
 			continue
 		}
-		strip = append(strip, map[string]any{"id": id, "role": "strip", "rank": index, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "ground": photo["ground"], "content_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image", "thumbnail_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image", "url_expires_at": time.Now().UTC().Add(time.Hour)})
+		path := "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image"
+		contentURL, err := signedurl.Build(path, uid, time.Now().UTC().Add(time.Hour))
+		if err != nil {
+			contentURL = path
+		}
+		strip = append(strip, map[string]any{"id": id, "role": "strip", "rank": index, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "ground": photo["ground"], "content_url": contentURL, "thumbnail_url": contentURL, "url_expires_at": time.Now().UTC().Add(time.Hour)})
 	}
 	return map[string]any{"revision": 1, "banner": nil, "strip": strip}
 }
