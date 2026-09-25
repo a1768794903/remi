@@ -14,9 +14,28 @@ func TestStableBlockIDIsDeterministicAndGenerationScoped(t *testing.T) {
 }
 
 func TestValidateBlockRequestRejectsCrossAccountOwnerFence(t *testing.T) {
-	result := validateRequest("uid-1", validationRequest{SourceSurface: "main_chat", OwnerFence: "uid-2", ControlGeneration: 0, Blocks: []block{{Type: "taskCard", ID: "task-1"}}})
+	result := validateRequest("uid-1", validationRequest{SourceSurface: "main_chat", OwnerFence: "uid-2", ControlGeneration: 0, Blocks: []map[string]any{{"type": "taskCard", "task_id": "task-1"}}})
 	if result.Code != "capability_unavailable" || result.Accepted {
 		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestBlockIdentitySupportsReleasedChatFirstUnion(t *testing.T) {
+	cases := []struct {
+		kind  string
+		block map[string]any
+	}{
+		{"taskCard", map[string]any{"type": "taskCard", "task_id": "task-1"}},
+		{"goalLink", map[string]any{"type": "goalLink", "goal_id": "goal-1"}},
+		{"captureLink", map[string]any{"type": "captureLink", "conversation_id": "conv-1"}},
+		{"conversationLink", map[string]any{"type": "conversationLink", "conversation_id": "conv-2"}},
+		{"memoryLink", map[string]any{"type": "memoryLink", "memory_id": "memory-1"}},
+		{"questionCard", map[string]any{"type": "questionCard", "question_id": "question-1"}},
+	}
+	for _, item := range cases {
+		if got := blockIdentity(item.kind, item.block); got == "" {
+			t.Errorf("%s identity is empty", item.kind)
+		}
 	}
 }
 

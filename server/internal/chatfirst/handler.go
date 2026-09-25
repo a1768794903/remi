@@ -17,15 +17,11 @@ import (
 
 type Handler struct{ DB *sql.DB }
 
-type block struct {
-	Type string `json:"type"`
-	ID   string `json:"task_id,omitempty"`
-}
 type validationRequest struct {
-	SourceSurface     string  `json:"source_surface"`
-	ControlGeneration int64   `json:"control_generation"`
-	OwnerFence        string  `json:"owner_fence"`
-	Blocks            []block `json:"blocks"`
+	SourceSurface     string           `json:"source_surface"`
+	ControlGeneration int64            `json:"control_generation"`
+	OwnerFence        string           `json:"owner_fence"`
+	Blocks            []map[string]any `json:"blocks"`
 }
 type validationResult struct {
 	Accepted bool             `json:"accepted"`
@@ -59,6 +55,18 @@ type materializeRequest struct {
 func stableBlockID(uid string, generation int64, raw []byte) string {
 	sum := sha256.Sum256([]byte(uid + ":" + strconv.FormatInt(generation, 10) + ":" + string(raw)))
 	return "cfb_" + hex.EncodeToString(sum[:])[:24]
+}
+
+func blockIdentity(kind string, block map[string]any) string {
+	key := map[string]string{
+		"taskCard": "task_id", "goalLink": "goal_id", "captureLink": "conversation_id",
+		"conversationLink": "conversation_id", "memoryLink": "memory_id", "questionCard": "question_id",
+	}[kind]
+	if key == "" {
+		return ""
+	}
+	value, _ := block[key].(string)
+	return strings.TrimSpace(value)
 }
 
 func jsonEquivalent(left, right []byte) bool {
@@ -138,6 +146,24 @@ func chatFirstEnabled() bool {
 	return strings.EqualFold(strings.TrimSpace(os.Getenv("CHAT_FIRST_ENABLED")), "true")
 }
 
+func (h Handler) capabilityCode(ctx context.Context, uid string, generation int64) string {
+	if !chatFirstEnabled() || h.DB == nil {
+		return "capability_unavailable"
+	}
+	var actual int64
+	err := h.DB.QueryRowContext(ctx, `SELECT account_generation FROM task_intelligence_control WHERE user_external_uid=?`, uid).Scan(&actual)
+	if err == sql.ErrNoRows {
+		return "capability_unavailable"
+	}
+	if err != nil {
+		return "capability_unavailable"
+	}
+	if actual != generation {
+		return "generation_mismatch"
+	}
+	return "accepted"
+}
+
 func validateRequest(uid string, request validationRequest) validationResult {
 	if request.OwnerFence != uid || request.SourceSurface != "main_chat" || len(request.Blocks) == 0 || len(request.Blocks) > 8 {
 		return validationResult{Code: "capability_unavailable"}
@@ -148,7 +174,9 @@ func validateRequest(uid string, request validationRequest) validationResult {
 	seen := map[string]bool{}
 	out := make([]map[string]any, 0, len(request.Blocks))
 	for _, item := range request.Blocks {
-		if item.Type == "" || item.ID == "" || (item.Type != "taskCard" && item.Type != "goalLink" && item.Type != "captureLink" && item.Type != "conversationLink" && item.Type != "memoryLink") {
+		kind, _ := item["type"].(string)
+		identity := blockIdentity(kind, item)
+		if identity == "" && kind != "memoryReviewCard" || (kind != "taskCard" && kind != "goalLink" && kind != "captureLink" && kind != "conversationLink" && kind != "memoryLink" && kind != "questionCard" && kind != "memoryReviewCard") {
 			return validationResult{Code: "invalid_request"}
 		}
 		raw, _ := json.Marshal(item)
@@ -157,7 +185,12 @@ func validateRequest(uid string, request validationRequest) validationResult {
 			return validationResult{Code: "invalid_request"}
 		}
 		seen[id] = true
-		out = append(out, map[string]any{"id": id, "type": item.Type, "id_value": item.ID})
+		blockWithID := make(map[string]any, len(item)+1)
+		for key, value := range item {
+			blockWithID[key] = value
+		}
+		blockWithID["id"] = id
+		out = append(out, blockWithID)
 	}
 	return validationResult{Accepted: true, Code: "accepted", Blocks: out}
 }
@@ -174,6 +207,11 @@ func (h Handler) Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result := validateRequest(uid, in)
+	if result.Accepted {
+		if code := h.capabilityCode(r.Context(), uid, in.ControlGeneration); code != "accepted" {
+			result = validationResult{Code: code}
+		}
+	}
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -188,7 +226,11 @@ func (h Handler) Materialize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request", http.StatusUnprocessableEntity)
 		return
 	}
-	if in.OwnerFence != uid || in.SourceSurface != "main_chat" || !chatFirstEnabled() {
+	if in.OwnerFence != uid || in.SourceSurface != "main_chat" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	if code := h.capabilityCode(r.Context(), uid, in.ControlGeneration); code != "accepted" {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
@@ -265,14 +307,6 @@ func (h Handler) Deferral(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	if !chatFirstEnabled() {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-	if h.DB == nil {
-		http.Error(w, "chat-first deferral storage is not configured", 503)
-		return
-	}
 	var in struct {
 		SourceSurface     string         `json:"source_surface"`
 		ControlGeneration int64          `json:"control_generation"`
@@ -283,6 +317,14 @@ func (h Handler) Deferral(w http.ResponseWriter, r *http.Request) {
 	}
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&in) != nil || in.SourceSurface != "main_chat" || in.OwnerFence != uid || in.ContinuityKey == "" {
 		http.Error(w, "invalid request", 422)
+		return
+	}
+	if h.capabilityCode(r.Context(), uid, in.ControlGeneration) != "accepted" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	if h.DB == nil {
+		http.Error(w, "chat-first deferral storage is not configured", 503)
 		return
 	}
 	subject, _ := json.Marshal(in.Subject)
