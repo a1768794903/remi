@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"remi/server/internal/apps"
 	"remi/server/internal/auth"
 	"remi/server/internal/chat"
 	"remi/server/internal/transcripts"
@@ -19,6 +20,7 @@ import (
 
 type Handler struct {
 	Service     Service
+	Apps        apps.Service
 	Queue       Enqueuer
 	Transcripts transcripts.Service
 	Provider    chat.Provider
@@ -751,4 +753,51 @@ func (h Handler) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "Ok"})
+}
+
+// SuggestedApps projects the app ids selected during conversation
+// summarization into the current app catalog. Missing, disabled, or no longer
+// visible apps are omitted just like the Python implementation.
+func (h Handler) SuggestedApps(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodGet || h.Service.DB == nil {
+		if h.Service.DB == nil {
+			http.Error(w, "conversation storage is not configured", http.StatusServiceUnavailable)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+		return
+	}
+	conversationID := r.PathValue("conversation_id")
+	var raw []byte
+	if err := h.Service.DB.QueryRowContext(r.Context(), `SELECT COALESCE(c.structured,JSON_OBJECT()) FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=?`, conversationID, uid).Scan(&raw); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, "conversation lookup failed", http.StatusInternalServerError)
+		}
+		return
+	}
+	var structured map[string]any
+	if json.Unmarshal(raw, &structured) != nil || structured == nil {
+		structured = map[string]any{}
+	}
+	ids, _ := structured["suggested_apps"].([]any)
+	result := make([]apps.App, 0, len(ids))
+	for _, rawID := range ids {
+		id, ok := rawID.(string)
+		if !ok || strings.TrimSpace(id) == "" {
+			continue
+		}
+		item, getErr := h.Apps.Get(r.Context(), uid, id)
+		if getErr != nil || item.Disabled || !item.Approved {
+			continue
+		}
+		result = append(result, item)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"suggested_apps": result, "conversation_id": conversationID})
 }

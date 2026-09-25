@@ -89,6 +89,7 @@ import (
 )
 
 func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audioHandler http.Handler, actionHandler actionitems.Handler, conversationHandler conversations.Handler, transcriptHandler transcripts.Handler, sttHandler stt.Handler, memoryHandler memories.Handler, userHandler users.Handler, chatHandler chat.Handler, sessionHandler chat.SessionsHandler, desktopHandler chat.DesktopHandler, notificationHandler notifications.Handler, folderHandler folders.Handler, goalHandler goals.Handler, integrationHandler integrations.Handler, accountHandler account.Handler, syncHandler syncjobs.Handler, scoreHandler scores.Handler, meetingHandler calendarmeetings.Handler, autoHandler automodel.Handler, mapHandler staticmap.Handler, csatHandler csat.Handler, fileHandler chatfiles.Handler, ttsHandler tts.Handler, realtimeHandler realtime.Handler, trendHandler trends.Handler, dailySummaryHandler dailysummaries.Handler, focusHandler focussessions.Handler, screenHandler screenactivity.Handler, peopleHandler people.Handler, usageHandler desktopusage.Handler, thumbnailStore chatfiles.ThumbnailStore, stagedHandler stagedtasks.Handler, workstreamHandler workstreams.Handler, candidateHandler candidates.Handler, speechProfileHandler speechprofile.Handler, referralHandler referrals.Handler, mobileFeedbackHandler mobilefeedback.Handler, frameRequestHandler framerequests.Handler) *rest.Server {
+	conversationHandler.Apps = apps.Service{DB: db}
 	if integrationHandler.DB == nil {
 		integrationHandler.DB = db
 	}
@@ -721,6 +722,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/conversations/from-segments", Handler: protected(http.HandlerFunc(conversationHandler.FromSegments)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/conversations/merge", Handler: protected(http.HandlerFunc(conversationHandler.Merge)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/analytics", Handler: protected(http.HandlerFunc(conversationHandler.Analytics)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/suggested-apps", Handler: protected(http.HandlerFunc(conversationHandler.SuggestedApps)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/conversations/:conversation_id/test-prompt", Handler: protected(http.HandlerFunc(conversationHandler.TestPrompt)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/dev/user/conversations/from-segments", Handler: protected(http.HandlerFunc(conversationHandler.FromSegments)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id", Handler: protected(http.HandlerFunc(conversationHandler.Item)).ServeHTTP},
