@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -120,6 +121,28 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, http.StatusConflict, "screen_frame_egress_unavailable")
 		return
 	}
+	if h.DB != nil {
+		fingerprintBytes, _ := json.Marshal(in)
+		sum := sha256.Sum256(fingerprintBytes)
+		response, state, reserveErr := h.reserveAttempt(r.Context(), uid, in.Purpose, in.AttemptID, hex.EncodeToString(sum[:]))
+		if reserveErr != nil {
+			writeCode(w, http.StatusServiceUnavailable, "attempt_storage_unavailable")
+			return
+		}
+		if state == "conflict" {
+			writeCode(w, http.StatusConflict, "attempt_id_reused_with_different_request")
+			return
+		}
+		if state == "replay" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(response)
+			return
+		}
+		if state == "in_progress" {
+			writeCode(w, http.StatusServiceUnavailable, "adjudication_in_progress_retry")
+			return
+		}
+	}
 	judge := h.Judge
 	if judge == nil && strings.TrimSpace(os.Getenv("SCREEN_FRAME_JUDGE_ENDPOINT")) != "" {
 		judge = HTTPJudge{Endpoint: strings.TrimSpace(os.Getenv("SCREEN_FRAME_JUDGE_ENDPOINT"))}
@@ -147,7 +170,9 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(approved) == 0 {
-		writeJSON(w, http.StatusOK, map[string]any{"attempt_id": in.AttemptID, "outcome": "no_approved_frames", "frame_set": emptyFrameSet()})
+		result := map[string]any{"attempt_id": in.AttemptID, "outcome": "no_approved_frames", "frame_set": emptyFrameSet()}
+		h.storeAttemptResult(r.Context(), uid, in.AttemptID, result)
+		writeJSON(w, http.StatusOK, result)
 		return
 	}
 	if h.DB == nil || h.Store == nil {
@@ -159,13 +184,62 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, http.StatusServiceUnavailable, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"attempt_id": in.AttemptID, "outcome": "committed", "frame_set": frameSet})
+	result := map[string]any{"attempt_id": in.AttemptID, "outcome": "committed", "frame_set": frameSet}
+	h.storeAttemptResult(r.Context(), uid, in.AttemptID, result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 type approvedCandidate struct {
 	Candidate Candidate
 	JPEG      []byte
 	Judgement Judgement
+}
+
+func (h Handler) reserveAttempt(ctx context.Context, uid, purpose string, id uuid.UUID, fingerprint string) ([]byte, string, error) {
+	var existingFingerprint string
+	var response []byte
+	err := h.DB.QueryRowContext(ctx, `SELECT fingerprint,response FROM screen_frame_adjudication_attempts WHERE user_external_uid=? AND purpose=? AND attempt_id=?`, uid, purpose, id.String()).Scan(&existingFingerprint, &response)
+	if err == nil {
+		if existingFingerprint != fingerprint {
+			return nil, "conflict", nil
+		}
+		if len(response) > 0 {
+			return response, "replay", nil
+		}
+		return nil, "in_progress", nil
+	}
+	if err != sql.ErrNoRows {
+		return nil, "", err
+	}
+	if _, err = h.DB.ExecContext(ctx, `INSERT INTO screen_frame_adjudication_attempts(user_external_uid,purpose,attempt_id,fingerprint,response,created_at) VALUES(?,?,?, ?,NULL,UTC_TIMESTAMP(6))`, uid, purpose, id.String(), fingerprint); err == nil {
+		return nil, "new", nil
+	}
+	return h.reserveAttemptAfterRace(ctx, uid, purpose, id, fingerprint)
+}
+
+func (h Handler) reserveAttemptAfterRace(ctx context.Context, uid, purpose string, id uuid.UUID, fingerprint string) ([]byte, string, error) {
+	var existingFingerprint string
+	var response []byte
+	if err := h.DB.QueryRowContext(ctx, `SELECT fingerprint,response FROM screen_frame_adjudication_attempts WHERE user_external_uid=? AND purpose=? AND attempt_id=?`, uid, purpose, id.String()).Scan(&existingFingerprint, &response); err != nil {
+		return nil, "", err
+	}
+	if existingFingerprint != fingerprint {
+		return nil, "conflict", nil
+	}
+	if len(response) > 0 {
+		return response, "replay", nil
+	}
+	return nil, "in_progress", nil
+}
+
+func (h Handler) storeAttemptResult(ctx context.Context, uid string, id uuid.UUID, result map[string]any) {
+	if h.DB == nil {
+		return
+	}
+	encoded, err := json.Marshal(result)
+	if err == nil {
+		_, _ = h.DB.ExecContext(ctx, `UPDATE screen_frame_adjudication_attempts SET response=? WHERE user_external_uid=? AND attempt_id=?`, encoded, uid, id.String())
+	}
 }
 
 func (h Handler) persistApproved(ctx context.Context, uid string, in Request, approved []approvedCandidate) (map[string]any, error) {

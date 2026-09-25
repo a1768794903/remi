@@ -29,7 +29,7 @@ var wipeSQLTables = []wipeSQLTable{
 	{"candidates", "user_external_uid"}, {"speech_profiles", "user_external_uid"},
 	{"referral_claims", "referred_uid"}, {"referral_claims", "referrer_uid"},
 	{"mobile_feedback", "user_external_uid"}, {"advice", "user_external_uid"},
-	{"recording_sessions", "user_external_uid"}, {"frame_requests", "user_external_uid"},
+	{"recording_sessions", "user_external_uid"}, {"frame_requests", "user_external_uid"}, {"screen_frame_adjudication_attempts", "user_external_uid"},
 	{"plugins_data", "uid"}, {"user_enabled_apps", "user_external_uid"},
 	{"app_reviews", "reviewer_uid"}, {"app_testers", "uid"},
 	{"mcp_api_keys", "user_external_uid"}, {"mcp_oauth_grants", "user_external_uid"},
