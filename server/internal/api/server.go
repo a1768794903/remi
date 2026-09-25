@@ -117,6 +117,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	notificationAPIHandler := notificationapi.Handler{DB: db}
 	triggerHandler := trigger.NewHandler(redisClient)
 	triggerHandler.DB = db
+	screenFrameAdjudicationHandler := screenframes.Handler{DB: db, Store: frameRequestHandler.Store}
 	server.AddRoutes([]rest.Route{
 		{Method: http.MethodGet, Path: "/v1/account/cutover/control", Handler: protected(http.HandlerFunc(accountHandler.CutoverControl)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
@@ -522,7 +523,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/users/private-cloud-sync", Handler: protected(http.HandlerFunc(userHandler.PrivateCloudSync)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/screen-frame-egress/settings", Handler: protected(http.HandlerFunc(userHandler.ScreenFrameSettings)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/screen-frame-egress/settings", Handler: protected(http.HandlerFunc(userHandler.ScreenFrameSettings)).ServeHTTP},
-		{Method: http.MethodPost, Path: "/v1/screen-frame-egress/adjudications", Handler: protected(http.HandlerFunc(screenframes.Handler{}.ServeHTTP)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/screen-frame-egress/adjudications", Handler: protected(http.HandlerFunc(screenFrameAdjudicationHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},
 		{Method: http.MethodDelete, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},

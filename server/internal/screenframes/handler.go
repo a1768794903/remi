@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -18,9 +19,14 @@ import (
 
 	"github.com/google/uuid"
 	"remi/server/internal/auth"
+	"remi/server/internal/framerequests"
 )
 
-type Handler struct{ Judge Judge }
+type Handler struct {
+	Judge Judge
+	DB    *sql.DB
+	Store framerequests.Store
+}
 
 type Judge interface {
 	Judge(context.Context, string, []byte) (Judgement, error)
@@ -122,8 +128,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, http.StatusServiceUnavailable, "judge_unavailable")
 		return
 	}
+	approved := make([]approvedCandidate, 0, len(in.Candidates))
 	for _, candidate := range in.Candidates {
-		raw, _ := decodeAndVerify(candidate.BytesBase64, candidate.SHA256Base64)
+		raw, decodeErr := decodeAndVerify(candidate.BytesBase64, candidate.SHA256Base64)
+		if decodeErr != nil {
+			continue
+		}
 		canonical, err := canonicalJPEG(raw)
 		if err != nil {
 			continue
@@ -133,11 +143,79 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if judgement.Outcome == "approved_clean" {
-			writeCode(w, http.StatusNotImplemented, "screen_frame_writer_not_implemented")
-			return
+			approved = append(approved, approvedCandidate{Candidate: candidate, JPEG: canonical, Judgement: judgement})
 		}
 	}
-	writeCode(w, http.StatusOK, "no_approved_frames")
+	if len(approved) == 0 {
+		writeJSON(w, http.StatusOK, map[string]any{"attempt_id": in.AttemptID, "outcome": "no_approved_frames", "frame_set": emptyFrameSet()})
+		return
+	}
+	if h.DB == nil || h.Store == nil {
+		writeCode(w, http.StatusServiceUnavailable, "screen_frame_writer_unavailable")
+		return
+	}
+	frameSet, err := h.persistApproved(r.Context(), uid, in, approved)
+	if err != nil {
+		writeCode(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"attempt_id": in.AttemptID, "outcome": "committed", "frame_set": frameSet})
+}
+
+type approvedCandidate struct {
+	Candidate Candidate
+	JPEG      []byte
+	Judgement Judgement
+}
+
+func (h Handler) persistApproved(ctx context.Context, uid string, in Request, approved []approvedCandidate) (map[string]any, error) {
+	var status string
+	var started, ended time.Time
+	var enabled bool
+	if err := h.DB.QueryRowContext(ctx, `SELECT c.status,c.started_at,c.ended_at,u.meeting_note_screenshots_enabled FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=?`, in.Subject.ID, uid).Scan(&status, &started, &ended, &enabled); err != nil {
+		return nil, fmt.Errorf("conversation_not_found")
+	}
+	if status != "completed" {
+		return nil, fmt.Errorf("conversation_not_completed")
+	}
+	if !enabled {
+		return nil, fmt.Errorf("meeting_note_screenshots_disabled")
+	}
+	for _, item := range approved {
+		captured, err := time.Parse(time.RFC3339Nano, item.Candidate.CapturedAt)
+		if err != nil || captured.Before(started.Add(-120*time.Second)) || captured.After(ended.Add(120*time.Second)) {
+			return nil, fmt.Errorf("captured_at_outside_conversation_window")
+		}
+	}
+	tx, err := h.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	var raw []byte
+	if err = tx.QueryRowContext(ctx, `SELECT COALESCE(photos,JSON_ARRAY()) FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=? FOR UPDATE`, in.Subject.ID, uid).Scan(&raw); err != nil {
+		return nil, err
+	}
+	photos := []map[string]any{}
+	_ = json.Unmarshal(raw, &photos)
+	for _, item := range approved {
+		if len(photos) >= 7 {
+			break
+		}
+		id := "screen-" + uuid.NewString()
+		if err = h.Store.Put(ctx, uid, id, item.JPEG); err != nil {
+			return nil, err
+		}
+		photos = append(photos, map[string]any{"id": id, "storage_id": id, "content_type": "image/jpeg", "created_at": time.Now().UTC(), "captured_at": item.Candidate.CapturedAt, "caption": item.Judgement.Caption, "labels": item.Judgement.Labels, "source_badge": item.Judgement.SourceBadge, "width": item.Candidate.DeclaredWidth, "height": item.Candidate.DeclaredHeight})
+	}
+	encoded, _ := json.Marshal(photos)
+	if _, err = tx.ExecContext(ctx, `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=? WHERE c.id=? AND u.external_uid=?`, encoded, in.Subject.ID, uid); err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	return frameSetFromPhotos(in.Subject.ID, photos), nil
 }
 
 func Validate(in Request) error {
@@ -219,6 +297,28 @@ func validateJudgement(j Judgement) error {
 		return fmt.Errorf("invalid_judge_metadata")
 	}
 	return nil
+}
+
+func emptyFrameSet() map[string]any {
+	return map[string]any{"revision": 0, "banner": nil, "strip": []any{}}
+}
+
+func frameSetFromPhotos(conversationID string, photos []map[string]any) map[string]any {
+	strip := make([]map[string]any, 0, len(photos))
+	for index, photo := range photos {
+		id, _ := photo["id"].(string)
+		if id == "" {
+			continue
+		}
+		strip = append(strip, map[string]any{"id": id, "role": "strip", "rank": index, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "content_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image", "thumbnail_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image"})
+	}
+	return map[string]any{"revision": 1, "banner": nil, "strip": strip}
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
 }
 
 func writeCode(w http.ResponseWriter, status int, code string) {
