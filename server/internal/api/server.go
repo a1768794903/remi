@@ -78,6 +78,7 @@ import (
 	"remi/server/internal/toolsapi"
 	"remi/server/internal/transcripts"
 	"remi/server/internal/trends"
+	"remi/server/internal/trigger"
 	"remi/server/internal/tts"
 	"remi/server/internal/users"
 	"remi/server/internal/voice"
@@ -392,6 +393,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v4/listen", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v4/web/listen", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/omni/relay", Handler: protected(http.HandlerFunc(omni.NewHandler().ServeHTTP)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/trigger/listen", Handler: protected(http.HandlerFunc(trigger.NewHandler(redisClient).ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/realtime/session", Handler: protected(http.HandlerFunc(realtimeHandler.Mint)).ServeHTTP},
