@@ -118,6 +118,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/batch-requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Batch)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/users/migration/requests/data-protection-level/finalize", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Finalize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/analytics/chat_message", Handler: protected(http.HandlerFunc(chatHandler.Analytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/conversation-finalization-jobs/run", Handler: conversations.Handler{Service: conversationHandler.Service, Queue: conversationHandler.Queue, Transcripts: conversationHandler.Transcripts, Provider: conversationHandler.Provider}.RunFinalizationJob},
