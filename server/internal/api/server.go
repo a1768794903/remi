@@ -69,6 +69,7 @@ import (
 	"remi/server/internal/releases"
 	"remi/server/internal/scores"
 	"remi/server/internal/screenactivity"
+	"remi/server/internal/screenframes"
 	"remi/server/internal/speechprofile"
 	"remi/server/internal/stagedtasks"
 	"remi/server/internal/staticmap"
@@ -521,6 +522,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/users/private-cloud-sync", Handler: protected(http.HandlerFunc(userHandler.PrivateCloudSync)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/screen-frame-egress/settings", Handler: protected(http.HandlerFunc(userHandler.ScreenFrameSettings)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/screen-frame-egress/settings", Handler: protected(http.HandlerFunc(userHandler.ScreenFrameSettings)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/screen-frame-egress/adjudications", Handler: protected(http.HandlerFunc(screenframes.Handler{}.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},
 		{Method: http.MethodDelete, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},
