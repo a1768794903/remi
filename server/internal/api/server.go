@@ -25,6 +25,7 @@ import (
 	"remi/server/internal/candidates"
 	"remi/server/internal/chat"
 	"remi/server/internal/chatfiles"
+	"remi/server/internal/chatfirst"
 	"remi/server/internal/config"
 	"remi/server/internal/conversations"
 	"remi/server/internal/csat"
@@ -115,6 +116,10 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/account/cutover/control", Handler: protected(http.HandlerFunc(accountHandler.CutoverControl)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
 		{Method: http.MethodPost, Path: "/v1/agents/hume/callback", Handler: hume.Handler{DB: db}.Callback},
+		{Method: http.MethodPost, Path: "/v1/chat-first/blocks/validate", Handler: protected(http.HandlerFunc(chatfirst.Handler{DB: db}.Validate)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/chat/materialize-prompts", Handler: protected(http.HandlerFunc(chatfirst.Handler{DB: db}.Materialize)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v2/chat/materialize-prompts", Handler: protected(http.HandlerFunc(chatfirst.Handler{DB: db}.Materialize)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/chat/deferrals", Handler: protected(http.HandlerFunc(chatfirst.Handler{DB: db}.Deferral)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/jit/rollout-decision", Handler: protected(http.HandlerFunc(jit.Handler{}.RolloutDecision)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/jit/trigger-snapshot", Handler: protected(http.HandlerFunc(jit.Handler{}.TriggerSnapshot)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/jit/trigger-feedback", Handler: protected(http.HandlerFunc(jit.Handler{}.TriggerFeedback)).ServeHTTP},
