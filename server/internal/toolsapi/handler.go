@@ -2,6 +2,7 @@ package toolsapi
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,11 +21,61 @@ import (
 )
 
 type Handler struct {
+	DB            *sql.DB
 	Conversations conversations.Service
 	Memories      memories.Service
 	Actions       actionitems.Service
 	Integrations  integrations.Service
 	HTTP          *http.Client
+}
+
+func (h Handler) SearchChunks(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	var in struct {
+		Query string `json:"query"`
+		Limit int    `json:"limit"`
+	}
+	if json.NewDecoder(r.Body).Decode(&in) != nil || strings.TrimSpace(in.Query) == "" {
+		writeError(w, http.StatusBadRequest, "query is required")
+		return
+	}
+	if in.Limit < 1 {
+		in.Limit = 20
+	}
+	if in.Limit > 30 {
+		in.Limit = 30
+	}
+	if h.DB == nil {
+		writeFailure(w, "search_conversation_chunks")
+		return
+	}
+	rows, err := h.DB.QueryContext(r.Context(), `SELECT t.conversation_id,c.title,t.text,t.created_at FROM transcript_segments t JOIN conversations c ON c.id=t.conversation_id JOIN users u ON u.id=c.user_id WHERE u.external_uid=? AND t.text LIKE ? ORDER BY t.created_at DESC LIMIT ?`, uid, "%"+in.Query+"%", in.Limit)
+	if err != nil {
+		writeFailure(w, "search_conversation_chunks")
+		return
+	}
+	defer rows.Close()
+	parts := []string{}
+	sources := []any{}
+	for i := 1; rows.Next(); i++ {
+		var conversationID sql.NullInt64
+		var title, text string
+		var created time.Time
+		if rows.Scan(&conversationID, &title, &text, &created) != nil {
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("Excerpt %d (relevance: 1.00):\n%s", i, text))
+		sources = append(sources, map[string]any{"kind": "conversation", "source_id": conversationID.Int64, "title": title, "preview": text, "created_at": created.UTC().Format(time.RFC3339)})
+	}
+	if len(parts) == 0 {
+		writeOK(w, "search_conversation_chunks", fmt.Sprintf("No transcript excerpts found matching '%s'.", in.Query))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tool_name": "search_conversation_chunks", "result_text": strings.Join(parts, "\n\n"), "is_error": false, "sources": sources})
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

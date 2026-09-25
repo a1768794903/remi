@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
 )
 
 func TestUnknownToolEndpointReturnsNotFound(t *testing.T) {

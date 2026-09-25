@@ -1107,3 +1107,33 @@ CREATE TABLE IF NOT EXISTS desktop_prompts (
   updated_at DATETIME(6) NOT NULL,
   INDEX idx_desktop_prompts_active_id (active, external_id)
 );
+
+CREATE TABLE IF NOT EXISTS `fair_use_state` (
+    `user_external_uid` varchar(255) NOT NULL,
+    `stage` varchar(32) NOT NULL DEFAULT 'none',
+    `case_ref` varchar(128) NOT NULL DEFAULT '',
+    `daily_speech_ms` bigint NOT NULL DEFAULT 0,
+    `three_day_speech_ms` bigint NOT NULL DEFAULT 0,
+    `weekly_speech_ms` bigint NOT NULL DEFAULT 0,
+    `dg_daily_limit_ms` bigint NOT NULL DEFAULT 0,
+    `dg_used_ms` bigint NOT NULL DEFAULT 0,
+    `dg_resets_at` datetime(6) NULL,
+    `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`user_external_uid`),
+    CONSTRAINT `fair_use_state_user_fk` FOREIGN KEY (`user_external_uid`) REFERENCES `users` (`external_uid`) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS `fair_use_events` (
+    `user_external_uid` varchar(255) NOT NULL,
+    `event_id` varchar(128) NOT NULL,
+    `case_ref` varchar(128) NOT NULL,
+    `stage` varchar(32) NOT NULL,
+    `notes` text NULL,
+    `resolved_by` varchar(128) NULL,
+    `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `resolved_at` datetime(6) NULL,
+    PRIMARY KEY (`user_external_uid`, `event_id`),
+    KEY `fair_use_events_case_ref` (`case_ref`),
+    CONSTRAINT `fair_use_events_user_fk` FOREIGN KEY (`user_external_uid`) REFERENCES `users` (`external_uid`) ON DELETE CASCADE
+);

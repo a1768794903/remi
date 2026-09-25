@@ -33,6 +33,8 @@ import (
 	"remi/server/internal/desktopusage"
 	"remi/server/internal/developer"
 	"remi/server/internal/devkeys"
+	"remi/server/internal/emailprefs"
+	"remi/server/internal/fairuse"
 	"remi/server/internal/firmware"
 	"remi/server/internal/focussessions"
 	"remi/server/internal/folders"
@@ -45,6 +47,7 @@ import (
 	"remi/server/internal/mcp"
 	"remi/server/internal/mcpkeys"
 	"remi/server/internal/memories"
+	"remi/server/internal/metrics"
 	"remi/server/internal/mobilefeedback"
 	"remi/server/internal/notifications"
 	"remi/server/internal/payments"
@@ -104,6 +107,13 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/proxy/deepgram/ws/v1/listen", Handler: deprecatedEndpoint},
 		{Method: http.MethodPost, Path: "/v1/proxy/deepgram/ws/v1/listen", Handler: deprecatedEndpoint},
 		{Method: http.MethodGet, Path: "/v1/announcements/changelogs", Handler: announcements.Handler{DB: db}.Public},
+		{Method: http.MethodGet, Path: "/v1/fair-use/status", Handler: protected(http.HandlerFunc(fairuse.Handler{DB: db}.Status)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/admin/fair-use/flagged", Handler: fairuse.Handler{DB: db}.Admin},
+		{Method: http.MethodGet, Path: "/v1/admin/fair-use/user/:uid", Handler: fairuse.Handler{DB: db}.Admin},
+		{Method: http.MethodPost, Path: "/v1/admin/fair-use/user/:uid/reset", Handler: fairuse.Handler{DB: db}.Admin},
+		{Method: http.MethodPost, Path: "/v1/admin/fair-use/user/:uid/set-stage", Handler: fairuse.Handler{DB: db}.Admin},
+		{Method: http.MethodPost, Path: "/v1/admin/fair-use/user/:uid/resolve-event/:event_id", Handler: fairuse.Handler{DB: db}.Admin},
+		{Method: http.MethodGet, Path: "/v1/admin/fair-use/case/:case_ref", Handler: fairuse.Handler{DB: db}.Admin},
 		{Method: http.MethodGet, Path: "/v1/announcements/features", Handler: announcements.Handler{DB: db}.Public},
 		{Method: http.MethodGet, Path: "/v1/announcements/general", Handler: announcements.Handler{DB: db}.Public},
 		{Method: http.MethodGet, Path: "/v1/announcements/pending", Handler: protected(http.HandlerFunc(announcements.Handler{DB: db}.Pending)).ServeHTTP},
@@ -116,6 +126,8 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/", Handler: desktopHealthHandler(false)},
 		{Method: http.MethodGet, Path: "/health", Handler: desktopHealthHandler(false)},
 		{Method: http.MethodGet, Path: "/v1/health", Handler: desktopHealthHandler(false)},
+		{Method: http.MethodGet, Path: "/email/unsubscribe", Handler: emailprefs.Handler{DB: db}.ServeHTTP},
+		{Method: http.MethodPost, Path: "/email/unsubscribe", Handler: emailprefs.Handler{DB: db}.ServeHTTP},
 		{Method: http.MethodGet, Path: "/v2/firmware/latest", Handler: firmware.Handler{}.ServeHTTP},
 		{Method: http.MethodGet, Path: "/v2/firmware/stable", Handler: firmware.Handler{}.ServeHTTP},
 		{Method: http.MethodGet, Path: "/v2/firmware/version", Handler: firmware.Handler{}.ServeHTTP},
@@ -136,6 +148,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/agent/execute-tool", Handler: protected(http.HandlerFunc(agenttools.Handler{Actions: actionHandler.Service, Memories: memoryHandler.Service, Integrations: integrationHandler.Service}.Execute)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/tools/conversations", Handler: protected(http.HandlerFunc(toolsapi.Handler{Conversations: conversationHandler.Service, Memories: memoryHandler.Service, Actions: actionHandler.Service, Integrations: integrationHandler.Service}.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/tools/conversations/search", Handler: protected(http.HandlerFunc(toolsapi.Handler{Conversations: conversationHandler.Service, Memories: memoryHandler.Service, Actions: actionHandler.Service, Integrations: integrationHandler.Service}.ServeHTTP)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/tools/conversations/search-chunks", Handler: protected(http.HandlerFunc(toolsapi.Handler{DB: db}.SearchChunks)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/tools/memories", Handler: protected(http.HandlerFunc(toolsapi.Handler{Conversations: conversationHandler.Service, Memories: memoryHandler.Service, Actions: actionHandler.Service, Integrations: integrationHandler.Service}.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/tools/memories/search", Handler: protected(http.HandlerFunc(toolsapi.Handler{Conversations: conversationHandler.Service, Memories: memoryHandler.Service, Actions: actionHandler.Service, Integrations: integrationHandler.Service}.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/tools/action-items", Handler: protected(http.HandlerFunc(toolsapi.Handler{Conversations: conversationHandler.Service, Memories: memoryHandler.Service, Actions: actionHandler.Service, Integrations: integrationHandler.Service}.ServeHTTP)).ServeHTTP},
@@ -234,6 +247,8 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/updates/releases", Handler: releases.Handler{DB: db, Secret: os.Getenv("RELEASE_SECRET")}.Create},
 		{Method: http.MethodPatch, Path: "/updates/releases/promote", Handler: releases.Handler{DB: db, Secret: os.Getenv("RELEASE_SECRET")}.Promote},
 		{Method: http.MethodGet, Path: "/healthz", Handler: health.Handler(func() bool { return true }).ServeHTTP},
+		{Method: http.MethodGet, Path: "/metrics", Handler: metrics.Handler{}.ServeHTTP},
+		{Method: http.MethodGet, Path: "/.well-known/openai-apps-challenge", Handler: openAIAppsChallenge},
 		{Method: http.MethodPost, Path: "/v1/import/limitless", Handler: protected(http.HandlerFunc(imports.Handler{DB: db}.Create)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/import/jobs", Handler: protected(http.HandlerFunc(imports.Handler{DB: db}.List)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/import/jobs/:job_id", Handler: protected(http.HandlerFunc(imports.Handler{DB: db}.Item)).ServeHTTP},
@@ -301,6 +316,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/readyz", Handler: health.Handler(func() bool { return true }).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/audio/stream", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v4/listen", Handler: protected(audioHandler).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v4/web/listen", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/realtime/session", Handler: protected(http.HandlerFunc(realtimeHandler.Mint)).ServeHTTP},
@@ -370,6 +386,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/apps/tester/check", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.TesterCheck)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/apps/public/unapproved", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Unapproved).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/personas/:persona_id", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.PersonaAdmin).ServeHTTP},
+		{Method: http.MethodPatch, Path: "/v1/personas/:persona_id", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.PersonaAdmin)).ServeHTTP},
 		{Method: http.MethodDelete, Path: "/v1/personas/:persona_id", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.PersonaAdmin).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/:app_id/keys", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.AppAPIKeys)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/apps/:app_id/keys", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.AppAPIKeys)).ServeHTTP},
@@ -393,6 +410,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/apps/enable", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Toggle)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/disable", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Toggle)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v2/apps", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Catalog).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v2/apps/capability/:capability_id/grouped", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Catalog).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v2/apps/search", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Search)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/apps/review", Handler: protected(http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Review)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/apps/:app_id/reviews", Handler: http.HandlerFunc(apps.Handler{Service: apps.Service{DB: db}}.Reviews).ServeHTTP},
@@ -639,6 +657,11 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 
 func retiredAgentVM(w http.ResponseWriter, r *http.Request) {
 	writeJSONError(w, http.StatusGone, "The cloud Agent VM has been retired and can no longer be provisioned.")
+}
+
+func openAIAppsChallenge(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte(os.Getenv("OPENAI_APPS_CHALLENGE_TOKEN")))
 }
 
 func deprecatedEndpoint(w http.ResponseWriter, r *http.Request) {

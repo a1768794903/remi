@@ -854,6 +854,9 @@ func pagination(total, offset, limit int) map[string]any {
 func (h Handler) Catalog(w http.ResponseWriter, r *http.Request) {
 	offset, limit := boundedPage(r.URL.Query().Get("offset"), r.URL.Query().Get("limit"))
 	capability, category := r.URL.Query().Get("capability"), r.URL.Query().Get("category")
+	if capability == "" && strings.Contains(r.URL.Path, "/capability/") {
+		capability = r.PathValue("capability_id")
+	}
 	items, err := h.Service.List(r.Context(), "", false)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
