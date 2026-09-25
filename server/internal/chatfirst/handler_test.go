@@ -19,3 +19,12 @@ func TestValidateBlockRequestRejectsCrossAccountOwnerFence(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 }
+
+func TestJSONEquivalentIgnoresObjectKeyOrder(t *testing.T) {
+	if !jsonEquivalent([]byte(`{"subject":{"id":"x","kind":"task"}}`), []byte(`{"subject":{"kind":"task","id":"x"}}`)) {
+		t.Fatal("equivalent JSON was treated as different")
+	}
+	if jsonEquivalent([]byte(`{"id":"x"}`), []byte(`{"id":"y"}`)) {
+		t.Fatal("different JSON was treated as equivalent")
+	}
+}

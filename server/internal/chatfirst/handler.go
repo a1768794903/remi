@@ -60,6 +60,16 @@ func stableBlockID(uid string, generation int64, raw []byte) string {
 	return "cfb_" + hex.EncodeToString(sum[:])[:24]
 }
 
+func jsonEquivalent(left, right []byte) bool {
+	var a, b any
+	if json.Unmarshal(left, &a) != nil || json.Unmarshal(right, &b) != nil {
+		return false
+	}
+	canonicalA, errA := json.Marshal(a)
+	canonicalB, errB := json.Marshal(b)
+	return errA == nil && errB == nil && string(canonicalA) == string(canonicalB)
+}
+
 func chatFirstEnabled() bool {
 	return strings.EqualFold(strings.TrimSpace(os.Getenv("CHAT_FIRST_ENABLED")), "true")
 }
@@ -213,7 +223,23 @@ func (h Handler) Deferral(w http.ResponseWriter, r *http.Request) {
 	id := "def_" + hex.EncodeToString(hash[:])[:32]
 	now := time.Now().UTC()
 	due := now.Add(24 * time.Hour)
-	_, err = h.DB.ExecContext(r.Context(), `INSERT INTO chat_first_deferrals(deferral_id,user_external_uid,continuity_key,account_generation,subject,question,created_at,due_at,state) VALUES(?,?,?,?,?,?,?,?,'pending') ON DUPLICATE KEY UPDATE deferral_id=deferral_id`, id, uid, in.ContinuityKey, in.ControlGeneration, subject, question, now, due)
+	var existingID, existingState string
+	var existingDue time.Time
+	var existingSubject, existingQuestion []byte
+	lookupErr := h.DB.QueryRowContext(r.Context(), `SELECT deferral_id,due_at,state,subject,question FROM chat_first_deferrals WHERE user_external_uid=? AND account_generation=? AND continuity_key=?`, uid, in.ControlGeneration, in.ContinuityKey).Scan(&existingID, &existingDue, &existingState, &existingSubject, &existingQuestion)
+	if lookupErr == nil {
+		if !jsonEquivalent(existingSubject, subject) || !jsonEquivalent(existingQuestion, question) {
+			http.Error(w, "deferral continuity conflict", http.StatusConflict)
+			return
+		}
+		writeJSON(w, 200, map[string]any{"deferral_id": existingID, "due_at": existingDue, "state": existingState})
+		return
+	}
+	if lookupErr != sql.ErrNoRows {
+		http.Error(w, "chat-first deferral storage unavailable", 503)
+		return
+	}
+	_, err = h.DB.ExecContext(r.Context(), `INSERT INTO chat_first_deferrals(deferral_id,user_external_uid,continuity_key,account_generation,subject,question,created_at,due_at,state) VALUES(?,?,?,?,?,?,?,?,'pending')`, id, uid, in.ContinuityKey, in.ControlGeneration, subject, question, now, due)
 	if err != nil {
 		http.Error(w, "chat-first deferral storage unavailable", 503)
 		return
