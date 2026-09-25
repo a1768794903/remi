@@ -20,3 +20,14 @@ func TestParseFrameRejectsMalformedFrames(t *testing.T) {
 		}
 	}
 }
+
+func TestSafeWebhookURLRejectsPrivateLiteralTargets(t *testing.T) {
+	for _, raw := range []string{"http://127.0.0.1/hook", "http://10.0.0.2/hook", "file:///tmp/hook", "not-a-url"} {
+		if safeWebhookURL(raw) {
+			t.Fatalf("expected unsafe URL: %s", raw)
+		}
+	}
+	if !safeWebhookURL("https://example.com/hook") {
+		t.Fatal("expected public HTTPS URL")
+	}
+}

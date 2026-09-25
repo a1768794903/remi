@@ -3,9 +3,11 @@ package trigger
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -28,6 +30,7 @@ const (
 // wire protocol (little-endian uint32 frame type followed by a type-specific
 // payload) and drains bounded transcript/audio queues on disconnect.
 type Handler struct {
+	DB      *sql.DB
 	Redis   *redis.Client
 	HTTP    *http.Client
 	Upgrade websocket.Upgrader
@@ -58,12 +61,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	audioDelay := h.audioWebhookDelay(r.Context(), uid)
+	appAudioEnabled := h.audioAppEnabled(r.Context(), uid)
 	audioQueue := make(chan []byte, 20)
+	appAudioQueue := make(chan []byte, 20)
 	transcriptQueue := make(chan transcriptItem, 50)
 	var webhookAudio []byte
+	var appAudio []byte
 	var workers sync.WaitGroup
-	workers.Add(2)
+	workers.Add(3)
 	go func() { defer workers.Done(); h.audioWorker(r.Context(), uid, rate, audioDelay, audioQueue) }()
+	go func() { defer workers.Done(); h.appAudioWorker(r.Context(), uid, rate, appAudioQueue) }()
 	go func() { defer workers.Done(); h.transcriptWorker(r.Context(), uid, transcriptQueue) }()
 	defer func() {
 		if len(webhookAudio) > 0 {
@@ -72,7 +79,14 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 		}
+		if len(appAudio) > 0 {
+			select {
+			case appAudioQueue <- append([]byte(nil), appAudio...):
+			default:
+			}
+		}
 		close(audioQueue)
+		close(appAudioQueue)
 		close(transcriptQueue)
 		workers.Wait()
 	}()
@@ -111,9 +125,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if len(webhookAudio)+len(pcm) <= maxBuffered {
 				webhookAudio = append(webhookAudio, pcm...)
 			}
+			if appAudioEnabled && len(appAudio)+len(pcm) <= maxBuffered {
+				appAudio = append(appAudio, pcm...)
+			}
 			if audioDelay > 0 {
 				flush(&webhookAudio, rate*2*audioDelay, audioQueue)
 			}
+			flush(&appAudio, rate*2*4, appAudioQueue)
 		case 102:
 			var input struct {
 				Segments []map[string]any `json:"segments"`
@@ -199,6 +217,63 @@ func (h Handler) audioWorker(ctx context.Context, uid string, rate, delay int, q
 		req.Header.Set("Content-Type", "application/octet-stream")
 		_, _ = h.client().Do(req)
 	}
+}
+
+func (h Handler) audioAppEnabled(ctx context.Context, uid string) bool {
+	if h.DB == nil {
+		return false
+	}
+	var one int
+	err := h.DB.QueryRowContext(ctx, `SELECT 1 FROM plugins_data p JOIN user_enabled_apps e ON e.app_id=p.id AND e.user_external_uid=? WHERE p.status='approved' AND COALESCE(p.disabled,FALSE)=FALSE AND JSON_UNQUOTE(JSON_EXTRACT(p.external_integration,'$.triggers_on'))='audio_bytes' AND JSON_UNQUOTE(JSON_EXTRACT(p.external_integration,'$.webhook_url')) IS NOT NULL LIMIT 1`, uid).Scan(&one)
+	return err == nil && one == 1
+}
+
+func (h Handler) appAudioWorker(ctx context.Context, uid string, rate int, queue <-chan []byte) {
+	for data := range queue {
+		if len(data) == 0 || h.DB == nil {
+			continue
+		}
+		rows, err := h.DB.QueryContext(ctx, `SELECT p.id, JSON_UNQUOTE(JSON_EXTRACT(p.external_integration,'$.webhook_url')) FROM plugins_data p JOIN user_enabled_apps e ON e.app_id=p.id AND e.user_external_uid=? WHERE p.status='approved' AND COALESCE(p.disabled,FALSE)=FALSE AND JSON_UNQUOTE(JSON_EXTRACT(p.external_integration,'$.triggers_on'))='audio_bytes' AND JSON_UNQUOTE(JSON_EXTRACT(p.external_integration,'$.webhook_url')) IS NOT NULL`, uid)
+		if err != nil {
+			continue
+		}
+		for rows.Next() {
+			var appID, endpoint string
+			if rows.Scan(&appID, &endpoint) != nil {
+				continue
+			}
+			if !safeWebhookURL(endpoint) {
+				continue
+			}
+			u, _ := url.Parse(endpoint)
+			q := u.Query()
+			q.Set("sample_rate", strconv.Itoa(rate))
+			q.Set("uid", uid)
+			u.RawQuery = q.Encode()
+			req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(data))
+			if reqErr != nil {
+				continue
+			}
+			req.Header.Set("Content-Type", "application/octet-stream")
+			req.Header.Set("X-Omi-App-ID", appID)
+			resp, doErr := h.client().Do(req)
+			if doErr == nil && resp != nil {
+				resp.Body.Close()
+			}
+		}
+		rows.Close()
+	}
+}
+
+func safeWebhookURL(raw string) bool {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return false
+	}
+	if ip := net.ParseIP(u.Hostname()); ip != nil {
+		return !ip.IsLoopback() && !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsUnspecified()
+	}
+	return true
 }
 
 func (h Handler) transcriptWorker(ctx context.Context, uid string, queue <-chan transcriptItem) {

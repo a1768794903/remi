@@ -114,6 +114,8 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	oauthHandler := mcpkeys.OAuthHandler{Service: mcpkeys.Service{DB: db}, Verifier: verifier}
 	appOAuthHandler := oauthapp.Handler{DB: db, Verifier: verifier}
 	notificationAPIHandler := notificationapi.Handler{DB: db}
+	triggerHandler := trigger.NewHandler(redisClient)
+	triggerHandler.DB = db
 	server.AddRoutes([]rest.Route{
 		{Method: http.MethodGet, Path: "/v1/account/cutover/control", Handler: protected(http.HandlerFunc(accountHandler.CutoverControl)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
@@ -393,7 +395,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v4/listen", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v4/web/listen", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/omni/relay", Handler: protected(http.HandlerFunc(omni.NewHandler().ServeHTTP)).ServeHTTP},
-		{Method: http.MethodGet, Path: "/v1/trigger/listen", Handler: protected(http.HandlerFunc(trigger.NewHandler(redisClient).ServeHTTP)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/trigger/listen", Handler: protected(http.HandlerFunc(triggerHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/realtime/session", Handler: protected(http.HandlerFunc(realtimeHandler.Mint)).ServeHTTP},
