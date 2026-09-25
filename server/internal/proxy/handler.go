@@ -42,6 +42,12 @@ type Handler struct {
 	DB           *sql.DB
 }
 
+type usageCounts struct {
+	Input  int64
+	Output int64
+	Cached int64
+}
+
 const geminiBurstLimit int64 = 30
 const geminiDailyLimit int64 = 1500
 
@@ -140,11 +146,18 @@ func proxyRequestID(r *http.Request) string {
 	return uuid.NewString()
 }
 
-func (h Handler) recordAttempt(ctx context.Context, requestID, uid, provider, model, action, payer string, status int, outcome string, inputBytes int64) {
+func (h Handler) recordAttempt(ctx context.Context, requestID, uid, provider, model, action, payer string, status int, outcome string, inputBytes, inputTokens, outputTokens, cachedTokens int64) {
 	if h.DB == nil {
 		return
 	}
-	_, _ = h.DB.ExecContext(ctx, `INSERT INTO llm_proxy_attempts(request_id,user_external_uid,caller,provider,model,api_surface,payer,outcome,upstream_status,input_bytes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE request_id=request_id`, requestID, nullString(uid), "desktop_proxy", provider, model, action, payer, outcome, status, inputBytes)
+	_, _ = h.DB.ExecContext(ctx, `INSERT INTO llm_proxy_attempts(request_id,user_external_uid,caller,provider,model,api_surface,payer,outcome,upstream_status,input_bytes,input_tokens,output_tokens,cached_tokens,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE request_id=request_id`, requestID, nullString(uid), "desktop_proxy", provider, model, action, payer, outcome, status, inputBytes, inputTokens, outputTokens, cachedTokens)
+}
+
+func (h Handler) updateAttemptUsage(ctx context.Context, requestID string, usage usageCounts) {
+	if h.DB == nil || requestID == "" {
+		return
+	}
+	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET input_tokens=?,output_tokens=?,cached_tokens=? WHERE request_id=?`, usage.Input, usage.Output, usage.Cached, requestID)
 }
 
 func nullString(value string) any {
@@ -154,18 +167,18 @@ func nullString(value string) any {
 	return value
 }
 
-func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider, model, action, uid, payer string) {
+func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider, model, action, uid, payer string, streaming bool) {
 	requestID := proxyRequestID(r)
 	u, err := url.Parse(target)
 	if err != nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "validation_rejected", 0)
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "validation_rejected", 0, 0, 0, 0)
 		http.Error(w, "invalid provider endpoint", 500)
 		return
 	}
 	u.RawQuery = r.URL.RawQuery
 	req, err := http.NewRequestWithContext(r.Context(), r.Method, u.String(), r.Body)
 	if err != nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "transport_error", r.ContentLength)
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "transport_error", r.ContentLength, 0, 0, 0)
 		http.Error(w, "unable to create provider request", 500)
 		return
 	}
@@ -182,7 +195,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	}
 	resp, err := h.client().Do(req)
 	if err != nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "provider_unavailable", r.ContentLength)
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "provider_unavailable", r.ContentLength, 0, 0, 0)
 		w.Header().Set("X-Omi-Request-Id", requestID)
 		w.Header().Set("X-Omi-Provider", provider)
 		w.Header().Set("X-Omi-Error-Class", "provider_unavailable")
@@ -201,7 +214,12 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	if code != "" {
 		outcome = code
 	}
-	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, r.ContentLength)
+	var body []byte
+	if !streaming {
+		body, _ = io.ReadAll(io.LimitReader(resp.Body, maxGeminiBodyBytes*2))
+	}
+	usage := parseUsage(body)
+	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, r.ContentLength, usage.Input, usage.Output, usage.Cached)
 	if code != "" {
 		w.Header().Set("X-Omi-Error-Class", code)
 		w.Header().Set("X-Omi-Failure-Phase", "provider")
@@ -211,7 +229,12 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		}
 	}
 	w.WriteHeader(status)
-	_, _ = io.Copy(w, resp.Body)
+	if !streaming {
+		_, _ = w.Write(body)
+		return
+	}
+	observer := &usageReader{source: resp.Body, limit: maxGeminiBodyBytes * 2, usage: func(value usageCounts) { h.updateAttemptUsage(r.Context(), requestID, value) }}
+	_, _ = io.Copy(w, observer)
 }
 
 func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
@@ -244,7 +267,7 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
 		payer = "byok"
 	}
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, false)
 }
 
 func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
@@ -277,7 +300,7 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
 		payer = "byok"
 	}
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, true)
 }
 
 func (h Handler) meterGemini(w http.ResponseWriter, r *http.Request, path, model string) (string, bool, bool) {
@@ -338,7 +361,85 @@ func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uid, _ := auth.UserID(r.Context())
-	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram", "deepgram", "listen", uid, "omi")
+	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram", "deepgram", "listen", uid, "omi", false)
+}
+
+type usageReader struct {
+	source io.Reader
+	buffer bytes.Buffer
+	limit  int64
+	usage  func(usageCounts)
+	done   bool
+}
+
+func (r *usageReader) Read(p []byte) (int, error) {
+	n, err := r.source.Read(p)
+	if n > 0 && int64(r.buffer.Len()) < r.limit {
+		remaining := r.limit - int64(r.buffer.Len())
+		copyCount := n
+		if int64(copyCount) > remaining {
+			copyCount = int(remaining)
+		}
+		_, _ = r.buffer.Write(p[:copyCount])
+	}
+	if err == io.EOF && !r.done {
+		r.done = true
+		if r.usage != nil {
+			r.usage(parseUsage(r.buffer.Bytes()))
+		}
+	}
+	return n, err
+}
+
+func parseUsage(body []byte) usageCounts {
+	if len(body) == 0 {
+		return usageCounts{}
+	}
+	var root any
+	if json.Unmarshal(body, &root) != nil {
+		// Streaming responses may be newline-delimited or prefixed with data:.
+		for _, line := range strings.Split(string(body), "\n") {
+			line = strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			var candidate any
+			if line != "" && json.Unmarshal([]byte(line), &candidate) == nil {
+				if usage := usageFromJSON(candidate); usage != (usageCounts{}) {
+					root = candidate
+				}
+			}
+		}
+	}
+	return usageFromJSON(root)
+}
+
+func usageFromJSON(value any) usageCounts {
+	object, ok := value.(map[string]any)
+	if !ok {
+		if list, ok := value.([]any); ok {
+			for i := len(list) - 1; i >= 0; i-- {
+				if usage := usageFromJSON(list[i]); usage != (usageCounts{}) {
+					return usage
+				}
+			}
+		}
+		return usageCounts{}
+	}
+	metadata, _ := object["usageMetadata"].(map[string]any)
+	if metadata == nil {
+		metadata, _ = object["usage_metadata"].(map[string]any)
+	}
+	if metadata == nil {
+		for _, item := range object {
+			if usage := usageFromJSON(item); usage != (usageCounts{}) {
+				return usage
+			}
+		}
+		return usageCounts{}
+	}
+	number := func(key string) int64 {
+		value, _ := metadata[key].(float64)
+		return int64(value)
+	}
+	return usageCounts{Input: number("promptTokenCount"), Output: number("candidatesTokenCount"), Cached: number("cachedContentTokenCount")}
 }
 
 func proxyStatus(upstream int) (status int, code string, retryable bool, retryAfter int) {

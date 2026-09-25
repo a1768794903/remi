@@ -96,3 +96,24 @@ func TestProxyStatusMatchesProviderFailureContract(t *testing.T) {
 		}
 	}
 }
+
+func TestParseGeminiUsageMetadata(t *testing.T) {
+	got := parseUsage([]byte(`{"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":7,"cachedContentTokenCount":3}}`))
+	if got != (usageCounts{Input: 12, Output: 7, Cached: 3}) {
+		t.Fatalf("usage=%+v", got)
+	}
+	stream := []byte("data: {\"usageMetadata\":{\"promptTokenCount\":4,\"candidatesTokenCount\":2}}\n")
+	got = parseUsage(stream)
+	if got.Input != 4 || got.Output != 2 {
+		t.Fatalf("stream usage=%+v", got)
+	}
+}
+
+func TestUsageReaderPreservesStreamBytes(t *testing.T) {
+	input := []byte(`{"candidates":[{"finishReason":"STOP"}]}`)
+	reader := &usageReader{source: strings.NewReader(string(input)), limit: 1024}
+	output, err := io.ReadAll(reader)
+	if err != nil || string(output) != string(input) {
+		t.Fatalf("output=%q err=%v", output, err)
+	}
+}
