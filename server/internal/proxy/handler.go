@@ -15,6 +15,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"remi/server/internal/auth"
 )
 
@@ -35,6 +37,8 @@ var allowedGeminiActions = map[string]bool{"generateContent": true, "streamGener
 type Handler struct {
 	GeminiBase   string
 	GeminiAPIKey string
+	VertexBase   string
+	VertexToken  string
 	DeepgramBase string
 	DeepgramKey  string
 	Client       *http.Client
@@ -129,6 +133,159 @@ func (h Handler) deepgramKey() string {
 		return h.DeepgramKey
 	}
 	return os.Getenv("DEEPGRAM_API_KEY")
+}
+
+func (h Handler) vertexProject() string {
+	return strings.TrimSpace(os.Getenv("GOOGLE_CLOUD_PROJECT"))
+}
+
+func (h Handler) vertexBase() string {
+	if h.VertexBase != "" {
+		return strings.TrimRight(h.VertexBase, "/")
+	}
+	location := strings.TrimSpace(os.Getenv("GCP_LOCATION"))
+	if location == "" {
+		location = "us-central1"
+	}
+	return "https://" + location + "-aiplatform.googleapis.com"
+}
+
+func (h Handler) vertexToken(ctx context.Context) (string, error) {
+	if token := strings.TrimSpace(h.VertexToken); token != "" {
+		return token, nil
+	}
+	if token := strings.TrimSpace(os.Getenv("VERTEX_ACCESS_TOKEN")); token != "" {
+		return token, nil
+	}
+	source, err := google.DefaultTokenSource(ctx, "https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return "", err
+	}
+	token, err := source.Token()
+	if err != nil {
+		return "", err
+	}
+	return tokenValue(token), nil
+}
+
+func tokenValue(token *oauth2.Token) string {
+	if token == nil {
+		return ""
+	}
+	return strings.TrimSpace(token.AccessToken)
+}
+
+func vertexEmbeddingRequest(body []byte) ([]byte, error) {
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, fmt.Errorf("invalid JSON request body")
+	}
+	content, _ := payload["content"].(map[string]any)
+	parts, _ := content["parts"].([]any)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("embedContent requires content.parts[0].text")
+	}
+	part, _ := parts[0].(map[string]any)
+	text, _ := part["text"].(string)
+	if strings.TrimSpace(text) == "" {
+		return nil, fmt.Errorf("embedContent requires content.parts[0].text")
+	}
+	instance := map[string]any{"content": text}
+	if value, ok := payload["taskType"]; ok {
+		instance["task_type"] = value
+	}
+	if value, ok := payload["title"]; ok {
+		instance["title"] = value
+	}
+	return json.Marshal(map[string]any{"instances": []any{instance}})
+}
+
+func vertexEmbeddingResponse(body []byte) ([]byte, error) {
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+	predictions, _ := payload["predictions"].([]any)
+	if len(predictions) == 0 {
+		return body, nil
+	}
+	prediction, _ := predictions[0].(map[string]any)
+	embeddings, _ := prediction["embeddings"].(map[string]any)
+	values, ok := embeddings["values"]
+	if !ok {
+		return body, nil
+	}
+	return json.Marshal(map[string]any{"embedding": map[string]any{"values": values}})
+}
+
+func (h Handler) vertexEmbed(w http.ResponseWriter, r *http.Request, body []byte, uid, payer string) {
+	requestID := proxyRequestID(r)
+	project := h.vertexProject()
+	if project == "" {
+		h.forward(w, r, h.geminiBase()+r.URL.Path[strings.Index(r.URL.Path, "/models/"):], h.geminiRequestKey(r), false, "gemini", "gemini-embedding-001", "embedContent", uid, payer, false, nil)
+		return
+	}
+	transformed, err := vertexEmbeddingRequest(body)
+	if err != nil {
+		h.recordAttempt(r.Context(), requestID, 0, uid, "vertex", "gemini-embedding-001", "embedContent", payer, 0, "validation_rejected", int64(len(body)), 0, 0, 0)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	token, err := h.vertexToken(r.Context())
+	if err != nil || token == "" {
+		h.recordAttempt(r.Context(), requestID, 0, uid, "vertex", "gemini-embedding-001", "embedContent", payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
+		w.Header().Set("X-Omi-Request-Id", requestID)
+		writeProxyError(w, http.StatusServiceUnavailable, "provider_unavailable", "Vertex credentials are unavailable", requestID, true)
+		return
+	}
+	location := strings.TrimSpace(os.Getenv("GCP_LOCATION"))
+	if location == "" {
+		location = "us-central1"
+	}
+	endpoint := h.vertexBase() + "/v1/projects/" + url.PathEscape(project) + "/locations/" + url.PathEscape(location) + "/publishers/google/models/gemini-embedding-001:predict"
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, endpoint, bytes.NewReader(transformed))
+	if err != nil {
+		http.Error(w, "could not create Vertex request", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := h.client().Do(req)
+	if err != nil {
+		h.recordAttempt(r.Context(), requestID, 0, uid, "vertex", "gemini-embedding-001", "embedContent", payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
+		writeProxyError(w, http.StatusServiceUnavailable, "provider_unavailable", "provider is temporarily unavailable", requestID, true)
+		return
+	}
+	defer resp.Body.Close()
+	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxGeminiBodyBytes*2))
+	status, code, retryable, retryAfter := proxyStatus(resp.StatusCode)
+	outcome := "success"
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		outcome = proxyAttemptOutcome(resp.StatusCode, responseBody, code)
+	}
+	h.recordAttempt(r.Context(), requestID, 0, uid, "vertex", "gemini-embedding-001", "embedContent", payer, resp.StatusCode, outcome, int64(len(body)), 0, 0, 0)
+	copyHeaders(w.Header(), resp.Header)
+	w.Header().Set("X-Omi-Request-Id", requestID)
+	w.Header().Set("X-Omi-Provider", "vertex")
+	if code != "" {
+		w.Header().Set("X-Omi-Error-Class", code)
+		w.Header().Set("X-Omi-Failure-Phase", "provider")
+		w.Header().Set("X-Omi-Retryable", boolString(retryable))
+		if retryAfter > 0 {
+			w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		}
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		writeProxyError(w, status, code, "Vertex provider rejected the request", requestID, retryable)
+		return
+	}
+	converted, err := vertexEmbeddingResponse(responseBody)
+	if err != nil {
+		http.Error(w, "invalid Vertex embedding response", http.StatusBadGateway)
+		return
+	}
+	w.WriteHeader(resp.StatusCode)
+	_, _ = w.Write(converted)
 }
 
 func copyHeaders(dst, src http.Header) {
@@ -377,6 +534,10 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 	payer := "omi"
 	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
 		payer = "byok"
+	}
+	if model == "gemini-embedding-001" && action == "embedContent" && payer != "byok" && h.vertexProject() != "" {
+		h.vertexEmbed(w, r, body, uid, payer)
+		return
 	}
 	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, false, geminiFallbackPaths(h.geminiBase(), path, model, action))
 }

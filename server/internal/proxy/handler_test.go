@@ -77,6 +77,30 @@ func TestGeminiUsesPerRequestBYOKKey(t *testing.T) {
 	}
 }
 
+func TestGeminiEmbeddingUsesVertexPredictWire(t *testing.T) {
+	t.Setenv("GOOGLE_CLOUD_PROJECT", "project-1")
+	t.Setenv("GCP_LOCATION", "us-central1")
+	var gotPath, gotAuth string
+	var gotBody map[string]any
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("X-Vertex", "ok")
+		_, _ = w.Write([]byte(`{"predictions":[{"embeddings":{"values":[0.1,0.2]}}]}`))
+	}))
+	defer upstream.Close()
+	h := Handler{VertexBase: upstream.URL, VertexToken: "adc-token", Client: upstream.Client()}
+	r := httptest.NewRequest(http.MethodPost, "/v1/proxy/gemini/models/gemini-embedding-001:embedContent", strings.NewReader(`{"content":{"parts":[{"text":"hello"}]},"taskType":"RETRIEVAL_QUERY"}`))
+	w := httptest.NewRecorder()
+	h.Gemini(w, r)
+	instances, _ := gotBody["instances"].([]any)
+	instance, _ := instances[0].(map[string]any)
+	if w.Code != http.StatusOK || gotPath != "/v1/projects/project-1/locations/us-central1/publishers/google/models/gemini-embedding-001:predict" || gotAuth != "Bearer adc-token" || instance["content"] != "hello" || instance["task_type"] != "RETRIEVAL_QUERY" || !strings.Contains(w.Body.String(), `"embedding"`) {
+		t.Fatalf("Vertex embedding mismatch: code=%d path=%q auth=%q body=%v response=%q", w.Code, gotPath, gotAuth, gotBody, w.Body.String())
+	}
+}
+
 func TestGeminiFallsBackAfterProviderUnavailable(t *testing.T) {
 	paths := []string{}
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
