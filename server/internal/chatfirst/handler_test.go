@@ -39,6 +39,15 @@ func TestBlockIdentitySupportsReleasedChatFirstUnion(t *testing.T) {
 	}
 }
 
+func TestRequiresEntityCheckForBlocksWithIdentity(t *testing.T) {
+	if !requiresEntityCheck(map[string]any{"type": "taskCard", "task_id": "task-1"}) {
+		t.Fatal("task block should require entity ownership check")
+	}
+	if requiresEntityCheck(map[string]any{"type": "questionCard", "question_id": "q-1"}) {
+		t.Fatal("question block itself has no direct entity lookup")
+	}
+}
+
 func TestJSONEquivalentIgnoresObjectKeyOrder(t *testing.T) {
 	if !jsonEquivalent([]byte(`{"subject":{"id":"x","kind":"task"}}`), []byte(`{"subject":{"kind":"task","id":"x"}}`)) {
 		t.Fatal("equivalent JSON was treated as different")

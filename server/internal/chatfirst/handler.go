@@ -69,6 +69,60 @@ func blockIdentity(kind string, block map[string]any) string {
 	return strings.TrimSpace(value)
 }
 
+func requiresEntityCheck(block map[string]any) bool {
+	kind, _ := block["type"].(string)
+	switch kind {
+	case "taskCard", "goalLink", "captureLink", "conversationLink", "memoryLink", "memoryReviewCard":
+		return true
+	default:
+		return false
+	}
+}
+
+func (h Handler) entityAvailable(ctx context.Context, uid string, item map[string]any) bool {
+	if h.DB == nil {
+		return false
+	}
+	kind, _ := item["type"].(string)
+	identity := blockIdentity(kind, item)
+	if kind == "memoryReviewCard" {
+		items, ok := item["items"].([]any)
+		if !ok || len(items) == 0 || len(items) > 8 {
+			return false
+		}
+		for _, raw := range items {
+			entry, ok := raw.(map[string]any)
+			if !ok {
+				return false
+			}
+			memoryID, _ := entry["memory_id"].(string)
+			var one int
+			if memoryID == "" || h.DB.QueryRowContext(ctx, `SELECT 1 FROM memories m JOIN users u ON u.id=m.user_id WHERE u.external_uid=? AND CAST(m.id AS CHAR)=? LIMIT 1`, uid, memoryID).Scan(&one) != nil {
+				return false
+			}
+		}
+		return true
+	}
+	if identity == "" {
+		return false
+	}
+	var one int
+	var query string
+	switch kind {
+	case "taskCard":
+		query = `SELECT 1 FROM action_items a JOIN users u ON u.id=a.user_id WHERE u.external_uid=? AND CAST(a.id AS CHAR)=? AND a.is_locked=0 LIMIT 1`
+	case "goalLink":
+		query = `SELECT 1 FROM goals g JOIN users u ON u.id=g.user_id WHERE u.external_uid=? AND g.external_id=? LIMIT 1`
+	case "captureLink", "conversationLink":
+		query = `SELECT 1 FROM conversations c JOIN users u ON u.id=c.user_id WHERE u.external_uid=? AND CAST(c.id AS CHAR)=? AND c.status='completed' LIMIT 1`
+	case "memoryLink":
+		query = `SELECT 1 FROM memories m JOIN users u ON u.id=m.user_id WHERE u.external_uid=? AND CAST(m.id AS CHAR)=? LIMIT 1`
+	default:
+		return false
+	}
+	return h.DB.QueryRowContext(ctx, query, uid, identity).Scan(&one) == nil
+}
+
 func jsonEquivalent(left, right []byte) bool {
 	var a, b any
 	if json.Unmarshal(left, &a) != nil || json.Unmarshal(right, &b) != nil {
@@ -210,6 +264,13 @@ func (h Handler) Validate(w http.ResponseWriter, r *http.Request) {
 	if result.Accepted {
 		if code := h.capabilityCode(r.Context(), uid, in.ControlGeneration); code != "accepted" {
 			result = validationResult{Code: code}
+		} else {
+			for _, item := range in.Blocks {
+				if requiresEntityCheck(item) && !h.entityAvailable(r.Context(), uid, item) {
+					result = validationResult{Code: "entity_unavailable"}
+					break
+				}
+			}
 		}
 	}
 	writeJSON(w, http.StatusOK, result)
