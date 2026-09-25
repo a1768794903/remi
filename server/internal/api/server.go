@@ -58,6 +58,7 @@ import (
 	"remi/server/internal/notificationapi"
 	"remi/server/internal/notifications"
 	"remi/server/internal/oauthapp"
+	"remi/server/internal/omni"
 	"remi/server/internal/payments"
 	"remi/server/internal/people"
 	"remi/server/internal/phonecalls"
@@ -390,6 +391,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/audio/stream", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v4/listen", Handler: protected(audioHandler).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v4/web/listen", Handler: protected(audioHandler).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/omni/relay", Handler: protected(http.HandlerFunc(omni.NewHandler().ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/tts/synthesize", Handler: protected(http.HandlerFunc(ttsHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v2/realtime/session", Handler: protected(http.HandlerFunc(realtimeHandler.Mint)).ServeHTTP},
