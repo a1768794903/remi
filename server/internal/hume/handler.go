@@ -29,6 +29,26 @@ type Callback struct {
 	Predictions []Prediction `json:"predictions"`
 }
 
+type PredictionRow struct {
+	JobID        string
+	Sequence     int
+	BeginSeconds float64
+	EndSeconds   float64
+	EmotionsJSON []byte
+}
+
+func FlattenPredictions(callback Callback) ([]PredictionRow, error) {
+	rows := make([]PredictionRow, 0, len(callback.Predictions))
+	for sequence, prediction := range callback.Predictions {
+		emotions, err := json.Marshal(prediction.Emotions)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, PredictionRow{JobID: callback.JobID, Sequence: sequence, BeginSeconds: prediction.Time.Begin, EndSeconds: prediction.Time.End, EmotionsJSON: emotions})
+	}
+	return rows, nil
+}
+
 func number(v any) float64 {
 	if n, ok := v.(float64); ok {
 		return n
@@ -128,8 +148,38 @@ func (h Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Hume callback storage is not configured", http.StatusServiceUnavailable)
 		return
 	}
-	_, err = h.DB.ExecContext(r.Context(), `INSERT INTO hume_callbacks(job_id,status,payload,created_at,updated_at) VALUES(?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE status=VALUES(status),payload=VALUES(payload),updated_at=UTC_TIMESTAMP(6)`, callback.JobID, callback.Status, encoded)
+	tx, err := h.DB.BeginTx(r.Context(), nil)
 	if err != nil {
+		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	rollback := func() {
+		_ = tx.Rollback()
+	}
+	if _, err = tx.ExecContext(r.Context(), `INSERT INTO hume_callbacks(job_id,status,payload,created_at,updated_at) VALUES(?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE status=VALUES(status),payload=VALUES(payload),updated_at=UTC_TIMESTAMP(6)`, callback.JobID, callback.Status, encoded); err != nil {
+		rollback()
+		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	rows, err := FlattenPredictions(callback)
+	if err != nil {
+		rollback()
+		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if _, err = tx.ExecContext(r.Context(), `DELETE FROM hume_emotion_predictions WHERE job_id=?`, callback.JobID); err != nil {
+		rollback()
+		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	for _, row := range rows {
+		if _, err = tx.ExecContext(r.Context(), `INSERT INTO hume_emotion_predictions(job_id,sequence,begin_seconds,end_seconds,emotions,created_at) VALUES(?,?,?,?,?,UTC_TIMESTAMP(6))`, row.JobID, row.Sequence, row.BeginSeconds, row.EndSeconds, row.EmotionsJSON); err != nil {
+			rollback()
+			http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
+			return
+		}
+	}
+	if err = tx.Commit(); err != nil {
 		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
 		return
 	}

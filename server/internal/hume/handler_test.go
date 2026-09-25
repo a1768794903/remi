@@ -29,3 +29,14 @@ func TestCallbackRejectsMissingJobID(t *testing.T) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestFlattenPredictionsPreservesStableOrderAndEmotionJSON(t *testing.T) {
+	callback := Callback{JobID: "job-1", Predictions: []Prediction{{Time: Interval{Begin: 1.25, End: 2.5}, Emotions: []Emotion{{Name: "joy", Score: 0.8}}}, {Time: Interval{Begin: 3, End: 4}}}}
+	rows, err := FlattenPredictions(callback)
+	if err != nil || len(rows) != 2 || rows[0].Sequence != 0 || rows[1].Sequence != 1 || rows[0].JobID != "job-1" {
+		t.Fatalf("rows=%+v err=%v", rows, err)
+	}
+	if string(rows[0].EmotionsJSON) != `[{"name":"joy","score":0.8}]` {
+		t.Fatalf("emotion json=%s", rows[0].EmotionsJSON)
+	}
+}
