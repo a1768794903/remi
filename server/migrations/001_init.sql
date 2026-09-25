@@ -108,6 +108,41 @@ CREATE TABLE IF NOT EXISTS `hume_expression_jobs` (
     KEY `hume_expression_jobs_conversation` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `chat_first_intents` (
+    `intent_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `continuity_key` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `source` varchar(64) NOT NULL,
+    `payload` json NOT NULL,
+    `delivery_state` varchar(32) NOT NULL DEFAULT 'ready',
+    `created_at` datetime(6) NOT NULL,
+    `delivered_at` datetime(6) NULL,
+    `fetch_count` int NOT NULL DEFAULT 0,
+    `materialization_attempts` int NOT NULL DEFAULT 0,
+    `last_rejection_code` varchar(64) NULL,
+    `last_rejection_at` datetime(6) NULL,
+    PRIMARY KEY (`intent_id`),
+    KEY `chat_first_intents_ready` (`user_external_uid`,`account_generation`,`delivery_state`,`created_at`),
+    UNIQUE KEY `chat_first_intents_continuity` (`user_external_uid`,`account_generation`,`continuity_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `chat_first_deferrals` (
+    `deferral_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `continuity_key` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `subject` json NOT NULL,
+    `question` json NOT NULL,
+    `created_at` datetime(6) NOT NULL,
+    `due_at` datetime(6) NOT NULL,
+    `state` varchar(32) NOT NULL DEFAULT 'pending',
+    `released_intent_id` varchar(128) NULL,
+    PRIMARY KEY (`deferral_id`),
+    UNIQUE KEY `chat_first_deferrals_continuity` (`user_external_uid`,`account_generation`,`continuity_key`),
+    KEY `chat_first_deferrals_due` (`user_external_uid`,`account_generation`,`state`,`due_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `user_byok` (
     `user_external_uid` varchar(255) NOT NULL,
     `fingerprints` json NOT NULL,
