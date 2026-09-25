@@ -120,6 +120,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/admin/feedback/reports/generate-yesterday", Handler: feedbackadmin.Handler{DB: db}.GenerateYesterday},
 		{Method: http.MethodGet, Path: "/v1/admin/feedback/events/:event_id/context", Handler: feedbackadmin.Handler{DB: db}.Context},
 		{Method: http.MethodPost, Path: "/v2/sync-jobs/run", Handler: syncjobs.Handler{Queue: syncHandler.Queue, Conversations: syncHandler.Conversations, Audio: syncHandler.Audio}.Run},
+		{Method: http.MethodPost, Path: "/v2/audio-merge-jobs/run", Handler: syncjobs.Handler{Queue: syncHandler.Queue, Conversations: syncHandler.Conversations, Audio: syncHandler.Audio}.RunAudioMerge},
 		{Method: http.MethodGet, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/notification", Handler: notificationAPIHandler.Admin},
 		{Method: http.MethodPost, Path: "/v1/integrations/notification", Handler: notificationAPIHandler.Integration},

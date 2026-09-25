@@ -58,6 +58,31 @@ func (h Handler) Run(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "queued", "job_id": job.ID})
 }
 
+func (h Handler) RunAudioMerge(w http.ResponseWriter, r *http.Request) {
+	if !internalJobAllowed(w, r) {
+		return
+	}
+	var in struct {
+		UID            string `json:"uid"`
+		ConversationID string `json:"conversation_id"`
+		AudioFileID    string `json:"audio_file_id"`
+	}
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&in) != nil || strings.TrimSpace(in.UID) == "" || strings.TrimSpace(in.ConversationID) == "" || strings.TrimSpace(in.AudioFileID) == "" {
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "dropped", "reason": "invalid_payload"})
+		return
+	}
+	result, err := h.Audio.Materialize(r.Context(), in.UID, in.ConversationID, in.AudioFileID)
+	if errors.Is(err, conversations.ErrNotFound) || errors.Is(err, os.ErrNotExist) {
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "dropped", "reason": "chunks_missing"})
+		return
+	}
+	if err != nil {
+		http.Error(w, "audio merge failed", http.StatusInternalServerError)
+		return
+	}
+	_ = json.NewEncoder(w).Encode(result)
+}
+
 func (h Handler) PrecacheAudio(w http.ResponseWriter, r *http.Request) {
 	uid, err := auth.UserID(r.Context())
 	if err != nil {

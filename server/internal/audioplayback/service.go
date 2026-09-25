@@ -174,6 +174,21 @@ func (s Service) Precache(ctx context.Context, uid, conversationID string) (map[
 	return map[string]any{"status": "started", "audio_file_count": len(item.AudioFiles)}, nil
 }
 
+// Materialize prepares one playback artifact idempotently. The local Go
+// backend stores PCM/WAV chunks, so this is the worker equivalent of Python's
+// audio-merge task; an existing artifact is returned without rebuilding.
+func (s Service) Materialize(ctx context.Context, uid, conversationID, audioID string) (map[string]any, error) {
+	file, err := s.file(ctx, uid, conversationID, audioID)
+	if err != nil {
+		return nil, err
+	}
+	data, extension, err := s.materialize(uid, conversationID, file)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"status": "exists", "conversation_id": conversationID, "audio_file_id": audioID, "format": extension, "bytes": len(data)}, nil
+}
+
 func (s Service) URLs(ctx context.Context, uid, conversationID string) (map[string]any, error) {
 	item, err := s.Conversations.Get(ctx, uid, conversationID)
 	if err != nil {
