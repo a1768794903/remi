@@ -2,9 +2,11 @@ package conversations
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,44 @@ type Handler struct {
 	Queue       Enqueuer
 	Transcripts transcripts.Service
 	Provider    chat.Provider
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+
+func internalJobAllowed(w http.ResponseWriter, r *http.Request) bool {
+	expected := strings.TrimSpace(os.Getenv("INTERNAL_JOB_SECRET"))
+	provided := strings.TrimSpace(r.Header.Get("X-Internal-Job-Key"))
+	if expected == "" || subtle.ConstantTimeCompare([]byte(expected), []byte(provided)) != 1 {
+		http.Error(w, "invalid internal job credentials", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+// RunFinalizationJob is the durable worker dispatch boundary. The API only
+// enqueues a validated job; the worker owns the actual LLM/database mutation.
+func (h Handler) RunFinalizationJob(w http.ResponseWriter, r *http.Request) {
+	if !internalJobAllowed(w, r) {
+		return
+	}
+	var job FinalizationJob
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<10)).Decode(&job) != nil || strings.TrimSpace(job.UID) == "" || strings.TrimSpace(job.ConversationID) == "" {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "dropped", "reason": "invalid_payload"})
+		return
+	}
+	if h.Queue == nil {
+		http.Error(w, "finalization queue is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	if err := h.Queue.EnqueueFinalization(r.Context(), job); err != nil {
+		http.Error(w, "finalization queue unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "queued", "conversation_id": job.ConversationID})
 }
 
 type MergeEnqueuer interface {

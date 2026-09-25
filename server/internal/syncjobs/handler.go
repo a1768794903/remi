@@ -1,11 +1,13 @@
 package syncjobs
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"github.com/redis/go-redis/v9"
 	"io"
 	"net/http"
+	"os"
 	"remi/server/internal/audioplayback"
 	"remi/server/internal/auth"
 	"remi/server/internal/capturemanifest"
@@ -18,6 +20,42 @@ type Handler struct {
 	Queue         Queue
 	Conversations conversations.Service
 	Audio         audioplayback.Service
+}
+
+func internalJobAllowed(w http.ResponseWriter, r *http.Request) bool {
+	expected := strings.TrimSpace(os.Getenv("INTERNAL_JOB_SECRET"))
+	provided := strings.TrimSpace(r.Header.Get("X-Internal-Job-Key"))
+	if expected == "" || subtle.ConstantTimeCompare([]byte(expected), []byte(provided)) != 1 {
+		http.Error(w, "invalid internal job credentials", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+// Run accepts an already-created Go sync job and places it on the same queue
+// consumed by cmd/worker. It never acknowledges a job as completed.
+func (h Handler) Run(w http.ResponseWriter, r *http.Request) {
+	if !internalJobAllowed(w, r) {
+		return
+	}
+	var job Job
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&job) != nil || strings.TrimSpace(job.ID) == "" || strings.TrimSpace(job.UID) == "" {
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "dropped", "reason": "invalid_payload"})
+		return
+	}
+	if h.Queue.Client == nil {
+		http.Error(w, "sync queue unavailable", 503)
+		return
+	}
+	if err := h.Queue.Save(r.Context(), job); err != nil {
+		http.Error(w, "sync job persistence unavailable", 503)
+		return
+	}
+	if err := h.Queue.Enqueue(r.Context(), job); err != nil {
+		http.Error(w, "sync queue unavailable", 503)
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "queued", "job_id": job.ID})
 }
 
 func (h Handler) PrecacheAudio(w http.ResponseWriter, r *http.Request) {
