@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -280,9 +281,6 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 		}
 	}
 	for _, item := range approved {
-		if len(photos) >= 7 {
-			break
-		}
 		id := "screen-" + uuid.NewString()
 		approval, approvalErr := mintApproval(uid, in.Purpose, in.Subject.ID, item.JPEG, time.Now().UTC())
 		if approvalErr != nil {
@@ -296,8 +294,9 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 			return nil, err
 		}
 		storedIDs = append(storedIDs, id)
-		photos = append(photos, map[string]any{"id": id, "storage_id": id, "content_type": "image/jpeg", "created_at": time.Now().UTC(), "captured_at": item.Candidate.CapturedAt, "caption": item.Judgement.Caption, "labels": item.Judgement.Labels, "source_badge": item.Judgement.SourceBadge, "width": item.Candidate.DeclaredWidth, "height": item.Candidate.DeclaredHeight, "ground": ComputeGround(item.JPEG)})
+		photos = append(photos, map[string]any{"id": id, "storage_id": id, "content_type": "image/jpeg", "created_at": time.Now().UTC(), "captured_at": item.Candidate.CapturedAt, "caption": item.Judgement.Caption, "labels": item.Judgement.Labels, "source_badge": item.Judgement.SourceBadge, "banner_suitability": item.Judgement.BannerSuitability, "width": item.Candidate.DeclaredWidth, "height": item.Candidate.DeclaredHeight, "ground": ComputeGround(item.JPEG)})
 	}
+	photos, evicted := enforcePhotoSet(photos)
 	encoded, _ := json.Marshal(photos)
 	if _, err = tx.ExecContext(ctx, `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=? WHERE c.id=? AND u.external_uid=?`, encoded, in.Subject.ID, uid); err != nil {
 		cleanup()
@@ -307,7 +306,47 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 		cleanup()
 		return nil, err
 	}
+	for _, photo := range evicted {
+		if storageID, ok := photo["storage_id"].(string); ok && storageID != "" {
+			_ = h.Store.Delete(ctx, uid, storageID)
+		}
+	}
 	return frameSetFromPhotos(uid, in.Subject.ID, photos), nil
+}
+
+func enforcePhotoSet(photos []map[string]any) ([]map[string]any, []map[string]any) {
+	sort.SliceStable(photos, func(i, j int) bool { return photoTime(photos[i]).Before(photoTime(photos[j])) })
+	evicted := []map[string]any{}
+	if len(photos) > 7 {
+		evicted = append(evicted, photos[:len(photos)-7]...)
+		photos = photos[len(photos)-7:]
+	}
+	banner := -1
+	best := 0.35
+	for i, photo := range photos {
+		if suitability, ok := photo["banner_suitability"].(float64); ok && suitability >= best {
+			banner, best = i, suitability
+		}
+	}
+	stripRank := 0
+	for i, photo := range photos {
+		if i == banner {
+			photo["role"], photo["rank"] = "banner", 0
+		} else {
+			photo["role"], photo["rank"] = "strip", stripRank
+			stripRank++
+		}
+	}
+	return photos, evicted
+}
+
+func photoTime(photo map[string]any) time.Time {
+	value, _ := photo["captured_at"].(string)
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return time.Unix(0, 0).UTC()
+	}
+	return parsed
 }
 
 func Validate(in Request) error {
@@ -397,6 +436,7 @@ func emptyFrameSet() map[string]any {
 
 func frameSetFromPhotos(uid, conversationID string, photos []map[string]any) map[string]any {
 	strip := make([]map[string]any, 0, len(photos))
+	var banner map[string]any
 	for index, photo := range photos {
 		id, _ := photo["id"].(string)
 		if id == "" {
@@ -407,9 +447,22 @@ func frameSetFromPhotos(uid, conversationID string, photos []map[string]any) map
 		if err != nil {
 			contentURL = path
 		}
-		strip = append(strip, map[string]any{"id": id, "role": "strip", "rank": index, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "ground": photo["ground"], "content_url": contentURL, "thumbnail_url": contentURL, "url_expires_at": time.Now().UTC().Add(time.Hour)})
+		role, _ := photo["role"].(string)
+		if role == "" {
+			role = "strip"
+		}
+		rank := index
+		if value, ok := photo["rank"].(float64); ok {
+			rank = int(value)
+		}
+		frame := map[string]any{"id": id, "role": role, "rank": rank, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "ground": photo["ground"], "content_url": contentURL, "thumbnail_url": contentURL, "url_expires_at": time.Now().UTC().Add(time.Hour)}
+		if role == "banner" {
+			banner = frame
+		} else {
+			strip = append(strip, frame)
+		}
 	}
-	return map[string]any{"revision": 1, "banner": nil, "strip": strip}
+	return map[string]any{"revision": 1, "banner": banner, "strip": strip}
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

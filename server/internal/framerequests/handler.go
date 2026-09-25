@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -217,6 +218,7 @@ func (h Handler) deleteConversationScreenshot(w http.ResponseWriter, r *http.Req
 		http.NotFound(w, r)
 		return
 	}
+	kept = normalizePhotoRoles(kept)
 	raw, _ := json.Marshal(kept)
 	if _, err = h.DB.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=? WHERE c.id=? AND u.external_uid=?`, raw, id, uid); err != nil {
 		http.Error(w, "failed to delete conversation screenshot", 503)
@@ -780,6 +782,7 @@ func screenFrameSet(conversationID string, photos []map[string]any, revision int
 
 func screenFrameSetForUID(uid, conversationID string, photos []map[string]any, revision int, shared bool) map[string]any {
 	frames := make([]map[string]any, 0, len(photos))
+	var banner map[string]any
 	for _, photo := range photos {
 		id, _ := photo["id"].(string)
 		if strings.TrimSpace(id) == "" {
@@ -807,9 +810,45 @@ func screenFrameSetForUID(uid, conversationID string, photos []map[string]any, r
 		if captured, ok := photo["captured_at"]; ok {
 			frame["captured_at"] = captured
 		}
-		frames = append(frames, frame)
+		if role, _ := photo["role"].(string); role == "banner" {
+			banner = frame
+			banner["role"] = "banner"
+			banner["rank"] = 0
+		} else {
+			frames = append(frames, frame)
+		}
 	}
-	return map[string]any{"revision": revision, "banner": nil, "strip": frames}
+	return map[string]any{"revision": revision, "banner": banner, "strip": frames}
+}
+
+func normalizePhotoRoles(photos []map[string]any) []map[string]any {
+	sort.SliceStable(photos, func(i, j int) bool { return photoCapturedAt(photos[i]).Before(photoCapturedAt(photos[j])) })
+	banner := -1
+	best := 0.35
+	for i, photo := range photos {
+		if suitability, ok := photo["banner_suitability"].(float64); ok && suitability >= best {
+			banner, best = i, suitability
+		}
+	}
+	stripRank := 0
+	for i, photo := range photos {
+		if i == banner {
+			photo["role"], photo["rank"] = "banner", 0
+		} else {
+			photo["role"], photo["rank"] = "strip", stripRank
+			stripRank++
+		}
+	}
+	return photos
+}
+
+func photoCapturedAt(photo map[string]any) time.Time {
+	value, _ := photo["captured_at"].(string)
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return time.Unix(0, 0).UTC()
+	}
+	return parsed
 }
 func (f frame) toMap() map[string]any {
 	return map[string]any{"request_id": f.RequestID, "uid": f.UID, "device_id": f.DeviceID, "account_generation": f.AccountGeneration, "dedupe_key": f.DedupeKey, "dedupe_window": f.DedupeWindow, "attempt_number": f.AttemptNumber, "conversation_id": f.ConversationID, "screenshot_id": f.ScreenshotID, "state": f.State, "created_at": f.CreatedAt, "expires_at": f.ExpiresAt, "claimed_at": f.ClaimedAt, "uploaded_at": f.UploadedAt, "attached_at": f.AttachedAt, "terminal_reason": f.TerminalReason, "byte_count": f.ByteCount, "content_type": f.ContentType, "storage_id": f.StorageID, "cleanup_state": f.CleanupState, "cleanup_attempts": f.CleanupAttempts, "cleanup_next_attempt_at": f.CleanupNextAttemptAt}

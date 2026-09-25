@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -52,3 +54,24 @@ func TestHTTPJudgeValidatesStructuredDecision(t *testing.T) {
 }
 
 func stringPtr(value string) *string { return &value }
+
+func TestEnforcePhotoSetKeepsNewestAndSelectsBanner(t *testing.T) {
+	photos := make([]map[string]any, 0, 8)
+	for i := 0; i < 8; i++ {
+		photos = append(photos, map[string]any{
+			"id":                 fmt.Sprintf("f-%d", i),
+			"captured_at":        time.Date(2026, 1, 1, 0, i, 0, 0, time.UTC).Format(time.RFC3339Nano),
+			"banner_suitability": float64(i) / 10,
+		})
+	}
+	survivors, evicted := enforcePhotoSet(photos)
+	if len(survivors) != 7 || len(evicted) != 1 || evicted[0]["id"] != "f-0" {
+		t.Fatalf("survivors=%d evicted=%v", len(survivors), evicted)
+	}
+	if survivors[6]["role"] != "banner" || survivors[6]["id"] != "f-7" {
+		t.Fatalf("banner=%v", survivors[6])
+	}
+	if survivors[0]["role"] != "strip" || survivors[0]["rank"] != 0 {
+		t.Fatalf("first strip=%v", survivors[0])
+	}
+}
