@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,6 +39,7 @@ type Handler struct {
 	DeepgramKey  string
 	Client       *http.Client
 	Redis        *redis.Client
+	DB           *sql.DB
 }
 
 const geminiBurstLimit int64 = 30
@@ -130,16 +133,39 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider string) {
-	requestID := uuid.NewString()
+func proxyRequestID(r *http.Request) string {
+	if value := strings.TrimSpace(r.Header.Get("X-Omi-Request-Id")); value != "" && len(value) <= 128 {
+		return value
+	}
+	return uuid.NewString()
+}
+
+func (h Handler) recordAttempt(ctx context.Context, requestID, uid, provider, model, action, payer string, status int, outcome string, inputBytes int64) {
+	if h.DB == nil {
+		return
+	}
+	_, _ = h.DB.ExecContext(ctx, `INSERT INTO llm_proxy_attempts(request_id,user_external_uid,caller,provider,model,api_surface,payer,outcome,upstream_status,input_bytes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE request_id=request_id`, requestID, nullString(uid), "desktop_proxy", provider, model, action, payer, outcome, status, inputBytes)
+}
+
+func nullString(value string) any {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
+}
+
+func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider, model, action, uid, payer string) {
+	requestID := proxyRequestID(r)
 	u, err := url.Parse(target)
 	if err != nil {
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "validation_rejected", 0)
 		http.Error(w, "invalid provider endpoint", 500)
 		return
 	}
 	u.RawQuery = r.URL.RawQuery
 	req, err := http.NewRequestWithContext(r.Context(), r.Method, u.String(), r.Body)
 	if err != nil {
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "transport_error", r.ContentLength)
 		http.Error(w, "unable to create provider request", 500)
 		return
 	}
@@ -156,6 +182,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	}
 	resp, err := h.client().Do(req)
 	if err != nil {
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "provider_unavailable", r.ContentLength)
 		w.Header().Set("X-Omi-Request-Id", requestID)
 		w.Header().Set("X-Omi-Provider", provider)
 		w.Header().Set("X-Omi-Error-Class", "provider_unavailable")
@@ -170,6 +197,11 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	w.Header().Set("X-Omi-Request-Id", requestID)
 	w.Header().Set("X-Omi-Provider", provider)
 	status, code, retryable, retryAfter := proxyStatus(resp.StatusCode)
+	outcome := "success"
+	if code != "" {
+		outcome = code
+	}
+	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, r.ContentLength)
 	if code != "" {
 		w.Header().Set("X-Omi-Error-Class", code)
 		w.Header().Set("X-Omi-Failure-Phase", "provider")
@@ -188,7 +220,7 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid Gemini path", 400)
 		return
 	}
-	model, _, err := geminiPath(path)
+	model, action, err := geminiPath(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -206,9 +238,13 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), status)
 		return
 	}
-	_ = model
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini")
+	uid, _ := auth.UserID(r.Context())
+	payer := "omi"
+	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
+		payer = "byok"
+	}
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer)
 }
 
 func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +253,7 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid Gemini path", 400)
 		return
 	}
-	model, _, err := geminiPath(path)
+	model, action, err := geminiPath(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -236,7 +272,12 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini")
+	uid, _ := auth.UserID(r.Context())
+	payer := "omi"
+	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
+		payer = "byok"
+	}
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer)
 }
 
 func (h Handler) meterGemini(w http.ResponseWriter, r *http.Request, path, model string) (string, bool, bool) {
@@ -296,7 +337,8 @@ func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid Deepgram path", 400)
 		return
 	}
-	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram")
+	uid, _ := auth.UserID(r.Context())
+	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram", "deepgram", "listen", uid, "omi")
 }
 
 func proxyStatus(upstream int) (status int, code string, retryable bool, retryAfter int) {

@@ -212,9 +212,9 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 			_, _ = w.Write([]byte("null"))
 		}},
 		{Method: http.MethodPost, Path: "/v1/desktop/proactivity/completions", Handler: protected(http.HandlerFunc(proactivity.Handler{Provider: graphProvider(cfg)}.Complete)).ServeHTTP},
-		{Method: http.MethodPost, Path: "/v1/proxy/gemini/models/:model", Handler: protected(http.HandlerFunc(proxy.Handler{Redis: redisClient}.Gemini)).ServeHTTP},
-		{Method: http.MethodPost, Path: "/v1/proxy/gemini-stream/models/:model", Handler: protected(http.HandlerFunc(proxy.Handler{Redis: redisClient}.GeminiStream)).ServeHTTP},
-		{Method: http.MethodPost, Path: "/v1/proxy/deepgram/v1/listen", Handler: protected(http.HandlerFunc(proxy.Handler{Redis: redisClient}.Deepgram)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/proxy/gemini/models/:model", Handler: protected(http.HandlerFunc(proxy.Handler{Redis: redisClient, DB: db}.Gemini)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/proxy/gemini-stream/models/:model", Handler: protected(http.HandlerFunc(proxy.Handler{Redis: redisClient, DB: db}.GeminiStream)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/proxy/deepgram/v1/listen", Handler: protected(http.HandlerFunc(proxy.Handler{Redis: redisClient, DB: db}.Deepgram)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v2/desktop/prompts", Handler: protected(http.HandlerFunc(desktopprompts.Handler{DB: db}.List)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/config/api-keys", Handler: protected(http.HandlerFunc(apiKeysHandler)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/agent/tools", Handler: protected(http.HandlerFunc(agenttools.Handler{Actions: actionHandler.Service, Memories: memoryHandler.Service, Integrations: integrationHandler.Service}.List)).ServeHTTP},
