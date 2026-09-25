@@ -506,6 +506,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodDelete, Path: "/v1/users/store-recording-permission", Handler: protected(http.HandlerFunc(userHandler.StoreRecordingPermission)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/daily-summary-settings", Handler: protected(http.HandlerFunc(notificationHandler.DailySummarySettings)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/users/daily-summary-settings", Handler: protected(http.HandlerFunc(notificationHandler.DailySummarySettings)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/users/daily-summary-settings/test", Handler: protected(http.HandlerFunc(dailySummaryHandler.Generate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/mentor-notification-settings", Handler: protected(http.HandlerFunc(notificationHandler.MentorSettings)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/users/mentor-notification-settings", Handler: protected(http.HandlerFunc(notificationHandler.MentorSettings)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/fcm-token", Handler: protected(http.HandlerFunc(notificationHandler.Token)).ServeHTTP},
