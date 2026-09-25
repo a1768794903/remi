@@ -34,6 +34,7 @@ import (
 	"remi/server/internal/developer"
 	"remi/server/internal/devkeys"
 	"remi/server/internal/emailprefs"
+	"remi/server/internal/externalapi"
 	"remi/server/internal/fairuse"
 	"remi/server/internal/firmware"
 	"remi/server/internal/focussessions"
@@ -100,6 +101,12 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	developerHandler := developer.Handler{Actions: actionHandler.Service, Memories: memoryHandler.Service, Conversations: conversationHandler.Service}
 	oauthHandler := mcpkeys.OAuthHandler{Service: mcpkeys.Service{DB: db}, Verifier: verifier}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/user/memories", Handler: externalapi.Handler{DB: db}.Memories},
+		{Method: http.MethodPost, Path: "/v2/integrations/:app_id/user/memories", Handler: externalapi.Handler{DB: db}.Memories},
+		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/user/conversations", Handler: externalapi.Handler{DB: db}.Conversations},
+		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/memories", Handler: externalapi.Handler{DB: db}.Memories},
+		{Method: http.MethodPost, Path: "/v2/integrations/:app_id/memories", Handler: externalapi.Handler{DB: db}.Memories},
+		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/conversations", Handler: externalapi.Handler{DB: db}.Conversations},
 		{Method: http.MethodGet, Path: "/v1/what-matters-now", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Evaluate)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/what-matters-now/evaluate", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Evaluate)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/task-intelligence/interventions", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Intervention)).ServeHTTP},
