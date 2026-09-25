@@ -1,6 +1,7 @@
 package chatfirst
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -70,6 +71,69 @@ func jsonEquivalent(left, right []byte) bool {
 	return errA == nil && errB == nil && string(canonicalA) == string(canonicalB)
 }
 
+func reraisedIntentID(uid string, generation int64, deferralID string) string {
+	sum := sha256.Sum256([]byte(uid + ":" + strconv.FormatInt(generation, 10) + ":deferral_reraise:" + deferralID))
+	return "intent_" + hex.EncodeToString(sum[:])[:32]
+}
+
+func (h Handler) releaseDueDeferrals(ctx context.Context, uid string, generation int64, now time.Time) error {
+	if h.DB == nil {
+		return sql.ErrConnDone
+	}
+	rows, err := h.DB.QueryContext(ctx, `SELECT deferral_id,continuity_key,subject,question FROM chat_first_deferrals WHERE user_external_uid=? AND account_generation=? AND state='pending' AND due_at<=? ORDER BY due_at ASC LIMIT 32`, uid, generation, now)
+	if err != nil {
+		return err
+	}
+	type dueDeferral struct {
+		id, continuity    string
+		subject, question []byte
+	}
+	items := make([]dueDeferral, 0)
+	for rows.Next() {
+		var item dueDeferral
+		if err = rows.Scan(&item.id, &item.continuity, &item.subject, &item.question); err != nil {
+			rows.Close()
+			return err
+		}
+		items = append(items, item)
+	}
+	if err = rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	if len(items) == 0 {
+		return nil
+	}
+	tx, err := h.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, item := range items {
+		intentID := reraisedIntentID(uid, generation, item.id)
+		var subjectValue, questionValue any
+		if json.Unmarshal(item.subject, &subjectValue) != nil || json.Unmarshal(item.question, &questionValue) != nil {
+			continue
+		}
+		payload, marshalErr := json.Marshal(map[string]any{
+			"intent_id": intentID, "continuity_key": item.continuity, "account_generation": generation,
+			"source": "deferral_reraise", "subject": subjectValue, "blocks": []any{questionValue},
+			"delivery_state": "ready", "created_at": now,
+		})
+		if marshalErr != nil {
+			return marshalErr
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO chat_first_intents(intent_id,user_external_uid,continuity_key,account_generation,source,payload,delivery_state,created_at) VALUES(?,?,?,?,?,?, 'ready', ?) ON DUPLICATE KEY UPDATE intent_id=intent_id`, intentID, uid, item.continuity, generation, "deferral_reraise", payload, now); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE chat_first_deferrals SET state='released',released_intent_id=? WHERE deferral_id=? AND user_external_uid=? AND account_generation=? AND state='pending'`, intentID, item.id, uid, generation); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func chatFirstEnabled() bool {
 	return strings.EqualFold(strings.TrimSpace(os.Getenv("CHAT_FIRST_ENABLED")), "true")
 }
@@ -135,6 +199,10 @@ func (h Handler) Materialize(w http.ResponseWriter, r *http.Request) {
 	}
 	if h.DB == nil {
 		http.Error(w, "chat-first intent storage is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	if err := h.releaseDueDeferrals(r.Context(), uid, in.ControlGeneration, time.Now().UTC()); err != nil {
+		http.Error(w, "chat-first deferral storage unavailable", 503)
 		return
 	}
 	receiptOutcomes := make([]map[string]string, 0, len(in.Receipts))

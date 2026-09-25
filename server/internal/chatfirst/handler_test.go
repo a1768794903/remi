@@ -28,3 +28,13 @@ func TestJSONEquivalentIgnoresObjectKeyOrder(t *testing.T) {
 		t.Fatal("different JSON was treated as equivalent")
 	}
 }
+
+func TestReraisedIntentIDIsStableForDeferral(t *testing.T) {
+	a := reraisedIntentID("user-1", 3, "def-1")
+	if a == "" || a != reraisedIntentID("user-1", 3, "def-1") {
+		t.Fatalf("unstable reraised id: %q", a)
+	}
+	if a == reraisedIntentID("user-1", 4, "def-1") {
+		t.Fatal("reraised id must include generation")
+	}
+}
