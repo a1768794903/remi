@@ -944,6 +944,16 @@ CREATE TABLE IF NOT EXISTS `task_intelligence_snapshots` (
     PRIMARY KEY (`snapshot_id`), UNIQUE KEY `task_snapshot_idem` (`user_external_uid`,`account_generation`,`snapshot_kind`,`idempotency_key`),
     KEY `task_snapshot_current` (`user_external_uid`,`account_generation`,`snapshot_kind`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `integration_notification_events` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `app_id` varchar(255) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `message` text NOT NULL,
+    `source` varchar(128) NOT NULL,
+    `metadata` json NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`id`), KEY `notification_rate_limit` (`app_id`,`user_external_uid`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `chat_messages` (
     `id` bigint NOT NULL AUTO_INCREMENT,

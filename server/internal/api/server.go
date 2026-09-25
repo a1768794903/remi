@@ -50,6 +50,7 @@ import (
 	"remi/server/internal/memories"
 	"remi/server/internal/metrics"
 	"remi/server/internal/mobilefeedback"
+	"remi/server/internal/notificationapi"
 	"remi/server/internal/notifications"
 	"remi/server/internal/oauthapp"
 	"remi/server/internal/payments"
@@ -102,7 +103,10 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	developerHandler := developer.Handler{Actions: actionHandler.Service, Memories: memoryHandler.Service, Conversations: conversationHandler.Service}
 	oauthHandler := mcpkeys.OAuthHandler{Service: mcpkeys.Service{DB: db}, Verifier: verifier}
 	appOAuthHandler := oauthapp.Handler{DB: db, Verifier: verifier}
+	notificationAPIHandler := notificationapi.Handler{DB: db}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodPost, Path: "/v1/notification", Handler: notificationAPIHandler.Admin},
+		{Method: http.MethodPost, Path: "/v1/integrations/notification", Handler: notificationAPIHandler.Integration},
 		{Method: http.MethodGet, Path: "/v1/oauth/authorize", Handler: appOAuthHandler.Authorize},
 		{Method: http.MethodPost, Path: "/v1/oauth/token", Handler: appOAuthHandler.Token},
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/user/memories", Handler: externalapi.Handler{DB: db}.Memories},
