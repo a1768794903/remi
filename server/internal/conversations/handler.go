@@ -3,6 +3,7 @@ package conversations
 import (
 	"context"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -689,4 +690,65 @@ func (h Handler) Recording(w http.ResponseWriter, r *http.Request) {
 	}
 	hasRecording := len(item.AudioFiles) > 0 || len(item.ConversationAudio) > 0
 	writeJSON(w, http.StatusOK, map[string]bool{"has_recording": hasRecording})
+}
+
+// Events updates the completion state of indexed structured conversation
+// events. Python intentionally ignores indexes outside the current event list
+// (clients can race with a regenerated summary), but rejects mismatched
+// parallel arrays before touching storage.
+func (h Handler) Events(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodPatch || h.Service.DB == nil {
+		if h.Service.DB == nil {
+			http.Error(w, "conversation storage is not configured", http.StatusServiceUnavailable)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+		return
+	}
+	var input struct {
+		EventsIdx []int  `json:"events_idx"`
+		Values    []bool `json:"values"`
+	}
+	if json.NewDecoder(r.Body).Decode(&input) != nil || len(input.EventsIdx) != len(input.Values) {
+		http.Error(w, "events_idx and values must have the same length", http.StatusUnprocessableEntity)
+		return
+	}
+	conversationID := r.PathValue("conversation_id")
+	var raw []byte
+	if err := h.Service.DB.QueryRowContext(r.Context(), `SELECT COALESCE(c.structured,JSON_OBJECT()) FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=?`, conversationID, uid).Scan(&raw); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, "conversation event lookup failed", http.StatusInternalServerError)
+		}
+		return
+	}
+	var structured map[string]any
+	if len(raw) == 0 || json.Unmarshal(raw, &structured) != nil || structured == nil {
+		structured = map[string]any{}
+	}
+	events, _ := structured["events"].([]any)
+	for i, index := range input.EventsIdx {
+		if index < 0 || index >= len(events) {
+			continue
+		}
+		if event, ok := events[index].(map[string]any); ok {
+			event["created"] = input.Values[i]
+		}
+	}
+	encoded, err := json.Marshal(structured)
+	if err != nil {
+		http.Error(w, "failed to encode conversation events", http.StatusInternalServerError)
+		return
+	}
+	if _, err = h.Service.DB.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.structured=? WHERE c.id=? AND u.external_uid=?`, encoded, conversationID, uid); err != nil {
+		http.Error(w, "failed to update conversation events", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "Ok"})
 }

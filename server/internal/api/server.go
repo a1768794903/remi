@@ -726,6 +726,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id", Handler: protected(http.HandlerFunc(conversationHandler.Item)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/photos", Handler: protected(http.HandlerFunc(conversationHandler.Photos)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/recording", Handler: protected(http.HandlerFunc(conversationHandler.Recording)).ServeHTTP},
+		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/events", Handler: protected(http.HandlerFunc(conversationHandler.Events)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id", Handler: protected(http.HandlerFunc(conversationHandler.Item)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/title", Handler: protected(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { conversationHandler.Field(w, r, "title") })).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/summary", Handler: protected(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { conversationHandler.Field(w, r, "summary") })).ServeHTTP},

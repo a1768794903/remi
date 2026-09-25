@@ -714,6 +714,7 @@ CREATE TABLE IF NOT EXISTS `conversations` (
     `folder_id` bigint NULL,
     `audio_files` json NULL,
     `conversation_audio` json NULL,
+    `structured` json NULL,
     `photos` json NULL,
     `screenshot_sharing_enabled` boolean NOT NULL DEFAULT FALSE,
     `screen_frames_revision` bigint NOT NULL DEFAULT 0,
