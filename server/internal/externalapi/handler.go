@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Handler struct{ DB *sql.DB }
@@ -60,6 +61,25 @@ func page(r *http.Request) (int, int) {
 		offset = n
 	}
 	return limit, offset
+}
+
+func parseExternalDate(raw string, endOfDay bool) (time.Time, error) {
+	raw = strings.TrimSpace(strings.Replace(raw, "Z", "+00:00", 1))
+	if len(raw) == len("2006-01-02") {
+		day, err := time.ParseInLocation("2006-01-02", raw, time.UTC)
+		if err != nil {
+			return time.Time{}, err
+		}
+		if endOfDay {
+			return day.Add(24*time.Hour - time.Nanosecond), nil
+		}
+		return day, nil
+	}
+	value, err := time.Parse(time.RFC3339Nano, raw)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return value, nil
 }
 func (h Handler) Memories(w http.ResponseWriter, r *http.Request) {
 	u, ok := h.auth(w, r)
@@ -137,4 +157,148 @@ func (h Handler) Conversations(w http.ResponseWriter, r *http.Request) {
 		out = append(out, item)
 	}
 	write(w, map[string]any{"conversations": out})
+}
+
+func (h Handler) Tasks(w http.ResponseWriter, r *http.Request) {
+	u, ok := h.auth(w, r)
+	if !ok {
+		return
+	}
+	if !h.requireAppCapability(w, r, "tasks") {
+		return
+	}
+	limit, offset := page(r)
+	clauses := []string{"u.external_uid=?", "a.status<>'cancelled'"}
+	args := []any{u}
+	if value := r.URL.Query().Get("completed"); value != "" {
+		completed, err := strconv.ParseBool(value)
+		if err != nil {
+			http.Error(w, "completed must be a boolean", http.StatusBadRequest)
+			return
+		}
+		if completed {
+			clauses = append(clauses, "a.status='completed'")
+		} else {
+			clauses = append(clauses, "a.status<>'completed'")
+		}
+	}
+	if conversationID := strings.TrimSpace(r.URL.Query().Get("conversation_id")); conversationID != "" {
+		clauses = append(clauses, "CAST(a.conversation_id AS CHAR)=?")
+		args = append(args, conversationID)
+	}
+	dateFilters := []struct {
+		name, column string
+		end          bool
+	}{
+		{"start_date", "a.created_at >= ?", false}, {"end_date", "a.created_at <= ?", true},
+		{"due_start_date", "a.due_at >= ?", false}, {"due_end_date", "a.due_at <= ?", true},
+	}
+	for _, filter := range dateFilters {
+		if raw := r.URL.Query().Get(filter.name); raw != "" {
+			value, err := parseExternalDate(raw, filter.end)
+			if err != nil {
+				http.Error(w, "invalid "+filter.name, http.StatusBadRequest)
+				return
+			}
+			clauses = append(clauses, filter.column)
+			args = append(args, value)
+		}
+	}
+	query := `SELECT CAST(a.id AS CHAR),a.description,a.status,a.owner,a.source,a.due_at,a.completed_at,a.created_at,a.updated_at,a.conversation_id,a.is_locked FROM action_items a JOIN users u ON u.id=a.user_id WHERE ` + strings.Join(clauses, " AND ") + ` ORDER BY a.created_at DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
+	rows, err := h.DB.QueryContext(r.Context(), query, args...)
+	if err != nil {
+		http.Error(w, "failed to read tasks", http.StatusServiceUnavailable)
+		return
+	}
+	defer rows.Close()
+	tasks := []map[string]any{}
+	for rows.Next() {
+		var id, description, status, owner, source string
+		var dueAt, completedAt, createdAt, updatedAt sql.NullTime
+		var conversationID sql.NullInt64
+		var locked bool
+		if err := rows.Scan(&id, &description, &status, &owner, &source, &dueAt, &completedAt, &createdAt, &updatedAt, &conversationID, &locked); err != nil {
+			continue
+		}
+		if locked && len(description) > 70 {
+			description = description[:70] + "..."
+		}
+		item := map[string]any{"id": id, "description": description, "status": status, "completed": status == "completed", "owner": owner, "source": source, "is_locked": locked, "created_at": createdAt.Time, "updated_at": updatedAt.Time}
+		if dueAt.Valid {
+			item["due_at"] = dueAt.Time
+		}
+		if completedAt.Valid {
+			item["completed_at"] = completedAt.Time
+		}
+		if conversationID.Valid {
+			item["conversation_id"] = conversationID.Int64
+		}
+		tasks = append(tasks, item)
+	}
+	write(w, map[string]any{"tasks": tasks})
+}
+
+func (h Handler) Notification(w http.ResponseWriter, r *http.Request) {
+	u, ok := h.auth(w, r)
+	if !ok {
+		return
+	}
+	if !h.requireAppCapability(w, r, "chat_messages") {
+		return
+	}
+	message := strings.TrimSpace(r.URL.Query().Get("message"))
+	if message == "" || len(message) > 4096 {
+		http.Error(w, "message is required", http.StatusBadRequest)
+		return
+	}
+	appID := r.PathValue("app_id")
+	var count int
+	if err := h.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM integration_notification_events WHERE app_id=? AND user_external_uid=? AND created_at>=UTC_TIMESTAMP()-INTERVAL 1 HOUR`, appID, u).Scan(&count); err != nil {
+		http.Error(w, "notification storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if count >= 10 {
+		w.Header().Set("Retry-After", "3600")
+		http.Error(w, "Rate limit exceeded. Maximum 10 notifications per hour.", http.StatusTooManyRequests)
+		return
+	}
+	if _, err := h.DB.ExecContext(r.Context(), `INSERT INTO integration_notification_events(app_id,user_external_uid,message,source,created_at) VALUES(?,?,?,?,UTC_TIMESTAMP(6))`, appID, u, message, "api.v2.integration"); err != nil {
+		http.Error(w, "notification dispatch unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	write(w, map[string]string{"status": "Ok"})
+}
+
+func (h Handler) requireAppCapability(w http.ResponseWriter, r *http.Request, capability string) bool {
+	var approved, disabled bool
+	var raw []byte
+	err := h.DB.QueryRowContext(r.Context(), `SELECT approved,disabled,COALESCE(capabilities,JSON_ARRAY()) FROM plugins_data WHERE id=?`, r.PathValue("app_id")).Scan(&approved, &disabled, &raw)
+	if err != nil {
+		http.Error(w, "App not found", http.StatusNotFound)
+		return false
+	}
+	if !approved || disabled {
+		http.Error(w, "App not found", http.StatusNotFound)
+		return false
+	}
+	var capabilities []string
+	if json.Unmarshal(raw, &capabilities) == nil && len(capabilities) > 0 {
+		allowed := map[string]bool{capability: true}
+		if capability == "tasks" {
+			allowed["read_tasks"] = true
+		}
+		if capability == "chat_messages" {
+			allowed["proactive_notification"] = true
+			allowed["chat"] = true
+		}
+		for _, value := range capabilities {
+			if allowed[value] {
+				return true
+			}
+		}
+		http.Error(w, "App does not have the required capability", http.StatusForbidden)
+		return false
+	}
+	return true
 }
