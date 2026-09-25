@@ -2,11 +2,16 @@ package framerequests
 
 import (
 	"bytes"
+	"context"
 	"image"
 	"image/color"
 	"image/jpeg"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
 )
 
 func TestCanonicalImageBoundsAndJPEGOutput(t *testing.T) {
@@ -64,3 +69,35 @@ func TestScreenFrameResponseHidesStorageIdentity(t *testing.T) {
 		t.Fatalf("content_url = %#v", frames[0]["content_url"])
 	}
 }
+
+func TestTemporaryImageReadsUploadedUnattachedFrame(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	now := time.Now().UTC().Add(time.Hour)
+	mock.ExpectQuery("SELECT request_id,user_external_uid,device_id,account_generation").
+		WithArgs("frame-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"request_id", "user_external_uid", "device_id", "account_generation", "dedupe_key", "dedupe_window", "attempt_number", "conversation_id", "screenshot_id", "state", "created_at", "expires_at", "claimed_at", "uploaded_at", "attached_at", "terminal_reason", "byte_count", "content_type", "storage_id", "cleanup_state", "cleanup_attempts", "cleanup_next_attempt_at"}).
+			AddRow("frame-1", "user-1", "mac", 7, "d", 0, 0, nil, nil, "uploaded", now.Add(-time.Minute), now, now, now.Add(-time.Minute), now, nil, 3, "image/jpeg", "storage-1", "pending", 0, now))
+	h := Handler{DB: db, Store: staticStore{data: []byte("jpeg")}}
+	r := httptest.NewRequest(http.MethodGet, "/v1/frame-requests/temporary/frame-1/image?account_generation=7", nil)
+	w := httptest.NewRecorder()
+	h.temporaryImage(w, r, "user-1")
+	if w.Code != http.StatusOK || w.Body.String() != "jpeg" || w.Header().Get("Content-Type") != "image/jpeg" {
+		t.Fatalf("response = %d %q %q", w.Code, w.Body.String(), w.Header().Get("Content-Type"))
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type staticStore struct{ data []byte }
+
+func (s staticStore) Put(context.Context, string, string, []byte) error   { return nil }
+func (s staticStore) Get(context.Context, string, string) ([]byte, error) { return s.data, nil }
+func (s staticStore) Delete(context.Context, string, string) error        { return nil }
+func (s staticStore) Copy(context.Context, string, string, string) error  { return nil }
+
+var _ Store = staticStore{}

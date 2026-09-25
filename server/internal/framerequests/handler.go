@@ -85,6 +85,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.pending(w, r, uid)
 	case strings.HasPrefix(path, "/v1/frame-requests/status/") && r.Method == http.MethodGet:
 		h.status(w, r, uid)
+	case strings.HasPrefix(path, "/v1/frame-requests/temporary/") && strings.HasSuffix(path, "/image") && r.Method == http.MethodGet:
+		h.temporaryImage(w, r, uid)
 	case strings.HasSuffix(path, "/state") && r.Method == http.MethodPost:
 		h.state(w, r, uid)
 	case strings.HasSuffix(path, "/upload") && r.Method == http.MethodPost:
@@ -96,6 +98,51 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+// temporaryImage releases pixels only for an uploaded, unattached request.
+// Permanent conversation evidence remains behind the conversation-owned image
+// handlers; this route is intentionally limited to the JIT temporary boundary.
+func (h Handler) temporaryImage(w http.ResponseWriter, r *http.Request, uid string) {
+	parts := strings.Split(strings.Trim(pathWithoutQuery(r.URL.Path), "/"), "/")
+	if len(parts) != 5 || parts[0] != "v1" || parts[1] != "frame-requests" || parts[2] != "temporary" || parts[4] != "image" {
+		http.NotFound(w, r)
+		return
+	}
+	id := parts[3]
+	accountGeneration := int64(queryInt(r, "account_generation", 0))
+	f, err := h.get(r, id, uid)
+	if err != nil || f.AccountGeneration != accountGeneration || f.ConversationID != nil {
+		http.Error(w, "frame_request_not_found", http.StatusNotFound)
+		return
+	}
+	if !f.ExpiresAt.After(time.Now().UTC()) {
+		http.Error(w, "frame_request_expired", http.StatusGone)
+		return
+	}
+	if f.State != "uploaded" || f.StorageID == nil || strings.TrimSpace(*f.StorageID) == "" {
+		http.Error(w, "frame_request_"+f.State, http.StatusConflict)
+		return
+	}
+	payload, err := h.read(uid, *f.StorageID)
+	if err != nil {
+		http.Error(w, "frame_request_pixels_unavailable", http.StatusNotFound)
+		return
+	}
+	contentType := value(f.ContentType)
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
+}
+
+func pathWithoutQuery(path string) string {
+	if i := strings.IndexByte(path, '?'); i >= 0 {
+		return path[:i]
+	}
+	return path
 }
 
 func (h Handler) conversationIDFromScreenshotPath(path string) string {

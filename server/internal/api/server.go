@@ -358,6 +358,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/frame-requests", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/frame-requests/pending", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/frame-requests/status/:request_id", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/frame-requests/temporary/:request_id/image", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/frame-requests/:request_id/state", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/frame-requests/:request_id/upload", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/frame-requests/:request_id/promote", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
