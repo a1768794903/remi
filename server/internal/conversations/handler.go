@@ -1,6 +1,7 @@
 package conversations
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"database/sql"
@@ -892,6 +893,52 @@ func fetchCalendarEvent(ctx context.Context, token, eventID string) (calendarEve
 	return link, nil
 }
 
+func writeConversationLinkToCalendarEvent(ctx context.Context, token, eventID, conversationID string) {
+	baseURL := strings.TrimRight(os.Getenv("BASE_API_URL"), "/")
+	if baseURL == "" || strings.TrimSpace(token) == "" || strings.TrimSpace(eventID) == "" || strings.TrimSpace(conversationID) == "" {
+		return
+	}
+	getURL := "https://www.googleapis.com/calendar/v3/calendars/primary/events/" + url.PathEscape(eventID)
+	getReq, err := http.NewRequestWithContext(ctx, http.MethodGet, getURL, nil)
+	if err != nil {
+		return
+	}
+	getReq.Header.Set("Authorization", "Bearer "+token)
+	client := &http.Client{Timeout: 20 * time.Second}
+	getResp, err := client.Do(getReq)
+	if err != nil {
+		return
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode < 200 || getResp.StatusCode >= 300 {
+		return
+	}
+	var current map[string]any
+	if json.NewDecoder(getResp.Body).Decode(&current) != nil {
+		return
+	}
+	description, _ := current["description"].(string)
+	conversationLink := baseURL + "/conversations/" + url.PathEscape(conversationID)
+	if strings.Contains(description, conversationLink) {
+		return
+	}
+	if description != "" {
+		description += "\n\n"
+	}
+	description += conversationLink
+	payload, _ := json.Marshal(map[string]string{"description": description})
+	patchReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, getURL, bytes.NewReader(payload))
+	if err != nil {
+		return
+	}
+	patchReq.Header.Set("Authorization", "Bearer "+token)
+	patchReq.Header.Set("Content-Type", "application/json")
+	patchResp, err := client.Do(patchReq)
+	if err == nil {
+		_ = patchResp.Body.Close()
+	}
+}
+
 func stringValue(value any) string {
 	result, _ := value.(string)
 	return result
@@ -954,6 +1001,7 @@ func (h Handler) CalendarEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to link calendar event", http.StatusInternalServerError)
 		return
 	}
+	writeConversationLinkToCalendarEvent(r.Context(), token, link.EventID, id)
 	writeJSON(w, http.StatusOK, link)
 }
 
@@ -1041,6 +1089,7 @@ func (h Handler) AutoCalendarEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to link calendar event", http.StatusInternalServerError)
 		return
 	}
+	writeConversationLinkToCalendarEvent(r.Context(), token, link.EventID, id)
 	writeJSON(w, http.StatusOK, link)
 }
 
