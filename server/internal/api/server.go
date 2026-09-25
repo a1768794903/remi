@@ -43,6 +43,7 @@ import (
 	"remi/server/internal/framerequests"
 	"remi/server/internal/goals"
 	"remi/server/internal/health"
+	"remi/server/internal/hume"
 	"remi/server/internal/imports"
 	"remi/server/internal/integrations"
 	"remi/server/internal/knowledgegraph"
@@ -108,6 +109,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	notificationAPIHandler := notificationapi.Handler{DB: db}
 	server.AddRoutes([]rest.Route{
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
+		{Method: http.MethodPost, Path: "/v1/agents/hume/callback", Handler: hume.Handler{DB: db}.Callback},
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/batch-requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Batch)).ServeHTTP},

@@ -55,6 +55,15 @@ CREATE TABLE IF NOT EXISTS `feedback_events` (
     KEY `feedback_events_target` (`target_kind`,`target_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `hume_callbacks` (
+    `job_id` varchar(255) NOT NULL,
+    `status` varchar(64) NOT NULL DEFAULT '',
+    `payload` json NOT NULL,
+    `created_at` datetime(6) NOT NULL,
+    `updated_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`job_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `user_byok` (
     `user_external_uid` varchar(255) NOT NULL,
     `fingerprints` json NOT NULL,
