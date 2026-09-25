@@ -224,7 +224,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		}
 		if resp != nil {
 			_, code, _, _ := proxyStatus(resp.StatusCode)
-			outcome := code
+			outcome := proxyAttemptOutcome(resp.StatusCode, candidateBody, code)
 			if outcome == "" {
 				outcome = "provider_error"
 			}
@@ -269,6 +269,9 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 			outcome = "missing_terminal"
 		}
 	}
+	if resp.StatusCode >= 400 {
+		outcome = proxyAttemptOutcome(resp.StatusCode, responseBody, outcome)
+	}
 	finalOrdinal := selectedOrdinal
 	h.recordAttempt(r.Context(), requestID, finalOrdinal, uid, provider, model, action, payer, resp.StatusCode, outcome, int64(len(body)), usage.Input, usage.Output, usage.Cached)
 	if code != "" {
@@ -297,6 +300,13 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		h.updateAttemptOutcome(r.Context(), requestID, finalOrdinal, outcome)
 	}}
 	_, _ = io.Copy(w, observer)
+}
+
+func proxyAttemptOutcome(status int, body []byte, fallback string) string {
+	if classified := classifyProviderFailure(status, body); classified != "" {
+		return classified
+	}
+	return fallback
 }
 
 func fallbackEligible(status int, body []byte, streaming bool) bool {
