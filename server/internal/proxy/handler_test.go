@@ -76,3 +76,23 @@ func TestGeminiUsesPerRequestBYOKKey(t *testing.T) {
 		t.Fatalf("code=%d key=%q", w.Code, gotKey)
 	}
 }
+
+func TestProxyStatusMatchesProviderFailureContract(t *testing.T) {
+	tests := []struct {
+		upstream, status int
+		code             string
+		retryable        bool
+	}{
+		{429, 429, "provider_rate_limited", true},
+		{408, 504, "provider_timeout", false},
+		{503, 503, "provider_unavailable", true},
+		{500, 502, "provider_unavailable", false},
+		{400, 400, "provider_rejected", false},
+	}
+	for _, test := range tests {
+		status, code, retryable, _ := proxyStatus(test.upstream)
+		if status != test.status || code != test.code || retryable != test.retryable {
+			t.Fatalf("upstream=%d got (%d,%q,%v)", test.upstream, status, code, retryable)
+		}
+	}
+}

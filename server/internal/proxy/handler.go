@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"remi/server/internal/auth"
 )
@@ -129,7 +130,8 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool) {
+func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider string) {
+	requestID := uuid.NewString()
 	u, err := url.Parse(target)
 	if err != nil {
 		http.Error(w, "invalid provider endpoint", 500)
@@ -154,13 +156,29 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	}
 	resp, err := h.client().Do(req)
 	if err != nil {
-		w.Header().Set("Retry-After", "5")
-		http.Error(w, "provider unavailable", http.StatusBadGateway)
+		w.Header().Set("X-Omi-Request-Id", requestID)
+		w.Header().Set("X-Omi-Provider", provider)
+		w.Header().Set("X-Omi-Error-Class", "provider_unavailable")
+		w.Header().Set("X-Omi-Failure-Phase", "provider")
+		w.Header().Set("X-Omi-Retryable", "true")
+		w.Header().Set("Retry-After", "10")
+		writeProxyError(w, http.StatusServiceUnavailable, "provider_unavailable", "provider is temporarily unavailable", requestID, true)
 		return
 	}
 	defer resp.Body.Close()
 	copyHeaders(w.Header(), resp.Header)
-	w.WriteHeader(resp.StatusCode)
+	w.Header().Set("X-Omi-Request-Id", requestID)
+	w.Header().Set("X-Omi-Provider", provider)
+	status, code, retryable, retryAfter := proxyStatus(resp.StatusCode)
+	if code != "" {
+		w.Header().Set("X-Omi-Error-Class", code)
+		w.Header().Set("X-Omi-Failure-Phase", "provider")
+		w.Header().Set("X-Omi-Retryable", boolString(retryable))
+		if retryAfter > 0 {
+			w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		}
+	}
+	w.WriteHeader(status)
 	_, _ = io.Copy(w, resp.Body)
 }
 
@@ -190,7 +208,7 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = model
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini")
 }
 
 func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
@@ -218,7 +236,7 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini")
 }
 
 func (h Handler) meterGemini(w http.ResponseWriter, r *http.Request, path, model string) (string, bool, bool) {
@@ -278,7 +296,37 @@ func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid Deepgram path", 400)
 		return
 	}
-	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true)
+	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram")
+}
+
+func proxyStatus(upstream int) (status int, code string, retryable bool, retryAfter int) {
+	switch {
+	case upstream == http.StatusTooManyRequests:
+		return http.StatusTooManyRequests, "provider_rate_limited", true, 30
+	case upstream == http.StatusRequestTimeout || upstream == http.StatusGatewayTimeout:
+		return http.StatusGatewayTimeout, "provider_timeout", false, 0
+	case upstream == http.StatusBadGateway || upstream == http.StatusServiceUnavailable:
+		return http.StatusServiceUnavailable, "provider_unavailable", true, 10
+	case upstream >= 500:
+		return http.StatusBadGateway, "provider_unavailable", false, 0
+	case upstream >= 400:
+		return upstream, "provider_rejected", false, 0
+	default:
+		return upstream, "", false, 0
+	}
+}
+
+func boolString(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
+func writeProxyError(w http.ResponseWriter, status int, code, message, requestID string, retryable bool) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": code, "message": message, "request_id": requestID, "retryable": retryable})
 }
 
 func (h Handler) geminiRequestKey(r *http.Request) string {
