@@ -10,6 +10,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
+	"remi/server/internal/auth"
 )
 
 const maxGeminiBodyBytes int64 = 5 * 1024 * 1024
@@ -32,7 +35,11 @@ type Handler struct {
 	DeepgramBase string
 	DeepgramKey  string
 	Client       *http.Client
+	Redis        *redis.Client
 }
+
+const geminiBurstLimit int64 = 30
+const geminiDailyLimit int64 = 1500
 
 func (h Handler) client() *http.Client {
 	if h.Client != nil {
@@ -168,7 +175,10 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	managed := r.Header.Get("X-LLM-BYOK-Key") == "" && os.Getenv("GEMINI_BYOK_ONLY") != "true"
+	path, managed, ok := h.meterGemini(w, r, path, model)
+	if !ok {
+		return
+	}
 	body, err := readGeminiBody(w, r, managed)
 	if err != nil {
 		status := http.StatusBadRequest
@@ -180,7 +190,7 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = model
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	h.forward(w, r, h.geminiBase()+path, h.geminiKey(), false)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false)
 }
 
 func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
@@ -189,12 +199,16 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid Gemini path", 400)
 		return
 	}
-	_, _, err := geminiPath(path)
+	model, _, err := geminiPath(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	body, err := readGeminiBody(w, r, r.Header.Get("X-LLM-BYOK-Key") == "" && os.Getenv("GEMINI_BYOK_ONLY") != "true")
+	path, managed, ok := h.meterGemini(w, r, path, model)
+	if !ok {
+		return
+	}
+	body, err := readGeminiBody(w, r, managed)
 	if err != nil {
 		status := http.StatusBadRequest
 		if strings.Contains(err.Error(), "too large") {
@@ -204,7 +218,58 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
-	h.forward(w, r, h.geminiBase()+path, h.geminiKey(), false)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false)
+}
+
+func (h Handler) meterGemini(w http.ResponseWriter, r *http.Request, path, model string) (string, bool, bool) {
+	managed := r.Header.Get("X-LLM-BYOK-Key") == "" && os.Getenv("GEMINI_BYOK_ONLY") != "true"
+	if !managed || h.Redis == nil {
+		return path, managed, true
+	}
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return "", false, false
+	}
+	now := time.Now().UTC()
+	burstKey := fmt.Sprintf("remi:quota:gemini:burst:%s:%d", uid, now.Unix()/60)
+	burst, err := h.Redis.Incr(r.Context(), burstKey).Result()
+	if err != nil {
+		http.Error(w, "Gemini rate limiter is unavailable", http.StatusServiceUnavailable)
+		return "", false, false
+	}
+	if burst == 1 {
+		_ = h.Redis.Expire(r.Context(), burstKey, 2*time.Minute).Err()
+	}
+	if burst > geminiBurstLimit {
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", 60-now.Second()))
+		w.Header().Set("X-Omi-Retryable", "true")
+		http.Error(w, "Gemini request rate limit exceeded", http.StatusTooManyRequests)
+		return "", false, false
+	}
+	dayKey := fmt.Sprintf("remi:quota:gemini:daily:%s:%s", uid, now.Format("2006-01-02"))
+	daily, err := h.Redis.Incr(r.Context(), dayKey).Result()
+	if err != nil {
+		http.Error(w, "Gemini rate limiter is unavailable", http.StatusServiceUnavailable)
+		return "", false, false
+	}
+	if daily == 1 {
+		_ = h.Redis.Expire(r.Context(), dayKey, 48*time.Hour).Err()
+	}
+	if daily > geminiDailyLimit {
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", 86400-(now.Hour()*3600+now.Minute()*60+now.Second())))
+		w.Header().Set("X-Omi-Retryable", "false")
+		http.Error(w, "Gemini daily request limit exceeded", http.StatusTooManyRequests)
+		return "", false, false
+	}
+	softLimit := int64(30)
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("OMI_MODEL_TIER")), "max") {
+		softLimit = 300
+	}
+	if daily > softLimit && model == "gemini-2.5-pro" {
+		path = strings.Replace(path, "gemini-2.5-pro", "gemini-2.5-flash-lite", 1)
+	}
+	return path, true, true
 }
 
 func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +279,13 @@ func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true)
+}
+
+func (h Handler) geminiRequestKey(r *http.Request) string {
+	if key := strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")); key != "" {
+		return key
+	}
+	return h.geminiKey()
 }
 
 // WithTimeout returns a provider client with the same bounded logical request

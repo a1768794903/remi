@@ -59,3 +59,20 @@ func TestGeminiCapsManagedOutputTokens(t *testing.T) {
 		t.Fatalf("maxOutputTokens=%v", gotTokens)
 	}
 }
+
+func TestGeminiUsesPerRequestBYOKKey(t *testing.T) {
+	var gotKey string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotKey = r.Header.Get("x-goog-api-key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+	h := Handler{GeminiBase: upstream.URL, GeminiAPIKey: "server-key", Client: upstream.Client()}
+	r := httptest.NewRequest(http.MethodPost, "/v1/proxy/gemini/models/gemini-2.5-flash:generateContent", strings.NewReader(`{"x":1}`))
+	r.Header.Set("X-LLM-BYOK-Key", "user-key")
+	w := httptest.NewRecorder()
+	h.Gemini(w, r)
+	if w.Code != http.StatusOK || gotKey != "user-key" {
+		t.Fatalf("code=%d key=%q", w.Code, gotKey)
+	}
+}
