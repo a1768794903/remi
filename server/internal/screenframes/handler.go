@@ -272,21 +272,31 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 	}
 	photos := []map[string]any{}
 	_ = json.Unmarshal(raw, &photos)
+	storedIDs := []string{}
+	cleanup := func() {
+		for _, id := range storedIDs {
+			_ = h.Store.Delete(ctx, uid, id)
+		}
+	}
 	for _, item := range approved {
 		if len(photos) >= 7 {
 			break
 		}
 		id := "screen-" + uuid.NewString()
 		if err = h.Store.Put(ctx, uid, id, item.JPEG); err != nil {
+			cleanup()
 			return nil, err
 		}
+		storedIDs = append(storedIDs, id)
 		photos = append(photos, map[string]any{"id": id, "storage_id": id, "content_type": "image/jpeg", "created_at": time.Now().UTC(), "captured_at": item.Candidate.CapturedAt, "caption": item.Judgement.Caption, "labels": item.Judgement.Labels, "source_badge": item.Judgement.SourceBadge, "width": item.Candidate.DeclaredWidth, "height": item.Candidate.DeclaredHeight})
 	}
 	encoded, _ := json.Marshal(photos)
 	if _, err = tx.ExecContext(ctx, `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=? WHERE c.id=? AND u.external_uid=?`, encoded, in.Subject.ID, uid); err != nil {
+		cleanup()
 		return nil, err
 	}
 	if err = tx.Commit(); err != nil {
+		cleanup()
 		return nil, err
 	}
 	return frameSetFromPhotos(in.Subject.ID, photos), nil
