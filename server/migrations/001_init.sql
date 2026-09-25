@@ -716,6 +716,8 @@ CREATE TABLE IF NOT EXISTS `conversations` (
     `conversation_audio` json NULL,
     `photos` json NULL,
     `screenshot_sharing_enabled` boolean NOT NULL DEFAULT FALSE,
+    `screen_frames_revision` bigint NOT NULL DEFAULT 0,
+    `screen_frames_adjudicated_at` datetime(6) NULL,
     `data_protection_level` varchar(32) NOT NULL DEFAULT 'standard',
     PRIMARY KEY (`id`),
     KEY `conversations_user_id` (`user_id`),

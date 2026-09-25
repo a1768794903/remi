@@ -298,7 +298,7 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 	}
 	photos, evicted := enforcePhotoSet(photos)
 	encoded, _ := json.Marshal(photos)
-	if _, err = tx.ExecContext(ctx, `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=? WHERE c.id=? AND u.external_uid=?`, encoded, in.Subject.ID, uid); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=?,c.screen_frames_revision=c.screen_frames_revision+1,c.screen_frames_adjudicated_at=UTC_TIMESTAMP(6) WHERE c.id=? AND u.external_uid=?`, encoded, in.Subject.ID, uid); err != nil {
 		cleanup()
 		return nil, err
 	}
@@ -311,7 +311,12 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 			_ = h.Store.Delete(ctx, uid, storageID)
 		}
 	}
-	return frameSetFromPhotos(uid, in.Subject.ID, photos), nil
+	var revision int64
+	var adjudicatedAt *time.Time
+	if err = h.DB.QueryRowContext(ctx, `SELECT screen_frames_revision,screen_frames_adjudicated_at FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=?`, in.Subject.ID, uid).Scan(&revision, &adjudicatedAt); err != nil {
+		return nil, err
+	}
+	return frameSetFromPhotos(uid, in.Subject.ID, photos, revision, adjudicatedAt), nil
 }
 
 func enforcePhotoSet(photos []map[string]any) ([]map[string]any, []map[string]any) {
@@ -434,7 +439,7 @@ func emptyFrameSet() map[string]any {
 	return map[string]any{"revision": 0, "banner": nil, "strip": []any{}}
 }
 
-func frameSetFromPhotos(uid, conversationID string, photos []map[string]any) map[string]any {
+func frameSetFromPhotos(uid, conversationID string, photos []map[string]any, revision int64, adjudicatedAt *time.Time) map[string]any {
 	strip := make([]map[string]any, 0, len(photos))
 	var banner map[string]any
 	for index, photo := range photos {
@@ -462,7 +467,7 @@ func frameSetFromPhotos(uid, conversationID string, photos []map[string]any) map
 			strip = append(strip, frame)
 		}
 	}
-	return map[string]any{"revision": 1, "banner": banner, "strip": strip}
+	return map[string]any{"revision": revision, "banner": banner, "strip": strip, "adjudicated_at": adjudicatedAt}
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
