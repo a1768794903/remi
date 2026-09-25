@@ -25,6 +25,7 @@ import (
 )
 
 var ErrAppNotFound = errors.New("app not found")
+var ErrInvalidOwnerMigration = errors.New("invalid app owner migration")
 
 type App struct {
 	ID                  string         `json:"id"`
@@ -52,6 +53,41 @@ type App struct {
 }
 
 type Service struct{ DB *sql.DB }
+
+// MigrateOwner moves private app ownership and relational memories in one
+// transaction. The caller must authenticate the source identity separately;
+// this method only performs the durable, UID-scoped mutation.
+func (s Service) MigrateOwner(ctx context.Context, newUID, oldUID string) error {
+	newUID, oldUID = strings.TrimSpace(newUID), strings.TrimSpace(oldUID)
+	if s.DB == nil || newUID == "" || oldUID == "" || newUID == oldUID {
+		return ErrInvalidOwnerMigration
+	}
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	var oldID, newID int64
+	if err = tx.QueryRowContext(ctx, `SELECT id FROM users WHERE external_uid=? FOR UPDATE`, oldUID).Scan(&oldID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrInvalidOwnerMigration
+		}
+		return err
+	}
+	if err = tx.QueryRowContext(ctx, `SELECT id FROM users WHERE external_uid=? FOR UPDATE`, newUID).Scan(&newID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrInvalidOwnerMigration
+		}
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE plugins_data SET uid=?,updated_at=UTC_TIMESTAMP(6) WHERE uid=?`, newUID, oldUID); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE memories SET user_id=? WHERE user_id=?`, newID, oldID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
 
 var appColumns = "id,name,uid,private,approved,status,category,author,description,image,capabilities,external_integration,chat_tools,installs,popular,rating_avg,rating_count,is_paid,price,disabled,disabled_reason"
 
@@ -576,6 +612,7 @@ type Handler struct {
 	Service        Service
 	Provider       chat.Provider
 	ThumbnailStore chatfiles.ThumbnailStore
+	Verifier       *auth.FirebaseVerifier
 }
 
 func valueString(v *string) string {
@@ -646,6 +683,55 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = writeJSON(w, map[string]any{"status": "ok", "app_id": app.ID})
 }
+
+func (h Handler) MigrateOwner(w http.ResponseWriter, r *http.Request) {
+	destination, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	var in struct {
+		OldID       string `json:"old_id"`
+		SourceToken string `json:"source_token"`
+	}
+	in.OldID, in.SourceToken = strings.TrimSpace(r.URL.Query().Get("old_id")), strings.TrimSpace(r.URL.Query().Get("source_token"))
+	if r.Body != nil {
+		var body struct {
+			OldID       string `json:"old_id"`
+			SourceToken string `json:"source_token"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<10)).Decode(&body); err == nil {
+			if in.OldID == "" {
+				in.OldID = strings.TrimSpace(body.OldID)
+			}
+			if in.SourceToken == "" {
+				in.SourceToken = strings.TrimSpace(body.SourceToken)
+			}
+		}
+	}
+	if in.OldID == "" || in.SourceToken == "" || in.OldID == destination {
+		http.Error(w, "source identity is not eligible for migration", http.StatusForbidden)
+		return
+	}
+	if h.Verifier == nil {
+		http.Error(w, "identity verification is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	source, err := h.Verifier.Verify(r.Context(), in.SourceToken)
+	if err != nil || source != in.OldID {
+		http.Error(w, "source identity is not eligible for migration", http.StatusForbidden)
+		return
+	}
+	if err := h.Service.MigrateOwner(r.Context(), destination, in.OldID); errors.Is(err, ErrInvalidOwnerMigration) {
+		http.Error(w, "source identity is not eligible for migration", http.StatusForbidden)
+		return
+	} else if err != nil {
+		http.Error(w, "app owner migration failed", http.StatusInternalServerError)
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Migration started"})
+}
+
 func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 	uid, err := auth.UserID(r.Context())
 	if err != nil {

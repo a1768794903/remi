@@ -23,6 +23,79 @@ type Handler struct {
 	Provider    chat.Provider
 }
 
+func buildFollowupPrompt(words []string) string {
+	if len(words) < 10 {
+		return ""
+	}
+	if len(words) > 100 {
+		words = words[len(words)-100:]
+	}
+	return "You will be given the transcript of an in-progress conversation. Suggest the next concise, engaging follow-up question. Output only the question, without markdown.\n\nConversation Transcript:\n" + strings.Join(words, " ")
+}
+
+func (h Handler) Followup(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if h.Provider == nil {
+		http.Error(w, "follow-up provider is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	conversationID := r.PathValue("memory_id")
+	var item Item
+	if conversationID == "0" {
+		items, listErr := h.Service.List(r.Context(), uid, 100, 0)
+		if listErr != nil {
+			http.Error(w, "conversation lookup failed", http.StatusInternalServerError)
+			return
+		}
+		for _, candidate := range items {
+			if candidate.Status == "in_progress" {
+				item = candidate
+				conversationID = candidate.ID
+				break
+			}
+		}
+		if conversationID == "0" {
+			http.Error(w, "no memory in progress", http.StatusBadRequest)
+			return
+		}
+	} else {
+		item, err = h.Service.Get(r.Context(), uid, conversationID)
+		if errors.Is(err, ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, "conversation lookup failed", http.StatusInternalServerError)
+			return
+		}
+	}
+	_ = item
+	segments, err := h.Transcripts.List(r.Context(), uid, conversationID)
+	if err != nil {
+		http.Error(w, "transcript lookup failed", http.StatusInternalServerError)
+		return
+	}
+	words := make([]string, 0, len(segments)*4)
+	for _, segment := range segments {
+		words = append(words, strings.Fields(segment.Text)...)
+	}
+	prompt := buildFollowupPrompt(words)
+	if prompt == "" {
+		writeJSON(w, http.StatusOK, map[string]string{"result": ""})
+		return
+	}
+	answer, err := h.Provider.Complete(r.Context(), []chat.Turn{{Role: "user", Content: prompt}})
+	if err != nil {
+		http.Error(w, "follow-up generation failed", http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"result": strings.TrimSpace(answer)})
+}
+
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
