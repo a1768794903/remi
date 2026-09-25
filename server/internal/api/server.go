@@ -65,6 +65,7 @@ import (
 	"remi/server/internal/staticmap"
 	"remi/server/internal/stt"
 	"remi/server/internal/syncjobs"
+	"remi/server/internal/taskintelligence"
 	"remi/server/internal/toolsapi"
 	"remi/server/internal/transcripts"
 	"remi/server/internal/trends"
@@ -99,6 +100,13 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	developerHandler := developer.Handler{Actions: actionHandler.Service, Memories: memoryHandler.Service, Conversations: conversationHandler.Service}
 	oauthHandler := mcpkeys.OAuthHandler{Service: mcpkeys.Service{DB: db}, Verifier: verifier}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodGet, Path: "/v1/what-matters-now", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Evaluate)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/what-matters-now/evaluate", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Evaluate)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/task-intelligence/interventions", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Intervention)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/task-intelligence/feedback", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Feedback)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/task-intelligence/outcomes", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Outcome)).ServeHTTP},
+		{Method: http.MethodPut, Path: "/v1/task-intelligence/context-snapshot", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Snapshot)).ServeHTTP},
+		{Method: http.MethodPut, Path: "/v1/task-intelligence/open-loop-snapshot", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Snapshot)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/auth/authorize", Handler: authHandler.Authorize},
 		{Method: http.MethodGet, Path: "/v1/auth/callback/google", Handler: authHandler.GoogleCallback},
 		{Method: http.MethodPost, Path: "/v1/auth/callback/apple", Handler: authHandler.AppleCallback},

@@ -860,6 +860,77 @@ CREATE TABLE IF NOT EXISTS `action_items` (
     CONSTRAINT `action_items_conversations_action_items` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `task_intelligence_control` (
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL DEFAULT 0,
+    `workflow_mode` varchar(32) NOT NULL DEFAULT 'live',
+    `updated_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`user_external_uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `task_recommendation_projections` (
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `evaluation_id` varchar(128) NOT NULL,
+    `device_scope` varchar(128) NOT NULL DEFAULT '',
+    `payload` json NOT NULL,
+    `generated_at` datetime(6) NOT NULL,
+    `expires_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`user_external_uid`,`account_generation`,`device_scope`),
+    KEY `task_projection_expiry` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `task_interventions` (
+    `intervention_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `idempotency_key` varchar(512) NOT NULL,
+    `request_hash` char(64) NOT NULL,
+    `attribution_chain_id` varchar(128) NOT NULL,
+    `surface` varchar(32) NOT NULL,
+    `subject_kind` varchar(32) NOT NULL,
+    `subject_id` varchar(128) NOT NULL,
+    `dedupe_key` varchar(128) NOT NULL,
+    `evidence_refs` json NULL,
+    `expires_at` datetime(6) NOT NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`intervention_id`), UNIQUE KEY `task_intervention_idem` (`user_external_uid`,`account_generation`,`idempotency_key`),
+    KEY `task_intervention_chain` (`user_external_uid`,`account_generation`,`attribution_chain_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `task_feedback` (
+    `feedback_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `idempotency_key` varchar(512) NOT NULL,
+    `request_hash` char(64) NOT NULL,
+    `attribution_chain_id` varchar(128) NOT NULL,
+    `payload` json NOT NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`feedback_id`), UNIQUE KEY `task_feedback_idem` (`user_external_uid`,`account_generation`,`idempotency_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `task_outcomes` (
+    `outcome_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `idempotency_key` varchar(512) NOT NULL,
+    `request_hash` char(64) NOT NULL,
+    `attribution_chain_id` varchar(128) NOT NULL,
+    `payload` json NOT NULL,
+    `occurred_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`outcome_id`), UNIQUE KEY `task_outcome_idem` (`user_external_uid`,`account_generation`,`idempotency_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `task_intelligence_snapshots` (
+    `snapshot_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL,
+    `snapshot_kind` varchar(32) NOT NULL,
+    `idempotency_key` varchar(512) NOT NULL,
+    `request_hash` char(64) NOT NULL,
+    `payload` json NOT NULL,
+    `generated_at` datetime(6) NOT NULL,
+    `expires_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`snapshot_id`), UNIQUE KEY `task_snapshot_idem` (`user_external_uid`,`account_generation`,`snapshot_kind`,`idempotency_key`),
+    KEY `task_snapshot_current` (`user_external_uid`,`account_generation`,`snapshot_kind`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `chat_messages` (
     `id` bigint NOT NULL AUTO_INCREMENT,
     `external_id` varchar(64) NOT NULL,
