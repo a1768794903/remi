@@ -288,7 +288,7 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 			return nil, err
 		}
 		storedIDs = append(storedIDs, id)
-		photos = append(photos, map[string]any{"id": id, "storage_id": id, "content_type": "image/jpeg", "created_at": time.Now().UTC(), "captured_at": item.Candidate.CapturedAt, "caption": item.Judgement.Caption, "labels": item.Judgement.Labels, "source_badge": item.Judgement.SourceBadge, "width": item.Candidate.DeclaredWidth, "height": item.Candidate.DeclaredHeight})
+		photos = append(photos, map[string]any{"id": id, "storage_id": id, "content_type": "image/jpeg", "created_at": time.Now().UTC(), "captured_at": item.Candidate.CapturedAt, "caption": item.Judgement.Caption, "labels": item.Judgement.Labels, "source_badge": item.Judgement.SourceBadge, "width": item.Candidate.DeclaredWidth, "height": item.Candidate.DeclaredHeight, "ground": ComputeGround(item.JPEG)})
 	}
 	encoded, _ := json.Marshal(photos)
 	if _, err = tx.ExecContext(ctx, `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.photos=? WHERE c.id=? AND u.external_uid=?`, encoded, in.Subject.ID, uid); err != nil {
@@ -394,7 +394,7 @@ func frameSetFromPhotos(conversationID string, photos []map[string]any) map[stri
 		if id == "" {
 			continue
 		}
-		strip = append(strip, map[string]any{"id": id, "role": "strip", "rank": index, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "content_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image", "thumbnail_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image"})
+		strip = append(strip, map[string]any{"id": id, "role": "strip", "rank": index, "caption": photo["caption"], "labels": photo["labels"], "source_badge": photo["source_badge"], "width": photo["width"], "height": photo["height"], "ground": photo["ground"], "content_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image", "thumbnail_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image", "url_expires_at": time.Now().UTC().Add(time.Hour)})
 	}
 	return map[string]any{"revision": 1, "banner": nil, "strip": strip}
 }
