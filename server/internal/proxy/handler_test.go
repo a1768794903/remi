@@ -77,6 +77,27 @@ func TestGeminiUsesPerRequestBYOKKey(t *testing.T) {
 	}
 }
 
+func TestGeminiFallsBackAfterProviderUnavailable(t *testing.T) {
+	paths := []string{}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		if len(paths) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"ok"}]},"finishReason":"STOP"}]}`))
+	}))
+	defer upstream.Close()
+	h := Handler{GeminiBase: upstream.URL, GeminiAPIKey: "secret", Client: upstream.Client()}
+	r := httptest.NewRequest(http.MethodPost, "/v1/proxy/gemini/models/gemini-2.5-pro:generateContent", strings.NewReader(`{"contents":[]}`))
+	w := httptest.NewRecorder()
+	h.Gemini(w, r)
+	if w.Code != http.StatusOK || len(paths) != 2 || !strings.Contains(paths[1], "gemini-2.5-flash-lite") {
+		t.Fatalf("fallback code=%d paths=%v body=%q", w.Code, paths, w.Body.String())
+	}
+}
+
 func TestProxyStatusMatchesProviderFailureContract(t *testing.T) {
 	tests := []struct {
 		upstream, status int

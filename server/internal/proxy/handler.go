@@ -174,35 +174,51 @@ func nullString(value string) any {
 	return value
 }
 
-func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider, model, action, uid, payer string, streaming bool) {
+func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, key string, bearer bool, provider, model, action, uid, payer string, streaming bool, fallback []string) {
 	requestID := proxyRequestID(r)
-	u, err := url.Parse(target)
-	if err != nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "validation_rejected", 0, 0, 0, 0)
-		http.Error(w, "invalid provider endpoint", 500)
+	body, readErr := io.ReadAll(io.LimitReader(r.Body, maxGeminiBodyBytes+1))
+	if readErr != nil || int64(len(body)) > maxGeminiBodyBytes {
+		http.Error(w, "provider request body could not be buffered", http.StatusRequestEntityTooLarge)
 		return
 	}
-	u.RawQuery = r.URL.RawQuery
-	req, err := http.NewRequestWithContext(r.Context(), r.Method, u.String(), r.Body)
-	if err != nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "transport_error", r.ContentLength, 0, 0, 0)
-		http.Error(w, "unable to create provider request", 500)
-		return
-	}
-	copyHeaders(req.Header, r.Header)
-	req.Header.Del("Host")
-	req.Header.Del("Content-Length")
-	req.Header.Del("Authorization")
-	if key != "" {
-		if bearer {
-			req.Header.Set("Authorization", "Token "+key)
-		} else {
-			req.Header.Set("x-goog-api-key", key)
+	targets := append([]string{target}, fallback...)
+	var resp *http.Response
+	var err error
+	for index, candidate := range targets {
+		u, parseErr := url.Parse(candidate)
+		if parseErr != nil {
+			h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "validation_rejected", int64(len(body)), 0, 0, 0)
+			http.Error(w, "invalid provider endpoint", 500)
+			return
+		}
+		u.RawQuery = r.URL.RawQuery
+		req, requestErr := http.NewRequestWithContext(r.Context(), r.Method, u.String(), bytes.NewReader(body))
+		if requestErr != nil {
+			err = requestErr
+			break
+		}
+		copyHeaders(req.Header, r.Header)
+		req.Header.Del("Host")
+		req.Header.Del("Content-Length")
+		req.Header.Del("Authorization")
+		if key != "" {
+			if bearer {
+				req.Header.Set("Authorization", "Token "+key)
+			} else {
+				req.Header.Set("x-goog-api-key", key)
+			}
+		}
+		resp, err = h.client().Do(req)
+		if err == nil && (!fallbackEligible(resp.StatusCode) || index == len(targets)-1) {
+			break
+		}
+		if resp != nil {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
 		}
 	}
-	resp, err := h.client().Do(req)
-	if err != nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "provider_unavailable", r.ContentLength, 0, 0, 0)
+	if err != nil || resp == nil {
+		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
 		w.Header().Set("X-Omi-Request-Id", requestID)
 		w.Header().Set("X-Omi-Provider", provider)
 		w.Header().Set("X-Omi-Error-Class", "provider_unavailable")
@@ -221,13 +237,13 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	if code != "" {
 		outcome = code
 	}
-	var body []byte
+	var responseBody []byte
 	if !streaming {
-		body, _ = io.ReadAll(io.LimitReader(resp.Body, maxGeminiBodyBytes*2))
+		responseBody, _ = io.ReadAll(io.LimitReader(resp.Body, maxGeminiBodyBytes*2))
 	}
-	usage := parseUsage(body)
+	usage := parseUsage(responseBody)
 	if !streaming && resp.StatusCode >= 200 && resp.StatusCode < 300 && (action == "generateContent" || action == "streamGenerateContent") {
-		hasContent, hasTerminal, hasError := geminiPayloadOutcome(body)
+		hasContent, hasTerminal, hasError := geminiPayloadOutcome(responseBody)
 		switch {
 		case hasError:
 			outcome = "provider_error"
@@ -237,7 +253,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 			outcome = "missing_terminal"
 		}
 	}
-	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, r.ContentLength, usage.Input, usage.Output, usage.Cached)
+	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, int64(len(body)), usage.Input, usage.Output, usage.Cached)
 	if code != "" {
 		w.Header().Set("X-Omi-Error-Class", code)
 		w.Header().Set("X-Omi-Failure-Phase", "provider")
@@ -248,7 +264,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	}
 	w.WriteHeader(status)
 	if !streaming {
-		_, _ = w.Write(body)
+		_, _ = w.Write(responseBody)
 		return
 	}
 	observer := &usageReader{source: resp.Body, limit: maxGeminiBodyBytes * 2, usage: func(value usageCounts) { h.updateAttemptUsage(r.Context(), requestID, value) }, terminal: func(body []byte) {
@@ -264,6 +280,10 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		h.updateAttemptOutcome(r.Context(), requestID, outcome)
 	}}
 	_, _ = io.Copy(w, observer)
+}
+
+func fallbackEligible(status int) bool {
+	return status == http.StatusNotFound || status >= 500
 }
 
 func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
@@ -296,7 +316,7 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
 		payer = "byok"
 	}
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, false)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, false, geminiFallbackPaths(h.geminiBase(), path, model, action))
 }
 
 func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
@@ -329,7 +349,7 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
 		payer = "byok"
 	}
-	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, true)
+	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, true, geminiFallbackPaths(h.geminiBase(), path, model, action))
 }
 
 func (h Handler) meterGemini(w http.ResponseWriter, r *http.Request, path, model string) (string, bool, bool) {
@@ -390,7 +410,23 @@ func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uid, _ := auth.UserID(r.Context())
-	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram", "deepgram", "listen", uid, "omi", false)
+	h.forward(w, r, h.deepgramBase()+path, h.deepgramKey(), true, "deepgram", "deepgram", "listen", uid, "omi", false, nil)
+}
+
+func geminiFallbackPaths(base, path, model, action string) []string {
+	if action != "generateContent" && action != "streamGenerateContent" {
+		return nil
+	}
+	chain := map[string][]string{
+		"gemini-2.5-pro":        {"gemini-2.5-flash-lite", "gemini-2.5-flash"},
+		"gemini-2.5-flash-lite": {"gemini-2.5-flash"},
+	}
+	models := chain[model]
+	result := make([]string, 0, len(models))
+	for _, next := range models {
+		result = append(result, base+strings.Replace(path, model+":"+action, next+":"+action, 1))
+	}
+	return result
 }
 
 type usageReader struct {
