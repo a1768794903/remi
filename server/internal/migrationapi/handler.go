@@ -23,7 +23,10 @@ func (h Handler) user(w http.ResponseWriter, r *http.Request) (string, bool) {
 	}
 	return u, true
 }
-func validTarget(v string) bool { return strings.TrimSpace(v) == "enhanced" }
+func validTarget(v string) bool {
+	v = strings.TrimSpace(v)
+	return v == "enhanced" || v == "e2ee"
+}
 func write(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)
