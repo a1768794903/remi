@@ -19,13 +19,15 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"remi/server/internal/auth"
+	"remi/server/internal/chat"
 )
 
 type Handler struct {
-	Service Service
-	Redis   *redis.Client
-	HTTP    *http.Client
-	DB      *sql.DB
+	Service  Service
+	Redis    *redis.Client
+	HTTP     *http.Client
+	DB       *sql.DB
+	Provider chat.Provider
 }
 
 func (h Handler) userJSONField(ctx context.Context, uid, key string) (any, error) {

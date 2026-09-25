@@ -93,6 +93,9 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	if memoryHandler.Provider == nil && cfg.LLMEndpoint != "" {
 		memoryHandler.Provider = chat.HTTPProvider{Endpoint: cfg.LLMEndpoint, APIKey: cfg.LLMAPIKey, Model: cfg.LLMModel}
 	}
+	if userHandler.Provider == nil && cfg.LLMEndpoint != "" {
+		userHandler.Provider = chat.HTTPProvider{Endpoint: cfg.LLMEndpoint, APIKey: cfg.LLMAPIKey, Model: cfg.LLMModel}
+	}
 	verifier := auth.NewFirebaseVerifier(cfg.FirebaseProjectID)
 	devKeyService := devkeys.Service{DB: db}
 	authHandler := authflow.Handler{Redis: redisClient, BaseURL: os.Getenv("BASE_API_URL")}
@@ -111,6 +114,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/account/cutover/control", Handler: protected(http.HandlerFunc(accountHandler.CutoverControl)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
 		{Method: http.MethodPost, Path: "/v1/agents/hume/callback", Handler: hume.Handler{DB: db}.Callback},
+		{Method: http.MethodPost, Path: "/v1/users/ai-profile/synthesize", Handler: protected(http.HandlerFunc(userHandler.SynthesizeAIProfile)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/batch-requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Batch)).ServeHTTP},
