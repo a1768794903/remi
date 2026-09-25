@@ -101,6 +101,26 @@ func TestGeminiEmbeddingUsesVertexPredictWire(t *testing.T) {
 	}
 }
 
+func TestGeminiCompanyPaidTextUsesVertex(t *testing.T) {
+	t.Setenv("GOOGLE_CLOUD_PROJECT", "project-1")
+	t.Setenv("GCP_LOCATION", "us-central1")
+	var gotPath, gotAuth, gotCapacity string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		gotCapacity = r.Header.Get("X-Vertex-AI-LLM-Request-Type")
+		_, _ = w.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"ok"}]},"finishReason":"STOP"}]}`))
+	}))
+	defer upstream.Close()
+	h := Handler{VertexBase: upstream.URL, VertexToken: "adc-token", Client: upstream.Client()}
+	r := httptest.NewRequest(http.MethodPost, "/v1/proxy/gemini/models/gemini-2.5-flash:generateContent", strings.NewReader(`{"contents":[{"parts":[{"text":"hello"}]}]}`))
+	w := httptest.NewRecorder()
+	h.Gemini(w, r)
+	if w.Code != http.StatusOK || gotPath != "/v1/projects/project-1/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent" || gotAuth != "Bearer adc-token" || gotCapacity != "shared" {
+		t.Fatalf("Vertex text mismatch: code=%d path=%q auth=%q capacity=%q body=%q", w.Code, gotPath, gotAuth, gotCapacity, w.Body.String())
+	}
+}
+
 func TestGeminiFallsBackAfterProviderUnavailable(t *testing.T) {
 	paths := []string{}
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

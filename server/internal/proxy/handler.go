@@ -363,7 +363,11 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		req.Header.Del("Authorization")
 		if key != "" {
 			if bearer {
-				req.Header.Set("Authorization", "Token "+key)
+				scheme := "Token"
+				if provider == "vertex" {
+					scheme = "Bearer"
+				}
+				req.Header.Set("Authorization", scheme+" "+key)
 			} else {
 				req.Header.Set("x-goog-api-key", key)
 			}
@@ -539,6 +543,25 @@ func (h Handler) Gemini(w http.ResponseWriter, r *http.Request) {
 		h.vertexEmbed(w, r, body, uid, payer)
 		return
 	}
+	if payer != "byok" && h.vertexTextRequired(model, action) {
+		token, tokenErr := h.vertexToken(r.Context())
+		if tokenErr != nil || token == "" {
+			requestID := proxyRequestID(r)
+			h.recordAttempt(r.Context(), requestID, 0, uid, "vertex", model, action, payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
+			w.Header().Set("X-Omi-Request-Id", requestID)
+			w.Header().Set("X-Omi-Provider", "vertex")
+			writeProxyError(w, http.StatusServiceUnavailable, "provider_unavailable", "Vertex credentials are unavailable", requestID, true)
+			return
+		}
+		location := strings.TrimSpace(os.Getenv("GCP_LOCATION"))
+		if location == "" {
+			location = "us-central1"
+		}
+		vertexPath := "/v1/projects/" + url.PathEscape(h.vertexProject()) + "/locations/" + url.PathEscape(location) + "/publishers/google/models/" + url.PathEscape(model) + ":" + action
+		r.Header.Set("X-Vertex-AI-LLM-Request-Type", "shared")
+		h.forward(w, r, h.vertexBase()+vertexPath, token, true, "vertex", model, action, uid, payer, false, nil)
+		return
+	}
 	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, false, geminiFallbackPaths(h.geminiBase(), path, model, action))
 }
 
@@ -572,7 +595,36 @@ func (h Handler) GeminiStream(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(r.Header.Get("X-LLM-BYOK-Key")) != "" {
 		payer = "byok"
 	}
+	if payer != "byok" && h.vertexTextRequired(model, action) {
+		token, tokenErr := h.vertexToken(r.Context())
+		if tokenErr != nil || token == "" {
+			requestID := proxyRequestID(r)
+			h.recordAttempt(r.Context(), requestID, 0, uid, "vertex", model, action, payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
+			w.Header().Set("X-Omi-Request-Id", requestID)
+			w.Header().Set("X-Omi-Provider", "vertex")
+			writeProxyError(w, http.StatusServiceUnavailable, "provider_unavailable", "Vertex credentials are unavailable", requestID, true)
+			return
+		}
+		location := strings.TrimSpace(os.Getenv("GCP_LOCATION"))
+		if location == "" {
+			location = "us-central1"
+		}
+		vertexPath := "/v1/projects/" + url.PathEscape(h.vertexProject()) + "/locations/" + url.PathEscape(location) + "/publishers/google/models/" + url.PathEscape(model) + ":" + action
+		r.Header.Set("X-Vertex-AI-LLM-Request-Type", "shared")
+		h.forward(w, r, h.vertexBase()+vertexPath, token, true, "vertex", model, action, uid, payer, true, nil)
+		return
+	}
 	h.forward(w, r, h.geminiBase()+path, h.geminiRequestKey(r), false, "gemini", model, action, uid, payer, true, geminiFallbackPaths(h.geminiBase(), path, model, action))
+}
+
+func (h Handler) vertexTextRequired(model, action string) bool {
+	if h.vertexProject() == "" || action != "generateContent" && action != "streamGenerateContent" {
+		return false
+	}
+	if model == "gemini-2.5-flash" || model == "gemini-3.1-flash-lite" {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("USE_VERTEX_AI")), "true")
 }
 
 func (h Handler) meterGemini(w http.ResponseWriter, r *http.Request, path, model string) (string, bool, bool) {
