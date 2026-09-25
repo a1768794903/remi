@@ -36,6 +36,7 @@ import (
 	"remi/server/internal/emailprefs"
 	"remi/server/internal/externalapi"
 	"remi/server/internal/fairuse"
+	"remi/server/internal/feedbackadmin"
 	"remi/server/internal/firmware"
 	"remi/server/internal/focussessions"
 	"remi/server/internal/folders"
@@ -113,6 +114,11 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/conversation-finalization-jobs/run", Handler: conversations.Handler{Service: conversationHandler.Service, Queue: conversationHandler.Queue, Transcripts: conversationHandler.Transcripts, Provider: conversationHandler.Provider}.RunFinalizationJob},
 		{Method: http.MethodPost, Path: "/v1/workflow-migrations/task-goal-links", Handler: protected(http.HandlerFunc(workstreamHandler.ImportTaskGoalLinks)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/admin/feedback/reports", Handler: feedbackadmin.Handler{DB: db}.Dates},
+		{Method: http.MethodGet, Path: "/v1/admin/feedback/reports/:report_date", Handler: feedbackadmin.Handler{DB: db}.Report},
+		{Method: http.MethodPost, Path: "/v1/admin/feedback/reports/:report_date/generate", Handler: feedbackadmin.Handler{DB: db}.Generate},
+		{Method: http.MethodPost, Path: "/v1/admin/feedback/reports/generate-yesterday", Handler: feedbackadmin.Handler{DB: db}.GenerateYesterday},
+		{Method: http.MethodGet, Path: "/v1/admin/feedback/events/:event_id/context", Handler: feedbackadmin.Handler{DB: db}.Context},
 		{Method: http.MethodPost, Path: "/v2/sync-jobs/run", Handler: syncjobs.Handler{Queue: syncHandler.Queue, Conversations: syncHandler.Conversations, Audio: syncHandler.Audio}.Run},
 		{Method: http.MethodGet, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/notification", Handler: notificationAPIHandler.Admin},
