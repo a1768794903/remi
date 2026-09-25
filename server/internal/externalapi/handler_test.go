@@ -25,3 +25,14 @@ func TestParseExternalDateRejectsInvalidDate(t *testing.T) {
 		t.Fatal("invalid date accepted")
 	}
 }
+
+func TestSearchPaginationUsesSafeDefaultsAndBounds(t *testing.T) {
+	page, perPage := normalizeSearchPagination(0, 500)
+	if page != 1 || perPage != 100 {
+		t.Fatalf("page=%d per_page=%d", page, perPage)
+	}
+	page, perPage = normalizeSearchPagination(3, 25)
+	if page != 3 || perPage != 25 {
+		t.Fatalf("page=%d per_page=%d", page, perPage)
+	}
+}

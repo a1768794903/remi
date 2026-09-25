@@ -141,6 +141,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/memories", Handler: externalapi.Handler{DB: db}.Memories},
 		{Method: http.MethodPost, Path: "/v2/integrations/:app_id/memories", Handler: externalapi.Handler{DB: db}.Memories},
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/conversations", Handler: externalapi.Handler{DB: db}.Conversations},
+		{Method: http.MethodPost, Path: "/v2/integrations/:app_id/search/conversations", Handler: externalapi.Handler{DB: db}.SearchConversations},
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/tasks", Handler: externalapi.Handler{DB: db}.Tasks},
 		{Method: http.MethodPost, Path: "/v2/integrations/:app_id/notification", Handler: externalapi.Handler{DB: db}.Notification},
 		{Method: http.MethodGet, Path: "/v1/what-matters-now", Handler: protected(http.HandlerFunc(taskintelligence.Handler{DB: db}.Evaluate)).ServeHTTP},

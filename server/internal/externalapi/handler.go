@@ -81,6 +81,19 @@ func parseExternalDate(raw string, endOfDay bool) (time.Time, error) {
 	}
 	return value, nil
 }
+
+func normalizeSearchPagination(page, perPage int) (int, int) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 10
+	}
+	if perPage > 100 {
+		perPage = 100
+	}
+	return page, perPage
+}
 func (h Handler) Memories(w http.ResponseWriter, r *http.Request) {
 	u, ok := h.auth(w, r)
 	if !ok {
@@ -157,6 +170,88 @@ func (h Handler) Conversations(w http.ResponseWriter, r *http.Request) {
 		out = append(out, item)
 	}
 	write(w, map[string]any{"conversations": out})
+}
+
+func (h Handler) SearchConversations(w http.ResponseWriter, r *http.Request) {
+	u, ok := h.auth(w, r)
+	if !ok {
+		return
+	}
+	if !h.requireAppCapability(w, r, "conversations") {
+		return
+	}
+	var in struct {
+		Query            string `json:"query"`
+		Page             int    `json:"page"`
+		PerPage          int    `json:"per_page"`
+		IncludeDiscarded *bool  `json:"include_discarded"`
+		StartDate        string `json:"start_date"`
+		EndDate          string `json:"end_date"`
+	}
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 128<<10)).Decode(&in) != nil {
+		http.Error(w, "invalid search request", http.StatusBadRequest)
+		return
+	}
+	pageNumber, perPage := normalizeSearchPagination(in.Page, in.PerPage)
+	clauses := []string{"u.external_uid=?"}
+	args := []any{u}
+	term := strings.TrimSpace(in.Query)
+	if term != "" {
+		clauses = append(clauses, "(c.title LIKE ? OR c.summary LIKE ?)")
+		like := "%" + term + "%"
+		args = append(args, like, like)
+	}
+	if in.IncludeDiscarded != nil && !*in.IncludeDiscarded {
+		// The relational baseline has no separate discarded column. Failed and
+		// in-progress rows are still valid conversation records, so no status
+		// filter is applied here.
+	}
+	for _, filter := range []struct {
+		name, column string
+		end          bool
+	}{{"start_date", "c.created_at >= ?", false}, {"end_date", "c.created_at <= ?", true}} {
+		if raw := strings.TrimSpace(map[string]string{"start_date": in.StartDate, "end_date": in.EndDate}[filter.name]); raw != "" {
+			value, err := parseExternalDate(raw, filter.end)
+			if err != nil {
+				http.Error(w, "invalid "+filter.name, http.StatusBadRequest)
+				return
+			}
+			clauses = append(clauses, filter.column)
+			args = append(args, value)
+		}
+	}
+	baseWhere := strings.Join(clauses, " AND ")
+	var total int
+	if err := h.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM conversations c JOIN users u ON u.id=c.user_id WHERE `+baseWhere, args...).Scan(&total); err != nil {
+		http.Error(w, "failed to search conversations", http.StatusServiceUnavailable)
+		return
+	}
+	query := `SELECT CAST(c.id AS CHAR),c.title,c.summary,c.status,c.started_at,c.ended_at,c.created_at,c.updated_at FROM conversations c JOIN users u ON u.id=c.user_id WHERE ` + baseWhere + ` ORDER BY c.started_at DESC LIMIT ? OFFSET ?`
+	queryArgs := append(append([]any{}, args...), perPage, (pageNumber-1)*perPage)
+	rows, err := h.DB.QueryContext(r.Context(), query, queryArgs...)
+	if err != nil {
+		http.Error(w, "failed to search conversations", http.StatusServiceUnavailable)
+		return
+	}
+	defer rows.Close()
+	conversations := []map[string]any{}
+	for rows.Next() {
+		var id, title, summary, status string
+		var started, ended, created, updated sql.NullTime
+		if rows.Scan(&id, &title, &summary, &status, &started, &ended, &created, &updated) != nil {
+			continue
+		}
+		item := map[string]any{"id": id, "title": title, "summary": summary, "source": "omi", "status": status, "created_at": created.Time, "started_at": started.Time}
+		if ended.Valid {
+			item["finished_at"] = ended.Time
+		}
+		conversations = append(conversations, item)
+	}
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + perPage - 1) / perPage
+	}
+	write(w, map[string]any{"conversations": conversations, "total_pages": totalPages, "current_page": pageNumber, "per_page": perPage})
 }
 
 func (h Handler) Tasks(w http.ResponseWriter, r *http.Request) {
@@ -287,6 +382,9 @@ func (h Handler) requireAppCapability(w http.ResponseWriter, r *http.Request, ca
 		allowed := map[string]bool{capability: true}
 		if capability == "tasks" {
 			allowed["read_tasks"] = true
+		}
+		if capability == "conversations" {
+			allowed["read_conversations"] = true
 		}
 		if capability == "chat_messages" {
 			allowed["proactive_notification"] = true
