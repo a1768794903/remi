@@ -283,6 +283,13 @@ func (h Handler) persistApproved(ctx context.Context, uid string, in Request, ap
 			break
 		}
 		id := "screen-" + uuid.NewString()
+		approval, approvalErr := mintApproval(uid, in.Purpose, in.Subject.ID, item.JPEG, time.Now().UTC())
+		if approvalErr != nil {
+			return nil, approvalErr
+		}
+		if err = verifyApproval(approval, uid, in.Purpose, in.Subject.ID, item.JPEG, time.Now().UTC()); err != nil {
+			return nil, err
+		}
 		if err = h.Store.Put(ctx, uid, id, item.JPEG); err != nil {
 			cleanup()
 			return nil, err
