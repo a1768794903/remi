@@ -117,3 +117,18 @@ func TestUsageReaderPreservesStreamBytes(t *testing.T) {
 		t.Fatalf("output=%q err=%v", output, err)
 	}
 }
+
+func TestGeminiPayloadOutcomeRequiresContentAndTerminal(t *testing.T) {
+	content, terminal, providerError := geminiPayloadOutcome([]byte(`{"candidates":[{"content":{"parts":[{"text":"answer"}]},"finishReason":"STOP"}]}`))
+	if !content || !terminal || providerError {
+		t.Fatalf("success outcome=(%v,%v,%v)", content, terminal, providerError)
+	}
+	content, terminal, providerError = geminiPayloadOutcome([]byte(`{"candidates":[{"content":{"parts":[]}}]}`))
+	if content || terminal || providerError {
+		t.Fatalf("empty outcome=(%v,%v,%v)", content, terminal, providerError)
+	}
+	_, _, providerError = geminiPayloadOutcome([]byte(`{"error":{"code":503}}`))
+	if !providerError {
+		t.Fatal("provider error was not observed")
+	}
+}

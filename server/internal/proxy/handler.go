@@ -160,6 +160,13 @@ func (h Handler) updateAttemptUsage(ctx context.Context, requestID string, usage
 	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET input_tokens=?,output_tokens=?,cached_tokens=? WHERE request_id=?`, usage.Input, usage.Output, usage.Cached, requestID)
 }
 
+func (h Handler) updateAttemptOutcome(ctx context.Context, requestID, outcome string) {
+	if h.DB == nil || requestID == "" || outcome == "" {
+		return
+	}
+	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET outcome=? WHERE request_id=?`, outcome, requestID)
+}
+
 func nullString(value string) any {
 	if strings.TrimSpace(value) == "" {
 		return nil
@@ -219,6 +226,17 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		body, _ = io.ReadAll(io.LimitReader(resp.Body, maxGeminiBodyBytes*2))
 	}
 	usage := parseUsage(body)
+	if !streaming && resp.StatusCode >= 200 && resp.StatusCode < 300 && (action == "generateContent" || action == "streamGenerateContent") {
+		hasContent, hasTerminal, hasError := geminiPayloadOutcome(body)
+		switch {
+		case hasError:
+			outcome = "provider_error"
+		case !hasContent:
+			outcome = "empty_answer"
+		case !hasTerminal:
+			outcome = "missing_terminal"
+		}
+	}
 	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, r.ContentLength, usage.Input, usage.Output, usage.Cached)
 	if code != "" {
 		w.Header().Set("X-Omi-Error-Class", code)
@@ -233,7 +251,18 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		_, _ = w.Write(body)
 		return
 	}
-	observer := &usageReader{source: resp.Body, limit: maxGeminiBodyBytes * 2, usage: func(value usageCounts) { h.updateAttemptUsage(r.Context(), requestID, value) }}
+	observer := &usageReader{source: resp.Body, limit: maxGeminiBodyBytes * 2, usage: func(value usageCounts) { h.updateAttemptUsage(r.Context(), requestID, value) }, terminal: func(body []byte) {
+		_, terminal, hasError := geminiPayloadOutcome(body)
+		outcome := "empty_answer"
+		if hasError {
+			outcome = "provider_error"
+		} else if terminal {
+			outcome = "success"
+		} else {
+			outcome = "missing_terminal"
+		}
+		h.updateAttemptOutcome(r.Context(), requestID, outcome)
+	}}
 	_, _ = io.Copy(w, observer)
 }
 
@@ -365,11 +394,12 @@ func (h Handler) Deepgram(w http.ResponseWriter, r *http.Request) {
 }
 
 type usageReader struct {
-	source io.Reader
-	buffer bytes.Buffer
-	limit  int64
-	usage  func(usageCounts)
-	done   bool
+	source   io.Reader
+	buffer   bytes.Buffer
+	limit    int64
+	usage    func(usageCounts)
+	terminal func([]byte)
+	done     bool
 }
 
 func (r *usageReader) Read(p []byte) (int, error) {
@@ -387,8 +417,69 @@ func (r *usageReader) Read(p []byte) (int, error) {
 		if r.usage != nil {
 			r.usage(parseUsage(r.buffer.Bytes()))
 		}
+		if r.terminal != nil {
+			r.terminal(r.buffer.Bytes())
+		}
 	}
 	return n, err
+}
+
+func geminiPayloadOutcome(body []byte) (hasContent, hasTerminal, hasError bool) {
+	inspect := func(value any) {}
+	var walk func(any)
+	walk = func(value any) {
+		switch item := value.(type) {
+		case []any:
+			for _, child := range item {
+				walk(child)
+			}
+		case map[string]any:
+			if _, ok := item["error"]; ok {
+				hasError = true
+			}
+			if reason, ok := item["finishReason"].(string); ok && strings.TrimSpace(reason) != "" {
+				hasTerminal = true
+			}
+			if reason, ok := item["finish_reason"].(string); ok && strings.TrimSpace(reason) != "" {
+				hasTerminal = true
+			}
+			if content, ok := item["content"].(map[string]any); ok {
+				walk(content)
+			}
+			if parts, ok := item["parts"].([]any); ok {
+				for _, part := range parts {
+					if object, ok := part.(map[string]any); ok {
+						if text, ok := object["text"].(string); ok && strings.TrimSpace(text) != "" {
+							hasContent = true
+						}
+						walk(object)
+					}
+				}
+			}
+			for key, child := range item {
+				if key != "content" && key != "parts" {
+					walk(child)
+				}
+			}
+		}
+	}
+	_ = inspect
+	var root any
+	if json.Unmarshal(body, &root) == nil {
+		walk(root)
+		return
+	}
+	for _, line := range strings.Split(string(body), "\n") {
+		line = strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if line == "" {
+			continue
+		}
+		var value any
+		if json.Unmarshal([]byte(line), &value) == nil {
+			walk(value)
+		}
+	}
+	return
 }
 
 func parseUsage(body []byte) usageCounts {
