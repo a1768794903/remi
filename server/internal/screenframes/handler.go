@@ -1,20 +1,72 @@
 package screenframes
 
 import (
+	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"remi/server/internal/auth"
 )
 
-type Handler struct{}
+type Handler struct{ Judge Judge }
+
+type Judge interface {
+	Judge(context.Context, string, []byte) (Judgement, error)
+}
+type Judgement struct {
+	Outcome           string   `json:"outcome"`
+	RejectReason      *string  `json:"reject_reason"`
+	Caption           string   `json:"caption"`
+	Labels            []string `json:"labels"`
+	SourceBadge       *string  `json:"source_badge"`
+	BannerSuitability float64  `json:"banner_suitability"`
+}
+
+type HTTPJudge struct {
+	Endpoint string
+	Client   *http.Client
+}
+
+func (j HTTPJudge) Judge(ctx context.Context, uid string, jpegBytes []byte) (Judgement, error) {
+	payload, _ := json.Marshal(map[string]any{"uid": uid, "purpose": "meeting_note_v1", "image_base64": base64.StdEncoding.EncodeToString(jpegBytes), "mime_type": "image/jpeg"})
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, j.Endpoint, bytes.NewReader(payload))
+	if err != nil {
+		return Judgement{}, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	client := j.Client
+	if client == nil {
+		client = &http.Client{Timeout: 45 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return Judgement{}, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return Judgement{}, fmt.Errorf("judge returned %s", response.Status)
+	}
+	var result Judgement
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
+		return Judgement{}, err
+	}
+	if err := validateJudgement(result); err != nil {
+		return Judgement{}, err
+	}
+	return result, nil
+}
 
 type Request struct {
 	SchemaVersion int         `json:"schema_version"`
@@ -37,8 +89,9 @@ type Candidate struct {
 	BytesBase64    string `json:"bytes_base64"`
 }
 
-func (Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if _, err := auth.UserID(r.Context()); err != nil {
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -61,14 +114,30 @@ func (Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, http.StatusConflict, "screen_frame_egress_unavailable")
 		return
 	}
-	// Until a configured, server-side visual judge is present, never store or
-	// publish a candidate. This is deliberately fail-closed: client bytes and
-	// client verdicts must not become conversation evidence by default.
-	if strings.TrimSpace(os.Getenv("SCREEN_FRAME_JUDGE_ENDPOINT")) == "" {
+	judge := h.Judge
+	if judge == nil && strings.TrimSpace(os.Getenv("SCREEN_FRAME_JUDGE_ENDPOINT")) != "" {
+		judge = HTTPJudge{Endpoint: strings.TrimSpace(os.Getenv("SCREEN_FRAME_JUDGE_ENDPOINT"))}
+	}
+	if judge == nil {
 		writeCode(w, http.StatusServiceUnavailable, "judge_unavailable")
 		return
 	}
-	writeCode(w, http.StatusNotImplemented, "screen_frame_judge_not_implemented")
+	for _, candidate := range in.Candidates {
+		raw, _ := decodeAndVerify(candidate.BytesBase64, candidate.SHA256Base64)
+		canonical, err := canonicalJPEG(raw)
+		if err != nil {
+			continue
+		}
+		judgement, err := judge.Judge(r.Context(), uid, canonical)
+		if err != nil {
+			continue
+		}
+		if judgement.Outcome == "approved_clean" {
+			writeCode(w, http.StatusNotImplemented, "screen_frame_writer_not_implemented")
+			return
+		}
+	}
+	writeCode(w, http.StatusOK, "no_approved_frames")
 }
 
 func Validate(in Request) error {
@@ -118,6 +187,38 @@ func decodeAndVerify(payload, digest string) ([]byte, error) {
 		return nil, fmt.Errorf("digest_mismatch")
 	}
 	return raw, nil
+}
+
+func canonicalJPEG(raw []byte) ([]byte, error) {
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(raw))
+	if err != nil || cfg.Width < 1 || cfg.Height < 1 || cfg.Width*cfg.Height > 25_000_000 {
+		return nil, fmt.Errorf("canonicalization_failed")
+	}
+	decoded, _, err := image.Decode(bytes.NewReader(raw))
+	if err != nil {
+		return nil, fmt.Errorf("canonicalization_failed")
+	}
+	var out bytes.Buffer
+	if err := jpeg.Encode(&out, decoded, &jpeg.Options{Quality: 85}); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
+}
+
+func validateJudgement(j Judgement) error {
+	if j.Outcome != "approved_clean" && j.Outcome != "rejected" {
+		return fmt.Errorf("invalid_judge_outcome")
+	}
+	if j.Outcome == "approved_clean" && j.RejectReason != nil {
+		return fmt.Errorf("contradictory_judge_output")
+	}
+	if j.Outcome == "rejected" && j.RejectReason == nil {
+		return fmt.Errorf("contradictory_judge_output")
+	}
+	if len(j.Caption) > 160 || len(j.Labels) > 8 || j.BannerSuitability < 0 || j.BannerSuitability > 1 {
+		return fmt.Errorf("invalid_judge_metadata")
+	}
+	return nil
 }
 
 func writeCode(w http.ResponseWriter, status int, code string) {

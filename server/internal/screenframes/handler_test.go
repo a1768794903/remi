@@ -3,6 +3,9 @@ package screenframes
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
@@ -29,3 +32,23 @@ func TestValidateRejectsDigestMismatchAndTooManyCandidates(t *testing.T) {
 		t.Fatalf("err=%v", err)
 	}
 }
+
+func TestHTTPJudgeValidatesStructuredDecision(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var input map[string]any
+		if json.NewDecoder(r.Body).Decode(&input) != nil || input["image_base64"] == "" {
+			t.Error("judge payload missing image")
+		}
+		_ = json.NewEncoder(w).Encode(Judgement{Outcome: "approved_clean", Caption: "shared slide", Labels: []string{"slides"}, BannerSuitability: 0.8})
+	}))
+	defer server.Close()
+	got, err := (HTTPJudge{Endpoint: server.URL}).Judge(t.Context(), "u1", []byte("jpeg"))
+	if err != nil || got.Outcome != "approved_clean" {
+		t.Fatalf("got=%+v err=%v", got, err)
+	}
+	if err := validateJudgement(Judgement{Outcome: "approved_clean", RejectReason: stringPtr("email")}); err == nil {
+		t.Fatal("contradictory approval should fail")
+	}
+}
+
+func stringPtr(value string) *string { return &value }
