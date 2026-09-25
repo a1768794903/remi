@@ -23,16 +23,32 @@ const (
 	FieldTitle = "title"
 	// FieldSummary holds the string denoting the summary field in the database.
 	FieldSummary = "summary"
+	// FieldVisibility holds the string denoting the visibility field in the database.
+	FieldVisibility = "visibility"
+	// FieldStarred holds the string denoting the starred field in the database.
+	FieldStarred = "starred"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
 	FieldStartedAt = "started_at"
 	// FieldEndedAt holds the string denoting the ended_at field in the database.
 	FieldEndedAt = "ended_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
+	// FieldDeviceID holds the string denoting the device_id field in the database.
+	FieldDeviceID = "device_id"
+	// FieldFolderID holds the string denoting the folder_id field in the database.
+	FieldFolderID = "folder_id"
+	// FieldAudioFiles holds the string denoting the audio_files field in the database.
+	FieldAudioFiles = "audio_files"
+	// FieldConversationAudio holds the string denoting the conversation_audio field in the database.
+	FieldConversationAudio = "conversation_audio"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeDevice holds the string denoting the device edge name in mutations.
 	EdgeDevice = "device"
+	// EdgeFolder holds the string denoting the folder edge name in mutations.
+	EdgeFolder = "folder"
 	// EdgeTranscriptSegments holds the string denoting the transcript_segments edge name in mutations.
 	EdgeTranscriptSegments = "transcript_segments"
 	// EdgeMemories holds the string denoting the memories edge name in mutations.
@@ -49,42 +65,49 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "user_conversations"
+	UserColumn = "user_id"
 	// DeviceTable is the table that holds the device relation/edge.
 	DeviceTable = "conversations"
 	// DeviceInverseTable is the table name for the Device entity.
 	// It exists in this package in order to avoid circular dependency with the "device" package.
 	DeviceInverseTable = "devices"
 	// DeviceColumn is the table column denoting the device relation/edge.
-	DeviceColumn = "device_conversations"
+	DeviceColumn = "device_id"
+	// FolderTable is the table that holds the folder relation/edge.
+	FolderTable = "conversations"
+	// FolderInverseTable is the table name for the Folder entity.
+	// It exists in this package in order to avoid circular dependency with the "folder" package.
+	FolderInverseTable = "folders"
+	// FolderColumn is the table column denoting the folder relation/edge.
+	FolderColumn = "folder_id"
 	// TranscriptSegmentsTable is the table that holds the transcript_segments relation/edge.
 	TranscriptSegmentsTable = "transcript_segments"
 	// TranscriptSegmentsInverseTable is the table name for the TranscriptSegment entity.
 	// It exists in this package in order to avoid circular dependency with the "transcriptsegment" package.
 	TranscriptSegmentsInverseTable = "transcript_segments"
 	// TranscriptSegmentsColumn is the table column denoting the transcript_segments relation/edge.
-	TranscriptSegmentsColumn = "conversation_transcript_segments"
+	TranscriptSegmentsColumn = "conversation_id"
 	// MemoriesTable is the table that holds the memories relation/edge.
 	MemoriesTable = "memories"
 	// MemoriesInverseTable is the table name for the Memory entity.
 	// It exists in this package in order to avoid circular dependency with the "memory" package.
 	MemoriesInverseTable = "memories"
 	// MemoriesColumn is the table column denoting the memories relation/edge.
-	MemoriesColumn = "conversation_memories"
+	MemoriesColumn = "conversation_id"
 	// TodosTable is the table that holds the todos relation/edge.
 	TodosTable = "todos"
 	// TodosInverseTable is the table name for the Todo entity.
 	// It exists in this package in order to avoid circular dependency with the "todo" package.
 	TodosInverseTable = "todos"
 	// TodosColumn is the table column denoting the todos relation/edge.
-	TodosColumn = "conversation_todos"
+	TodosColumn = "conversation_id"
 	// ActionItemsTable is the table that holds the action_items relation/edge.
 	ActionItemsTable = "action_items"
 	// ActionItemsInverseTable is the table name for the ActionItem entity.
 	// It exists in this package in order to avoid circular dependency with the "actionitem" package.
 	ActionItemsInverseTable = "action_items"
 	// ActionItemsColumn is the table column denoting the action_items relation/edge.
-	ActionItemsColumn = "conversation_action_items"
+	ActionItemsColumn = "conversation_id"
 )
 
 // Columns holds all SQL columns for conversation fields.
@@ -94,27 +117,22 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldTitle,
 	FieldSummary,
+	FieldVisibility,
+	FieldStarred,
 	FieldStartedAt,
 	FieldEndedAt,
 	FieldStatus,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "conversations"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"device_conversations",
-	"user_conversations",
+	FieldUserID,
+	FieldDeviceID,
+	FieldFolderID,
+	FieldAudioFiles,
+	FieldConversationAudio,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -132,6 +150,10 @@ var (
 	DefaultTitle string
 	// DefaultSummary holds the default value on creation for the "summary" field.
 	DefaultSummary string
+	// DefaultVisibility holds the default value on creation for the "visibility" field.
+	DefaultVisibility string
+	// DefaultStarred holds the default value on creation for the "starred" field.
+	DefaultStarred bool
 )
 
 // Status defines the type for the "status" enum field.
@@ -143,6 +165,8 @@ const DefaultStatus = StatusInProgress
 // Status values.
 const (
 	StatusInProgress Status = "in_progress"
+	StatusProcessing Status = "processing"
+	StatusMerging    Status = "merging"
 	StatusCompleted  Status = "completed"
 	StatusFailed     Status = "failed"
 )
@@ -154,7 +178,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusInProgress, StatusCompleted, StatusFailed:
+	case StatusInProgress, StatusProcessing, StatusMerging, StatusCompleted, StatusFailed:
 		return nil
 	default:
 		return fmt.Errorf("conversation: invalid enum value for status field: %q", s)
@@ -189,6 +213,16 @@ func BySummary(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSummary, opts...).ToFunc()
 }
 
+// ByVisibility orders the results by the visibility field.
+func ByVisibility(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVisibility, opts...).ToFunc()
+}
+
+// ByStarred orders the results by the starred field.
+func ByStarred(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStarred, opts...).ToFunc()
+}
+
 // ByStartedAt orders the results by the started_at field.
 func ByStartedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStartedAt, opts...).ToFunc()
@@ -204,6 +238,21 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByDeviceID orders the results by the device_id field.
+func ByDeviceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeviceID, opts...).ToFunc()
+}
+
+// ByFolderID orders the results by the folder_id field.
+func ByFolderID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFolderID, opts...).ToFunc()
+}
+
 // ByUserField orders the results by user field.
 func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -215,6 +264,13 @@ func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByDeviceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newDeviceStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByFolderField orders the results by folder field.
+func ByFolderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFolderStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -285,6 +341,13 @@ func newDeviceStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DeviceInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, DeviceTable, DeviceColumn),
+	)
+}
+func newFolderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FolderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FolderTable, FolderColumn),
 	)
 }
 func newTranscriptSegmentsStep() *sqlgraph.Step {

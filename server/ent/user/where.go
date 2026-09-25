@@ -65,6 +65,11 @@ func UpdatedAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
+// ExternalUID applies equality check predicate on the "external_uid" field. It's identical to ExternalUIDEQ.
+func ExternalUID(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldExternalUID, v))
+}
+
 // Email applies equality check predicate on the "email" field. It's identical to EmailEQ.
 func Email(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldEmail, v))
@@ -73,6 +78,46 @@ func Email(v string) predicate.User {
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldName, v))
+}
+
+// Language applies equality check predicate on the "language" field. It's identical to LanguageEQ.
+func Language(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLanguage, v))
+}
+
+// TimeZone applies equality check predicate on the "time_zone" field. It's identical to TimeZoneEQ.
+func TimeZone(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTimeZone, v))
+}
+
+// PrivateCloudSyncEnabled applies equality check predicate on the "private_cloud_sync_enabled" field. It's identical to PrivateCloudSyncEnabledEQ.
+func PrivateCloudSyncEnabled(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldPrivateCloudSyncEnabled, v))
+}
+
+// MeetingNoteScreenshotsEnabled applies equality check predicate on the "meeting_note_screenshots_enabled" field. It's identical to MeetingNoteScreenshotsEnabledEQ.
+func MeetingNoteScreenshotsEnabled(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldMeetingNoteScreenshotsEnabled, v))
+}
+
+// StoreRecordingPermission applies equality check predicate on the "store_recording_permission" field. It's identical to StoreRecordingPermissionEQ.
+func StoreRecordingPermission(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldStoreRecordingPermission, v))
+}
+
+// DailySummaryEnabled applies equality check predicate on the "daily_summary_enabled" field. It's identical to DailySummaryEnabledEQ.
+func DailySummaryEnabled(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDailySummaryEnabled, v))
+}
+
+// DailySummaryHourLocal applies equality check predicate on the "daily_summary_hour_local" field. It's identical to DailySummaryHourLocalEQ.
+func DailySummaryHourLocal(v int) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDailySummaryHourLocal, v))
+}
+
+// MentorNotificationFrequency applies equality check predicate on the "mentor_notification_frequency" field. It's identical to MentorNotificationFrequencyEQ.
+func MentorNotificationFrequency(v int) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldMentorNotificationFrequency, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -153,6 +198,71 @@ func UpdatedAtLT(v time.Time) predicate.User {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// ExternalUIDEQ applies the EQ predicate on the "external_uid" field.
+func ExternalUIDEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldExternalUID, v))
+}
+
+// ExternalUIDNEQ applies the NEQ predicate on the "external_uid" field.
+func ExternalUIDNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldExternalUID, v))
+}
+
+// ExternalUIDIn applies the In predicate on the "external_uid" field.
+func ExternalUIDIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldExternalUID, vs...))
+}
+
+// ExternalUIDNotIn applies the NotIn predicate on the "external_uid" field.
+func ExternalUIDNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldExternalUID, vs...))
+}
+
+// ExternalUIDGT applies the GT predicate on the "external_uid" field.
+func ExternalUIDGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldExternalUID, v))
+}
+
+// ExternalUIDGTE applies the GTE predicate on the "external_uid" field.
+func ExternalUIDGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldExternalUID, v))
+}
+
+// ExternalUIDLT applies the LT predicate on the "external_uid" field.
+func ExternalUIDLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldExternalUID, v))
+}
+
+// ExternalUIDLTE applies the LTE predicate on the "external_uid" field.
+func ExternalUIDLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldExternalUID, v))
+}
+
+// ExternalUIDContains applies the Contains predicate on the "external_uid" field.
+func ExternalUIDContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldExternalUID, v))
+}
+
+// ExternalUIDHasPrefix applies the HasPrefix predicate on the "external_uid" field.
+func ExternalUIDHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldExternalUID, v))
+}
+
+// ExternalUIDHasSuffix applies the HasSuffix predicate on the "external_uid" field.
+func ExternalUIDHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldExternalUID, v))
+}
+
+// ExternalUIDEqualFold applies the EqualFold predicate on the "external_uid" field.
+func ExternalUIDEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldExternalUID, v))
+}
+
+// ExternalUIDContainsFold applies the ContainsFold predicate on the "external_uid" field.
+func ExternalUIDContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldExternalUID, v))
 }
 
 // EmailEQ applies the EQ predicate on the "email" field.
@@ -285,6 +395,306 @@ func NameContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldName, v))
 }
 
+// LanguageEQ applies the EQ predicate on the "language" field.
+func LanguageEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLanguage, v))
+}
+
+// LanguageNEQ applies the NEQ predicate on the "language" field.
+func LanguageNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldLanguage, v))
+}
+
+// LanguageIn applies the In predicate on the "language" field.
+func LanguageIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldLanguage, vs...))
+}
+
+// LanguageNotIn applies the NotIn predicate on the "language" field.
+func LanguageNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldLanguage, vs...))
+}
+
+// LanguageGT applies the GT predicate on the "language" field.
+func LanguageGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldLanguage, v))
+}
+
+// LanguageGTE applies the GTE predicate on the "language" field.
+func LanguageGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldLanguage, v))
+}
+
+// LanguageLT applies the LT predicate on the "language" field.
+func LanguageLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldLanguage, v))
+}
+
+// LanguageLTE applies the LTE predicate on the "language" field.
+func LanguageLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldLanguage, v))
+}
+
+// LanguageContains applies the Contains predicate on the "language" field.
+func LanguageContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldLanguage, v))
+}
+
+// LanguageHasPrefix applies the HasPrefix predicate on the "language" field.
+func LanguageHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldLanguage, v))
+}
+
+// LanguageHasSuffix applies the HasSuffix predicate on the "language" field.
+func LanguageHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldLanguage, v))
+}
+
+// LanguageEqualFold applies the EqualFold predicate on the "language" field.
+func LanguageEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldLanguage, v))
+}
+
+// LanguageContainsFold applies the ContainsFold predicate on the "language" field.
+func LanguageContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldLanguage, v))
+}
+
+// TimeZoneEQ applies the EQ predicate on the "time_zone" field.
+func TimeZoneEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTimeZone, v))
+}
+
+// TimeZoneNEQ applies the NEQ predicate on the "time_zone" field.
+func TimeZoneNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldTimeZone, v))
+}
+
+// TimeZoneIn applies the In predicate on the "time_zone" field.
+func TimeZoneIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldTimeZone, vs...))
+}
+
+// TimeZoneNotIn applies the NotIn predicate on the "time_zone" field.
+func TimeZoneNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldTimeZone, vs...))
+}
+
+// TimeZoneGT applies the GT predicate on the "time_zone" field.
+func TimeZoneGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldTimeZone, v))
+}
+
+// TimeZoneGTE applies the GTE predicate on the "time_zone" field.
+func TimeZoneGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldTimeZone, v))
+}
+
+// TimeZoneLT applies the LT predicate on the "time_zone" field.
+func TimeZoneLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldTimeZone, v))
+}
+
+// TimeZoneLTE applies the LTE predicate on the "time_zone" field.
+func TimeZoneLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldTimeZone, v))
+}
+
+// TimeZoneContains applies the Contains predicate on the "time_zone" field.
+func TimeZoneContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldTimeZone, v))
+}
+
+// TimeZoneHasPrefix applies the HasPrefix predicate on the "time_zone" field.
+func TimeZoneHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldTimeZone, v))
+}
+
+// TimeZoneHasSuffix applies the HasSuffix predicate on the "time_zone" field.
+func TimeZoneHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldTimeZone, v))
+}
+
+// TimeZoneEqualFold applies the EqualFold predicate on the "time_zone" field.
+func TimeZoneEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldTimeZone, v))
+}
+
+// TimeZoneContainsFold applies the ContainsFold predicate on the "time_zone" field.
+func TimeZoneContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldTimeZone, v))
+}
+
+// OnboardingIsNil applies the IsNil predicate on the "onboarding" field.
+func OnboardingIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldOnboarding))
+}
+
+// OnboardingNotNil applies the NotNil predicate on the "onboarding" field.
+func OnboardingNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldOnboarding))
+}
+
+// PrivateCloudSyncEnabledEQ applies the EQ predicate on the "private_cloud_sync_enabled" field.
+func PrivateCloudSyncEnabledEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldPrivateCloudSyncEnabled, v))
+}
+
+// PrivateCloudSyncEnabledNEQ applies the NEQ predicate on the "private_cloud_sync_enabled" field.
+func PrivateCloudSyncEnabledNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldPrivateCloudSyncEnabled, v))
+}
+
+// MeetingNoteScreenshotsEnabledEQ applies the EQ predicate on the "meeting_note_screenshots_enabled" field.
+func MeetingNoteScreenshotsEnabledEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldMeetingNoteScreenshotsEnabled, v))
+}
+
+// MeetingNoteScreenshotsEnabledNEQ applies the NEQ predicate on the "meeting_note_screenshots_enabled" field.
+func MeetingNoteScreenshotsEnabledNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldMeetingNoteScreenshotsEnabled, v))
+}
+
+// StoreRecordingPermissionEQ applies the EQ predicate on the "store_recording_permission" field.
+func StoreRecordingPermissionEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldStoreRecordingPermission, v))
+}
+
+// StoreRecordingPermissionNEQ applies the NEQ predicate on the "store_recording_permission" field.
+func StoreRecordingPermissionNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldStoreRecordingPermission, v))
+}
+
+// DailySummaryEnabledEQ applies the EQ predicate on the "daily_summary_enabled" field.
+func DailySummaryEnabledEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDailySummaryEnabled, v))
+}
+
+// DailySummaryEnabledNEQ applies the NEQ predicate on the "daily_summary_enabled" field.
+func DailySummaryEnabledNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldDailySummaryEnabled, v))
+}
+
+// DailySummaryHourLocalEQ applies the EQ predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalEQ(v int) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDailySummaryHourLocal, v))
+}
+
+// DailySummaryHourLocalNEQ applies the NEQ predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalNEQ(v int) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldDailySummaryHourLocal, v))
+}
+
+// DailySummaryHourLocalIn applies the In predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalIn(vs ...int) predicate.User {
+	return predicate.User(sql.FieldIn(FieldDailySummaryHourLocal, vs...))
+}
+
+// DailySummaryHourLocalNotIn applies the NotIn predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalNotIn(vs ...int) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldDailySummaryHourLocal, vs...))
+}
+
+// DailySummaryHourLocalGT applies the GT predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalGT(v int) predicate.User {
+	return predicate.User(sql.FieldGT(FieldDailySummaryHourLocal, v))
+}
+
+// DailySummaryHourLocalGTE applies the GTE predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalGTE(v int) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldDailySummaryHourLocal, v))
+}
+
+// DailySummaryHourLocalLT applies the LT predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalLT(v int) predicate.User {
+	return predicate.User(sql.FieldLT(FieldDailySummaryHourLocal, v))
+}
+
+// DailySummaryHourLocalLTE applies the LTE predicate on the "daily_summary_hour_local" field.
+func DailySummaryHourLocalLTE(v int) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldDailySummaryHourLocal, v))
+}
+
+// MentorNotificationFrequencyEQ applies the EQ predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyEQ(v int) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldMentorNotificationFrequency, v))
+}
+
+// MentorNotificationFrequencyNEQ applies the NEQ predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyNEQ(v int) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldMentorNotificationFrequency, v))
+}
+
+// MentorNotificationFrequencyIn applies the In predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyIn(vs ...int) predicate.User {
+	return predicate.User(sql.FieldIn(FieldMentorNotificationFrequency, vs...))
+}
+
+// MentorNotificationFrequencyNotIn applies the NotIn predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyNotIn(vs ...int) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldMentorNotificationFrequency, vs...))
+}
+
+// MentorNotificationFrequencyGT applies the GT predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyGT(v int) predicate.User {
+	return predicate.User(sql.FieldGT(FieldMentorNotificationFrequency, v))
+}
+
+// MentorNotificationFrequencyGTE applies the GTE predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyGTE(v int) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldMentorNotificationFrequency, v))
+}
+
+// MentorNotificationFrequencyLT applies the LT predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyLT(v int) predicate.User {
+	return predicate.User(sql.FieldLT(FieldMentorNotificationFrequency, v))
+}
+
+// MentorNotificationFrequencyLTE applies the LTE predicate on the "mentor_notification_frequency" field.
+func MentorNotificationFrequencyLTE(v int) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldMentorNotificationFrequency, v))
+}
+
+// IntegrationsIsNil applies the IsNil predicate on the "integrations" field.
+func IntegrationsIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldIntegrations))
+}
+
+// IntegrationsNotNil applies the NotNil predicate on the "integrations" field.
+func IntegrationsNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldIntegrations))
+}
+
+// NotificationSettingsIsNil applies the IsNil predicate on the "notification_settings" field.
+func NotificationSettingsIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldNotificationSettings))
+}
+
+// NotificationSettingsNotNil applies the NotNil predicate on the "notification_settings" field.
+func NotificationSettingsNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldNotificationSettings))
+}
+
+// AssistantSettingsIsNil applies the IsNil predicate on the "assistant_settings" field.
+func AssistantSettingsIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldAssistantSettings))
+}
+
+// AssistantSettingsNotNil applies the NotNil predicate on the "assistant_settings" field.
+func AssistantSettingsNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldAssistantSettings))
+}
+
+// AiProfileIsNil applies the IsNil predicate on the "ai_profile" field.
+func AiProfileIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldAiProfile))
+}
+
+// AiProfileNotNil applies the NotNil predicate on the "ai_profile" field.
+func AiProfileNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldAiProfile))
+}
+
 // HasDevices applies the HasEdge predicate on the "devices" edge.
 func HasDevices() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -392,6 +802,190 @@ func HasActionItems() predicate.User {
 func HasActionItemsWith(preds ...predicate.ActionItem) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := newActionItemsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChatMessages applies the HasEdge predicate on the "chat_messages" edge.
+func HasChatMessages() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChatMessagesTable, ChatMessagesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChatMessagesWith applies the HasEdge predicate on the "chat_messages" edge with a given conditions (other predicates).
+func HasChatMessagesWith(preds ...predicate.ChatMessage) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newChatMessagesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChatSessions applies the HasEdge predicate on the "chat_sessions" edge.
+func HasChatSessions() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChatSessionsTable, ChatSessionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChatSessionsWith applies the HasEdge predicate on the "chat_sessions" edge with a given conditions (other predicates).
+func HasChatSessionsWith(preds ...predicate.ChatSession) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newChatSessionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNotificationTokens applies the HasEdge predicate on the "notification_tokens" edge.
+func HasNotificationTokens() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotificationTokensTable, NotificationTokensColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNotificationTokensWith applies the HasEdge predicate on the "notification_tokens" edge with a given conditions (other predicates).
+func HasNotificationTokensWith(preds ...predicate.NotificationToken) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newNotificationTokensStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFolders applies the HasEdge predicate on the "folders" edge.
+func HasFolders() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, FoldersTable, FoldersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFoldersWith applies the HasEdge predicate on the "folders" edge with a given conditions (other predicates).
+func HasFoldersWith(preds ...predicate.Folder) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newFoldersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasGoals applies the HasEdge predicate on the "goals" edge.
+func HasGoals() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, GoalsTable, GoalsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasGoalsWith applies the HasEdge predicate on the "goals" edge with a given conditions (other predicates).
+func HasGoalsWith(preds ...predicate.Goal) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newGoalsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCalendarMeetings applies the HasEdge predicate on the "calendar_meetings" edge.
+func HasCalendarMeetings() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CalendarMeetingsTable, CalendarMeetingsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCalendarMeetingsWith applies the HasEdge predicate on the "calendar_meetings" edge with a given conditions (other predicates).
+func HasCalendarMeetingsWith(preds ...predicate.CalendarMeeting) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCalendarMeetingsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCsatRatings applies the HasEdge predicate on the "csat_ratings" edge.
+func HasCsatRatings() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CsatRatingsTable, CsatRatingsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCsatRatingsWith applies the HasEdge predicate on the "csat_ratings" edge with a given conditions (other predicates).
+func HasCsatRatingsWith(preds ...predicate.CsatRating) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCsatRatingsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChatFiles applies the HasEdge predicate on the "chat_files" edge.
+func HasChatFiles() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChatFilesTable, ChatFilesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChatFilesWith applies the HasEdge predicate on the "chat_files" edge with a given conditions (other predicates).
+func HasChatFilesWith(preds ...predicate.ChatFile) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newChatFilesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

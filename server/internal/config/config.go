@@ -13,9 +13,17 @@ type Config struct {
 	RedisPassword           string
 	RedisDB                 int
 	AuthMode                string
+	FirebaseProjectID       string
 	ConversationGap         time.Duration
 	ReadHeaderTimeout       time.Duration
 	WebSocketReadLimitBytes int64
+	STTEndpoint             string
+	STTAPIKey               string
+	LLMEndpoint             string
+	LLMAPIKey               string
+	LLMModel                string
+	OpenAITTSKey            string
+	OpenAITTSEndpoint       string
 }
 
 func FromEnv() Config {
@@ -27,9 +35,17 @@ func FromEnv() Config {
 		RedisPassword:           os.Getenv("REDIS_PASSWORD"),
 		RedisDB:                 envInt("REDIS_DB", 0),
 		AuthMode:                envString("AUTH_MODE", "dev"),
+		FirebaseProjectID:       os.Getenv("FIREBASE_PROJECT_ID"),
 		ConversationGap:         time.Duration(gapMinutes) * time.Minute,
 		ReadHeaderTimeout:       10 * time.Second,
 		WebSocketReadLimitBytes: 8 << 20,
+		STTEndpoint:             os.Getenv("STT_ENDPOINT"),
+		STTAPIKey:               os.Getenv("STT_API_KEY"),
+		LLMEndpoint:             os.Getenv("LLM_ENDPOINT"),
+		LLMAPIKey:               os.Getenv("LLM_API_KEY"),
+		LLMModel:                envString("LLM_MODEL", "gpt-4o-mini"),
+		OpenAITTSKey:            os.Getenv("OPENAI_API_KEY"),
+		OpenAITTSEndpoint:       envString("OPENAI_TTS_ENDPOINT", "https://api.openai.com/v1/audio/speech"),
 	}
 }
 

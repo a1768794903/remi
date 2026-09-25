@@ -90,6 +90,11 @@ func LastSeenAt(v time.Time) predicate.Device {
 	return predicate.Device(sql.FieldEQ(FieldLastSeenAt, v))
 }
 
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v int) predicate.Device {
+	return predicate.Device(sql.FieldEQ(FieldUserID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Device {
 	return predicate.Device(sql.FieldEQ(FieldCreatedAt, v))
@@ -453,6 +458,36 @@ func LastSeenAtIsNil() predicate.Device {
 // LastSeenAtNotNil applies the NotNil predicate on the "last_seen_at" field.
 func LastSeenAtNotNil() predicate.Device {
 	return predicate.Device(sql.FieldNotNull(FieldLastSeenAt))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v int) predicate.Device {
+	return predicate.Device(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v int) predicate.Device {
+	return predicate.Device(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...int) predicate.Device {
+	return predicate.Device(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...int) predicate.Device {
+	return predicate.Device(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// UserIDIsNil applies the IsNil predicate on the "user_id" field.
+func UserIDIsNil() predicate.Device {
+	return predicate.Device(sql.FieldIsNull(FieldUserID))
+}
+
+// UserIDNotNil applies the NotNil predicate on the "user_id" field.
+func UserIDNotNil() predicate.Device {
+	return predicate.Device(sql.FieldNotNull(FieldUserID))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

@@ -9,6 +9,7 @@ import (
 	"remi/server/ent/actionitem"
 	"remi/server/ent/conversation"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
 	"remi/server/ent/memory"
 	"remi/server/ent/todo"
 	"remi/server/ent/transcriptsegment"
@@ -82,6 +83,34 @@ func (_c *ConversationCreate) SetNillableSummary(v *string) *ConversationCreate 
 	return _c
 }
 
+// SetVisibility sets the "visibility" field.
+func (_c *ConversationCreate) SetVisibility(v string) *ConversationCreate {
+	_c.mutation.SetVisibility(v)
+	return _c
+}
+
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_c *ConversationCreate) SetNillableVisibility(v *string) *ConversationCreate {
+	if v != nil {
+		_c.SetVisibility(*v)
+	}
+	return _c
+}
+
+// SetStarred sets the "starred" field.
+func (_c *ConversationCreate) SetStarred(v bool) *ConversationCreate {
+	_c.mutation.SetStarred(v)
+	return _c
+}
+
+// SetNillableStarred sets the "starred" field if the given value is not nil.
+func (_c *ConversationCreate) SetNillableStarred(v *bool) *ConversationCreate {
+	if v != nil {
+		_c.SetStarred(*v)
+	}
+	return _c
+}
+
 // SetStartedAt sets the "started_at" field.
 func (_c *ConversationCreate) SetStartedAt(v time.Time) *ConversationCreate {
 	_c.mutation.SetStartedAt(v)
@@ -116,17 +145,57 @@ func (_c *ConversationCreate) SetNillableStatus(v *conversation.Status) *Convers
 	return _c
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_c *ConversationCreate) SetUserID(id int) *ConversationCreate {
-	_c.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_c *ConversationCreate) SetUserID(v int) *ConversationCreate {
+	_c.mutation.SetUserID(v)
 	return _c
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_c *ConversationCreate) SetNillableUserID(id *int) *ConversationCreate {
-	if id != nil {
-		_c = _c.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_c *ConversationCreate) SetNillableUserID(v *int) *ConversationCreate {
+	if v != nil {
+		_c.SetUserID(*v)
 	}
+	return _c
+}
+
+// SetDeviceID sets the "device_id" field.
+func (_c *ConversationCreate) SetDeviceID(v int) *ConversationCreate {
+	_c.mutation.SetDeviceID(v)
+	return _c
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (_c *ConversationCreate) SetNillableDeviceID(v *int) *ConversationCreate {
+	if v != nil {
+		_c.SetDeviceID(*v)
+	}
+	return _c
+}
+
+// SetFolderID sets the "folder_id" field.
+func (_c *ConversationCreate) SetFolderID(v int) *ConversationCreate {
+	_c.mutation.SetFolderID(v)
+	return _c
+}
+
+// SetNillableFolderID sets the "folder_id" field if the given value is not nil.
+func (_c *ConversationCreate) SetNillableFolderID(v *int) *ConversationCreate {
+	if v != nil {
+		_c.SetFolderID(*v)
+	}
+	return _c
+}
+
+// SetAudioFiles sets the "audio_files" field.
+func (_c *ConversationCreate) SetAudioFiles(v []map[string]interface{}) *ConversationCreate {
+	_c.mutation.SetAudioFiles(v)
+	return _c
+}
+
+// SetConversationAudio sets the "conversation_audio" field.
+func (_c *ConversationCreate) SetConversationAudio(v map[string]interface{}) *ConversationCreate {
+	_c.mutation.SetConversationAudio(v)
 	return _c
 }
 
@@ -135,23 +204,14 @@ func (_c *ConversationCreate) SetUser(v *User) *ConversationCreate {
 	return _c.SetUserID(v.ID)
 }
 
-// SetDeviceID sets the "device" edge to the Device entity by ID.
-func (_c *ConversationCreate) SetDeviceID(id int) *ConversationCreate {
-	_c.mutation.SetDeviceID(id)
-	return _c
-}
-
-// SetNillableDeviceID sets the "device" edge to the Device entity by ID if the given value is not nil.
-func (_c *ConversationCreate) SetNillableDeviceID(id *int) *ConversationCreate {
-	if id != nil {
-		_c = _c.SetDeviceID(*id)
-	}
-	return _c
-}
-
 // SetDevice sets the "device" edge to the Device entity.
 func (_c *ConversationCreate) SetDevice(v *Device) *ConversationCreate {
 	return _c.SetDeviceID(v.ID)
+}
+
+// SetFolder sets the "folder" edge to the Folder entity.
+func (_c *ConversationCreate) SetFolder(v *Folder) *ConversationCreate {
+	return _c.SetFolderID(v.ID)
 }
 
 // AddTranscriptSegmentIDs adds the "transcript_segments" edge to the TranscriptSegment entity by IDs.
@@ -265,6 +325,14 @@ func (_c *ConversationCreate) defaults() {
 		v := conversation.DefaultSummary
 		_c.mutation.SetSummary(v)
 	}
+	if _, ok := _c.mutation.Visibility(); !ok {
+		v := conversation.DefaultVisibility
+		_c.mutation.SetVisibility(v)
+	}
+	if _, ok := _c.mutation.Starred(); !ok {
+		v := conversation.DefaultStarred
+		_c.mutation.SetStarred(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := conversation.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -284,6 +352,12 @@ func (_c *ConversationCreate) check() error {
 	}
 	if _, ok := _c.mutation.Summary(); !ok {
 		return &ValidationError{Name: "summary", err: errors.New(`ent: missing required field "Conversation.summary"`)}
+	}
+	if _, ok := _c.mutation.Visibility(); !ok {
+		return &ValidationError{Name: "visibility", err: errors.New(`ent: missing required field "Conversation.visibility"`)}
+	}
+	if _, ok := _c.mutation.Starred(); !ok {
+		return &ValidationError{Name: "starred", err: errors.New(`ent: missing required field "Conversation.starred"`)}
 	}
 	if _, ok := _c.mutation.StartedAt(); !ok {
 		return &ValidationError{Name: "started_at", err: errors.New(`ent: missing required field "Conversation.started_at"`)}
@@ -338,6 +412,14 @@ func (_c *ConversationCreate) createSpec() (*Conversation, *sqlgraph.CreateSpec)
 		_spec.SetField(conversation.FieldSummary, field.TypeString, value)
 		_node.Summary = value
 	}
+	if value, ok := _c.mutation.Visibility(); ok {
+		_spec.SetField(conversation.FieldVisibility, field.TypeString, value)
+		_node.Visibility = value
+	}
+	if value, ok := _c.mutation.Starred(); ok {
+		_spec.SetField(conversation.FieldStarred, field.TypeBool, value)
+		_node.Starred = value
+	}
 	if value, ok := _c.mutation.StartedAt(); ok {
 		_spec.SetField(conversation.FieldStartedAt, field.TypeTime, value)
 		_node.StartedAt = value
@@ -349,6 +431,14 @@ func (_c *ConversationCreate) createSpec() (*Conversation, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(conversation.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.AudioFiles(); ok {
+		_spec.SetField(conversation.FieldAudioFiles, field.TypeJSON, value)
+		_node.AudioFiles = value
+	}
+	if value, ok := _c.mutation.ConversationAudio(); ok {
+		_spec.SetField(conversation.FieldConversationAudio, field.TypeJSON, value)
+		_node.ConversationAudio = value
 	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -364,7 +454,7 @@ func (_c *ConversationCreate) createSpec() (*Conversation, *sqlgraph.CreateSpec)
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_conversations = &nodes[0]
+		_node.UserID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.DeviceIDs(); len(nodes) > 0 {
@@ -381,7 +471,24 @@ func (_c *ConversationCreate) createSpec() (*Conversation, *sqlgraph.CreateSpec)
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.device_conversations = &nodes[0]
+		_node.DeviceID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FolderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   conversation.FolderTable,
+			Columns: []string{conversation.FolderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.FolderID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.TranscriptSegmentsIDs(); len(nodes) > 0 {

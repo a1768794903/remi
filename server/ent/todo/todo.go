@@ -27,6 +27,10 @@ const (
 	FieldDueAt = "due_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
+	// FieldConversationID holds the string denoting the conversation_id field in the database.
+	FieldConversationID = "conversation_id"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeConversation holds the string denoting the conversation edge name in mutations.
@@ -39,14 +43,14 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "user_todos"
+	UserColumn = "user_id"
 	// ConversationTable is the table that holds the conversation relation/edge.
 	ConversationTable = "todos"
 	// ConversationInverseTable is the table name for the Conversation entity.
 	// It exists in this package in order to avoid circular dependency with the "conversation" package.
 	ConversationInverseTable = "conversations"
 	// ConversationColumn is the table column denoting the conversation relation/edge.
-	ConversationColumn = "conversation_todos"
+	ConversationColumn = "conversation_id"
 )
 
 // Columns holds all SQL columns for todo fields.
@@ -58,24 +62,14 @@ var Columns = []string{
 	FieldDescription,
 	FieldDueAt,
 	FieldStatus,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "todos"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"conversation_todos",
-	"user_todos",
+	FieldUserID,
+	FieldConversationID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -158,6 +152,16 @@ func ByDueAt(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByConversationID orders the results by the conversation_id field.
+func ByConversationID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConversationID, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

@@ -8,9 +8,19 @@ import (
 	"fmt"
 	"reflect"
 	"remi/server/ent/actionitem"
+	"remi/server/ent/calendarmeeting"
+	"remi/server/ent/chatfile"
+	"remi/server/ent/chatmessage"
+	"remi/server/ent/chatsession"
 	"remi/server/ent/conversation"
+	"remi/server/ent/csatrating"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
+	"remi/server/ent/goal"
+	"remi/server/ent/goalprogressevent"
 	"remi/server/ent/memory"
+	"remi/server/ent/notificationtoken"
+	"remi/server/ent/syncjob"
 	"remi/server/ent/todo"
 	"remi/server/ent/transcriptsegment"
 	"remi/server/ent/user"
@@ -80,9 +90,19 @@ func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			actionitem.Table:        actionitem.ValidColumn,
+			calendarmeeting.Table:   calendarmeeting.ValidColumn,
+			chatfile.Table:          chatfile.ValidColumn,
+			chatmessage.Table:       chatmessage.ValidColumn,
+			chatsession.Table:       chatsession.ValidColumn,
 			conversation.Table:      conversation.ValidColumn,
+			csatrating.Table:        csatrating.ValidColumn,
 			device.Table:            device.ValidColumn,
+			folder.Table:            folder.ValidColumn,
+			goal.Table:              goal.ValidColumn,
+			goalprogressevent.Table: goalprogressevent.ValidColumn,
 			memory.Table:            memory.ValidColumn,
+			notificationtoken.Table: notificationtoken.ValidColumn,
+			syncjob.Table:           syncjob.ValidColumn,
 			todo.Table:              todo.ValidColumn,
 			transcriptsegment.Table: transcriptsegment.ValidColumn,
 			user.Table:              user.ValidColumn,

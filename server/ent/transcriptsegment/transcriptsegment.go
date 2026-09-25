@@ -20,6 +20,12 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldSpeaker holds the string denoting the speaker field in the database.
 	FieldSpeaker = "speaker"
+	// FieldSpeakerID holds the string denoting the speaker_id field in the database.
+	FieldSpeakerID = "speaker_id"
+	// FieldIsUser holds the string denoting the is_user field in the database.
+	FieldIsUser = "is_user"
+	// FieldPersonID holds the string denoting the person_id field in the database.
+	FieldPersonID = "person_id"
 	// FieldText holds the string denoting the text field in the database.
 	FieldText = "text"
 	// FieldStartMs holds the string denoting the start_ms field in the database.
@@ -28,6 +34,8 @@ const (
 	FieldEndMs = "end_ms"
 	// FieldSource holds the string denoting the source field in the database.
 	FieldSource = "source"
+	// FieldConversationID holds the string denoting the conversation_id field in the database.
+	FieldConversationID = "conversation_id"
 	// EdgeConversation holds the string denoting the conversation edge name in mutations.
 	EdgeConversation = "conversation"
 	// Table holds the table name of the transcriptsegment in the database.
@@ -38,7 +46,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "conversation" package.
 	ConversationInverseTable = "conversations"
 	// ConversationColumn is the table column denoting the conversation relation/edge.
-	ConversationColumn = "conversation_transcript_segments"
+	ConversationColumn = "conversation_id"
 )
 
 // Columns holds all SQL columns for transcriptsegment fields.
@@ -47,27 +55,20 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldSpeaker,
+	FieldSpeakerID,
+	FieldIsUser,
+	FieldPersonID,
 	FieldText,
 	FieldStartMs,
 	FieldEndMs,
 	FieldSource,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "transcript_segments"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"conversation_transcript_segments",
+	FieldConversationID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -83,6 +84,10 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultSpeaker holds the default value on creation for the "speaker" field.
 	DefaultSpeaker string
+	// DefaultSpeakerID holds the default value on creation for the "speaker_id" field.
+	DefaultSpeakerID int
+	// DefaultIsUser holds the default value on creation for the "is_user" field.
+	DefaultIsUser bool
 	// StartMsValidator is a validator for the "start_ms" field. It is called by the builders before save.
 	StartMsValidator func(int64) error
 	// EndMsValidator is a validator for the "end_ms" field. It is called by the builders before save.
@@ -114,6 +119,21 @@ func BySpeaker(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSpeaker, opts...).ToFunc()
 }
 
+// BySpeakerID orders the results by the speaker_id field.
+func BySpeakerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpeakerID, opts...).ToFunc()
+}
+
+// ByIsUser orders the results by the is_user field.
+func ByIsUser(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsUser, opts...).ToFunc()
+}
+
+// ByPersonID orders the results by the person_id field.
+func ByPersonID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPersonID, opts...).ToFunc()
+}
+
 // ByText orders the results by the text field.
 func ByText(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldText, opts...).ToFunc()
@@ -132,6 +152,11 @@ func ByEndMs(opts ...sql.OrderTermOption) OrderOption {
 // BySource orders the results by the source field.
 func BySource(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSource, opts...).ToFunc()
+}
+
+// ByConversationID orders the results by the conversation_id field.
+func ByConversationID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConversationID, opts...).ToFunc()
 }
 
 // ByConversationField orders the results by conversation field.

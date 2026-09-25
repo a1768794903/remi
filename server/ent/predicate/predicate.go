@@ -9,14 +9,44 @@ import (
 // ActionItem is the predicate function for actionitem builders.
 type ActionItem func(*sql.Selector)
 
+// CalendarMeeting is the predicate function for calendarmeeting builders.
+type CalendarMeeting func(*sql.Selector)
+
+// ChatFile is the predicate function for chatfile builders.
+type ChatFile func(*sql.Selector)
+
+// ChatMessage is the predicate function for chatmessage builders.
+type ChatMessage func(*sql.Selector)
+
+// ChatSession is the predicate function for chatsession builders.
+type ChatSession func(*sql.Selector)
+
 // Conversation is the predicate function for conversation builders.
 type Conversation func(*sql.Selector)
+
+// CsatRating is the predicate function for csatrating builders.
+type CsatRating func(*sql.Selector)
 
 // Device is the predicate function for device builders.
 type Device func(*sql.Selector)
 
+// Folder is the predicate function for folder builders.
+type Folder func(*sql.Selector)
+
+// Goal is the predicate function for goal builders.
+type Goal func(*sql.Selector)
+
+// GoalProgressEvent is the predicate function for goalprogressevent builders.
+type GoalProgressEvent func(*sql.Selector)
+
 // Memory is the predicate function for memory builders.
 type Memory func(*sql.Selector)
+
+// NotificationToken is the predicate function for notificationtoken builders.
+type NotificationToken func(*sql.Selector)
+
+// SyncJob is the predicate function for syncjob builders.
+type SyncJob func(*sql.Selector)
 
 // Todo is the predicate function for todo builders.
 type Todo func(*sql.Selector)

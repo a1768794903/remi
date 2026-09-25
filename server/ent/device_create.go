@@ -112,16 +112,16 @@ func (_c *DeviceCreate) SetNillableLastSeenAt(v *time.Time) *DeviceCreate {
 	return _c
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_c *DeviceCreate) SetUserID(id int) *DeviceCreate {
-	_c.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_c *DeviceCreate) SetUserID(v int) *DeviceCreate {
+	_c.mutation.SetUserID(v)
 	return _c
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_c *DeviceCreate) SetNillableUserID(id *int) *DeviceCreate {
-	if id != nil {
-		_c = _c.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_c *DeviceCreate) SetNillableUserID(v *int) *DeviceCreate {
+	if v != nil {
+		_c.SetUserID(*v)
 	}
 	return _c
 }
@@ -296,7 +296,7 @@ func (_c *DeviceCreate) createSpec() (*Device, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_devices = &nodes[0]
+		_node.UserID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ConversationsIDs(); len(nodes) > 0 {

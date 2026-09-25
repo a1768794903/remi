@@ -32,8 +32,8 @@ var (
 		{Name: "export_date", Type: field.TypeTime, Nullable: true},
 		{Name: "export_platform", Type: field.TypeString, Nullable: true},
 		{Name: "apple_reminder_id", Type: field.TypeString, Nullable: true},
-		{Name: "conversation_action_items", Type: field.TypeInt, Nullable: true},
-		{Name: "user_action_items", Type: field.TypeInt, Nullable: true},
+		{Name: "conversation_id", Type: field.TypeInt, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
 	}
 	// ActionItemsTable holds the schema information for the "action_items" table.
 	ActionItemsTable = &schema.Table{
@@ -55,6 +55,128 @@ var (
 			},
 		},
 	}
+	// CalendarMeetingsColumns holds the columns for the "calendar_meetings" table.
+	CalendarMeetingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "calendar_event_id", Type: field.TypeString},
+		{Name: "calendar_source", Type: field.TypeString, Default: "system_calendar"},
+		{Name: "title", Type: field.TypeString},
+		{Name: "participants", Type: field.TypeJSON, Nullable: true},
+		{Name: "platform", Type: field.TypeString, Nullable: true},
+		{Name: "meeting_link", Type: field.TypeString, Nullable: true},
+		{Name: "start_time", Type: field.TypeTime},
+		{Name: "end_time", Type: field.TypeTime},
+		{Name: "duration_minutes", Type: field.TypeInt},
+		{Name: "notes", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "synced_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// CalendarMeetingsTable holds the schema information for the "calendar_meetings" table.
+	CalendarMeetingsTable = &schema.Table{
+		Name:       "calendar_meetings",
+		Columns:    CalendarMeetingsColumns,
+		PrimaryKey: []*schema.Column{CalendarMeetingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "calendar_meetings_users_calendar_meetings",
+				Columns:    []*schema.Column{CalendarMeetingsColumns[15]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ChatFilesColumns holds the columns for the "chat_files" table.
+	ChatFilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "thumbnail", Type: field.TypeString, Default: ""},
+		{Name: "mime_type", Type: field.TypeString},
+		{Name: "openai_file_id", Type: field.TypeString},
+		{Name: "thumb_name", Type: field.TypeString, Default: ""},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// ChatFilesTable holds the schema information for the "chat_files" table.
+	ChatFilesTable = &schema.Table{
+		Name:       "chat_files",
+		Columns:    ChatFilesColumns,
+		PrimaryKey: []*schema.Column{ChatFilesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "chat_files_users_chat_files",
+				Columns:    []*schema.Column{ChatFilesColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ChatMessagesColumns holds the columns for the "chat_messages" table.
+	ChatMessagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "text", Type: field.TypeString, Size: 2147483647},
+		{Name: "sender", Type: field.TypeEnum, Enums: []string{"human", "ai"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"text", "day_summary"}, Default: "text"},
+		{Name: "app_id", Type: field.TypeString, Nullable: true},
+		{Name: "chat_session_id", Type: field.TypeString, Nullable: true},
+		{Name: "rating", Type: field.TypeInt, Nullable: true},
+		{Name: "reported", Type: field.TypeBool, Default: false},
+		{Name: "report_reason", Type: field.TypeString, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// ChatMessagesTable holds the schema information for the "chat_messages" table.
+	ChatMessagesTable = &schema.Table{
+		Name:       "chat_messages",
+		Columns:    ChatMessagesColumns,
+		PrimaryKey: []*schema.Column{ChatMessagesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "chat_messages_users_chat_messages",
+				Columns:    []*schema.Column{ChatMessagesColumns[12]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ChatSessionsColumns holds the columns for the "chat_sessions" table.
+	ChatSessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "title", Type: field.TypeString, Default: "New Chat"},
+		{Name: "app_id", Type: field.TypeString, Nullable: true},
+		{Name: "starred", Type: field.TypeBool, Default: false},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// ChatSessionsTable holds the schema information for the "chat_sessions" table.
+	ChatSessionsTable = &schema.Table{
+		Name:       "chat_sessions",
+		Columns:    ChatSessionsColumns,
+		PrimaryKey: []*schema.Column{ChatSessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "chat_sessions_users_chat_sessions",
+				Columns:    []*schema.Column{ChatSessionsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chatsession_user_id_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChatSessionsColumns[7], ChatSessionsColumns[2]},
+			},
+		},
+	}
 	// ConversationsColumns holds the columns for the "conversations" table.
 	ConversationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -62,11 +184,16 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "title", Type: field.TypeString, Default: ""},
 		{Name: "summary", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "visibility", Type: field.TypeString, Default: "private"},
+		{Name: "starred", Type: field.TypeBool, Default: false},
 		{Name: "started_at", Type: field.TypeTime},
 		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"in_progress", "completed", "failed"}, Default: "in_progress"},
-		{Name: "device_conversations", Type: field.TypeInt, Nullable: true},
-		{Name: "user_conversations", Type: field.TypeInt, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"in_progress", "processing", "merging", "completed", "failed"}, Default: "in_progress"},
+		{Name: "audio_files", Type: field.TypeJSON, Nullable: true},
+		{Name: "conversation_audio", Type: field.TypeJSON, Nullable: true},
+		{Name: "device_id", Type: field.TypeInt, Nullable: true},
+		{Name: "folder_id", Type: field.TypeInt, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
 	}
 	// ConversationsTable holds the schema information for the "conversations" table.
 	ConversationsTable = &schema.Table{
@@ -76,15 +203,55 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "conversations_devices_conversations",
-				Columns:    []*schema.Column{ConversationsColumns[8]},
+				Columns:    []*schema.Column{ConversationsColumns[12]},
 				RefColumns: []*schema.Column{DevicesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
+				Symbol:     "conversations_folders_conversations",
+				Columns:    []*schema.Column{ConversationsColumns[13]},
+				RefColumns: []*schema.Column{FoldersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
 				Symbol:     "conversations_users_conversations",
-				Columns:    []*schema.Column{ConversationsColumns[9]},
+				Columns:    []*schema.Column{ConversationsColumns[14]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// CsatRatingsColumns holds the columns for the "csat_ratings" table.
+	CsatRatingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "platform", Type: field.TypeString},
+		{Name: "app_version", Type: field.TypeString, Default: ""},
+		{Name: "score", Type: field.TypeInt},
+		{Name: "comment", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "revision", Type: field.TypeInt, Default: 0},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// CsatRatingsTable holds the schema information for the "csat_ratings" table.
+	CsatRatingsTable = &schema.Table{
+		Name:       "csat_ratings",
+		Columns:    CsatRatingsColumns,
+		PrimaryKey: []*schema.Column{CsatRatingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "csat_ratings_users_csat_ratings",
+				Columns:    []*schema.Column{CsatRatingsColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "csatrating_user_id_platform",
+				Unique:  true,
+				Columns: []*schema.Column{CsatRatingsColumns[9], CsatRatingsColumns[4]},
 			},
 		},
 	}
@@ -98,7 +265,7 @@ var (
 		{Name: "firmware_version", Type: field.TypeString, Default: ""},
 		{Name: "battery_level", Type: field.TypeInt, Default: -1},
 		{Name: "last_seen_at", Type: field.TypeTime, Nullable: true},
-		{Name: "user_devices", Type: field.TypeInt, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
 	}
 	// DevicesTable holds the schema information for the "devices" table.
 	DevicesTable = &schema.Table{
@@ -121,17 +288,132 @@ var (
 			},
 		},
 	}
+	// FoldersColumns holds the columns for the "folders" table.
+	FoldersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "color", Type: field.TypeString, Default: "#6B7280"},
+		{Name: "icon", Type: field.TypeString, Default: "folder"},
+		{Name: "order", Type: field.TypeInt, Default: 0},
+		{Name: "is_default", Type: field.TypeBool, Default: false},
+		{Name: "is_system", Type: field.TypeBool, Default: false},
+		{Name: "category_mapping", Type: field.TypeString, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// FoldersTable holds the schema information for the "folders" table.
+	FoldersTable = &schema.Table{
+		Name:       "folders",
+		Columns:    FoldersColumns,
+		PrimaryKey: []*schema.Column{FoldersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "folders_users_folders",
+				Columns:    []*schema.Column{FoldersColumns[12]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "folder_user_id_order",
+				Unique:  false,
+				Columns: []*schema.Column{FoldersColumns[12], FoldersColumns[8]},
+			},
+		},
+	}
+	// GoalsColumns holds the columns for the "goals" table.
+	GoalsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "desired_outcome", Type: field.TypeString, Default: ""},
+		{Name: "why_it_matters", Type: field.TypeString, Nullable: true},
+		{Name: "success_criteria", Type: field.TypeJSON, Nullable: true},
+		{Name: "horizon_at", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"background", "focused", "paused", "achieved", "abandoned"}, Default: "background"},
+		{Name: "focus_rank", Type: field.TypeInt, Nullable: true},
+		{Name: "metric", Type: field.TypeJSON, Nullable: true},
+		{Name: "source", Type: field.TypeEnum, Enums: []string{"user", "ai_suggested", "imported"}, Default: "user"},
+		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// GoalsTable holds the schema information for the "goals" table.
+	GoalsTable = &schema.Table{
+		Name:       "goals",
+		Columns:    GoalsColumns,
+		PrimaryKey: []*schema.Column{GoalsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "goals_users_goals",
+				Columns:    []*schema.Column{GoalsColumns[14]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "goal_user_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{GoalsColumns[14], GoalsColumns[9]},
+			},
+		},
+	}
+	// GoalProgressEventsColumns holds the columns for the "goal_progress_events" table.
+	GoalProgressEventsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_id", Type: field.TypeString, Unique: true},
+		{Name: "sequence", Type: field.TypeInt},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"evidence", "metric_update", "milestone", "status_change"}},
+		{Name: "summary", Type: field.TypeString},
+		{Name: "evidence_refs", Type: field.TypeJSON, Nullable: true},
+		{Name: "metric", Type: field.TypeJSON, Nullable: true},
+		{Name: "goal_id", Type: field.TypeInt},
+	}
+	// GoalProgressEventsTable holds the schema information for the "goal_progress_events" table.
+	GoalProgressEventsTable = &schema.Table{
+		Name:       "goal_progress_events",
+		Columns:    GoalProgressEventsColumns,
+		PrimaryKey: []*schema.Column{GoalProgressEventsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "goal_progress_events_goals_progress_events",
+				Columns:    []*schema.Column{GoalProgressEventsColumns[9]},
+				RefColumns: []*schema.Column{GoalsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "goalprogressevent_goal_id_sequence",
+				Unique:  true,
+				Columns: []*schema.Column{GoalProgressEventsColumns[9], GoalProgressEventsColumns[4]},
+			},
+		},
+	}
 	// MemoriesColumns holds the columns for the "memories" table.
 	MemoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"fact", "decision", "preference", "event"}, Default: "fact"},
+		{Name: "category", Type: field.TypeString, Default: "interesting"},
+		{Name: "visibility", Type: field.TypeString, Default: "private"},
+		{Name: "tags", Type: field.TypeJSON, Nullable: true},
+		{Name: "is_read", Type: field.TypeBool, Default: false},
+		{Name: "is_dismissed", Type: field.TypeBool, Default: false},
 		{Name: "content", Type: field.TypeString, Size: 2147483647},
 		{Name: "importance", Type: field.TypeInt, Default: 50},
 		{Name: "event_time", Type: field.TypeTime, Nullable: true},
-		{Name: "conversation_memories", Type: field.TypeInt, Nullable: true},
-		{Name: "user_memories", Type: field.TypeInt, Nullable: true},
+		{Name: "conversation_id", Type: field.TypeInt, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
 	}
 	// MemoriesTable holds the schema information for the "memories" table.
 	MemoriesTable = &schema.Table{
@@ -141,15 +423,84 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "memories_conversations_memories",
-				Columns:    []*schema.Column{MemoriesColumns[7]},
+				Columns:    []*schema.Column{MemoriesColumns[12]},
 				RefColumns: []*schema.Column{ConversationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "memories_users_memories",
-				Columns:    []*schema.Column{MemoriesColumns[8]},
+				Columns:    []*schema.Column{MemoriesColumns[13]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// NotificationTokensColumns holds the columns for the "notification_tokens" table.
+	NotificationTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "token", Type: field.TypeString},
+		{Name: "platform", Type: field.TypeString, Default: "unknown"},
+		{Name: "device_key", Type: field.TypeString, Default: "default"},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
+	}
+	// NotificationTokensTable holds the schema information for the "notification_tokens" table.
+	NotificationTokensTable = &schema.Table{
+		Name:       "notification_tokens",
+		Columns:    NotificationTokensColumns,
+		PrimaryKey: []*schema.Column{NotificationTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notification_tokens_users_notification_tokens",
+				Columns:    []*schema.Column{NotificationTokensColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationtoken_user_id_device_key",
+				Unique:  true,
+				Columns: []*schema.Column{NotificationTokensColumns[6], NotificationTokensColumns[5]},
+			},
+		},
+	}
+	// SyncJobsColumns holds the columns for the "sync_jobs" table.
+	SyncJobsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "job_id", Type: field.TypeString},
+		{Name: "uid", Type: field.TypeString},
+		{Name: "conversation_id", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: "queued"},
+		{Name: "total_segments", Type: field.TypeInt, Default: 0},
+		{Name: "processed_segments", Type: field.TypeInt, Default: 0},
+		{Name: "successful_segments", Type: field.TypeInt, Default: 0},
+		{Name: "failed_segments", Type: field.TypeInt, Default: 0},
+		{Name: "lane", Type: field.TypeString, Default: "fresh"},
+		{Name: "reason_code", Type: field.TypeString, Nullable: true},
+		{Name: "retry_after", Type: field.TypeInt, Nullable: true},
+		{Name: "recording_age_seconds", Type: field.TypeInt, Nullable: true},
+		{Name: "error", Type: field.TypeString, Nullable: true},
+		{Name: "result", Type: field.TypeJSON, Nullable: true},
+	}
+	// SyncJobsTable holds the schema information for the "sync_jobs" table.
+	SyncJobsTable = &schema.Table{
+		Name:       "sync_jobs",
+		Columns:    SyncJobsColumns,
+		PrimaryKey: []*schema.Column{SyncJobsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "syncjob_job_id",
+				Unique:  true,
+				Columns: []*schema.Column{SyncJobsColumns[3]},
+			},
+			{
+				Name:    "syncjob_uid_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{SyncJobsColumns[4], SyncJobsColumns[1]},
 			},
 		},
 	}
@@ -162,8 +513,8 @@ var (
 		{Name: "description", Type: field.TypeString, Size: 2147483647, Default: ""},
 		{Name: "due_at", Type: field.TypeTime, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"open", "completed", "cancelled"}, Default: "open"},
-		{Name: "conversation_todos", Type: field.TypeInt, Nullable: true},
-		{Name: "user_todos", Type: field.TypeInt, Nullable: true},
+		{Name: "conversation_id", Type: field.TypeInt, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt, Nullable: true},
 	}
 	// TodosTable holds the schema information for the "todos" table.
 	TodosTable = &schema.Table{
@@ -191,11 +542,14 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "speaker", Type: field.TypeString, Default: "unknown"},
+		{Name: "speaker_id", Type: field.TypeInt, Default: 0},
+		{Name: "is_user", Type: field.TypeBool, Default: false},
+		{Name: "person_id", Type: field.TypeString, Nullable: true},
 		{Name: "text", Type: field.TypeString, Size: 2147483647},
 		{Name: "start_ms", Type: field.TypeInt64},
 		{Name: "end_ms", Type: field.TypeInt64},
 		{Name: "source", Type: field.TypeString, Default: "stt"},
-		{Name: "conversation_transcript_segments", Type: field.TypeInt, Nullable: true},
+		{Name: "conversation_id", Type: field.TypeInt, Nullable: true},
 	}
 	// TranscriptSegmentsTable holds the schema information for the "transcript_segments" table.
 	TranscriptSegmentsTable = &schema.Table{
@@ -205,7 +559,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "transcript_segments_conversations_transcript_segments",
-				Columns:    []*schema.Column{TranscriptSegmentsColumns[8]},
+				Columns:    []*schema.Column{TranscriptSegmentsColumns[11]},
 				RefColumns: []*schema.Column{ConversationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -216,8 +570,22 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "external_uid", Type: field.TypeString},
 		{Name: "email", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString, Default: ""},
+		{Name: "language", Type: field.TypeString, Default: "en"},
+		{Name: "time_zone", Type: field.TypeString, Default: "UTC"},
+		{Name: "onboarding", Type: field.TypeJSON, Nullable: true},
+		{Name: "private_cloud_sync_enabled", Type: field.TypeBool, Default: true},
+		{Name: "meeting_note_screenshots_enabled", Type: field.TypeBool, Default: true},
+		{Name: "store_recording_permission", Type: field.TypeBool, Default: false},
+		{Name: "daily_summary_enabled", Type: field.TypeBool, Default: true},
+		{Name: "daily_summary_hour_local", Type: field.TypeInt, Default: 22},
+		{Name: "mentor_notification_frequency", Type: field.TypeInt, Default: 0},
+		{Name: "integrations", Type: field.TypeJSON, Nullable: true},
+		{Name: "notification_settings", Type: field.TypeJSON, Nullable: true},
+		{Name: "assistant_settings", Type: field.TypeJSON, Nullable: true},
+		{Name: "ai_profile", Type: field.TypeJSON, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -226,18 +594,33 @@ var (
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "user_email",
+				Name:    "user_external_uid",
 				Unique:  true,
 				Columns: []*schema.Column{UsersColumns[3]},
+			},
+			{
+				Name:    "user_email",
+				Unique:  true,
+				Columns: []*schema.Column{UsersColumns[4]},
 			},
 		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ActionItemsTable,
+		CalendarMeetingsTable,
+		ChatFilesTable,
+		ChatMessagesTable,
+		ChatSessionsTable,
 		ConversationsTable,
+		CsatRatingsTable,
 		DevicesTable,
+		FoldersTable,
+		GoalsTable,
+		GoalProgressEventsTable,
 		MemoriesTable,
+		NotificationTokensTable,
+		SyncJobsTable,
 		TodosTable,
 		TranscriptSegmentsTable,
 		UsersTable,
@@ -247,11 +630,21 @@ var (
 func init() {
 	ActionItemsTable.ForeignKeys[0].RefTable = ConversationsTable
 	ActionItemsTable.ForeignKeys[1].RefTable = UsersTable
+	CalendarMeetingsTable.ForeignKeys[0].RefTable = UsersTable
+	ChatFilesTable.ForeignKeys[0].RefTable = UsersTable
+	ChatMessagesTable.ForeignKeys[0].RefTable = UsersTable
+	ChatSessionsTable.ForeignKeys[0].RefTable = UsersTable
 	ConversationsTable.ForeignKeys[0].RefTable = DevicesTable
-	ConversationsTable.ForeignKeys[1].RefTable = UsersTable
+	ConversationsTable.ForeignKeys[1].RefTable = FoldersTable
+	ConversationsTable.ForeignKeys[2].RefTable = UsersTable
+	CsatRatingsTable.ForeignKeys[0].RefTable = UsersTable
 	DevicesTable.ForeignKeys[0].RefTable = UsersTable
+	FoldersTable.ForeignKeys[0].RefTable = UsersTable
+	GoalsTable.ForeignKeys[0].RefTable = UsersTable
+	GoalProgressEventsTable.ForeignKeys[0].RefTable = GoalsTable
 	MemoriesTable.ForeignKeys[0].RefTable = ConversationsTable
 	MemoriesTable.ForeignKeys[1].RefTable = UsersTable
+	NotificationTokensTable.ForeignKeys[0].RefTable = UsersTable
 	TodosTable.ForeignKeys[0].RefTable = ConversationsTable
 	TodosTable.ForeignKeys[1].RefTable = UsersTable
 	TranscriptSegmentsTable.ForeignKeys[0].RefTable = ConversationsTable

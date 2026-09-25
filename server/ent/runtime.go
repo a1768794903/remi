@@ -4,10 +4,20 @@ package ent
 
 import (
 	"remi/server/ent/actionitem"
+	"remi/server/ent/calendarmeeting"
+	"remi/server/ent/chatfile"
+	"remi/server/ent/chatmessage"
+	"remi/server/ent/chatsession"
 	"remi/server/ent/conversation"
+	"remi/server/ent/csatrating"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
+	"remi/server/ent/goal"
+	"remi/server/ent/goalprogressevent"
 	"remi/server/ent/memory"
+	"remi/server/ent/notificationtoken"
 	"remi/server/ent/schema"
+	"remi/server/ent/syncjob"
 	"remi/server/ent/todo"
 	"remi/server/ent/transcriptsegment"
 	"remi/server/ent/user"
@@ -59,6 +69,98 @@ func init() {
 	actionitemDescExported := actionitemFields[15].Descriptor()
 	// actionitem.DefaultExported holds the default value on creation for the exported field.
 	actionitem.DefaultExported = actionitemDescExported.Default.(bool)
+	calendarmeetingMixin := schema.CalendarMeeting{}.Mixin()
+	calendarmeetingMixinFields0 := calendarmeetingMixin[0].Fields()
+	_ = calendarmeetingMixinFields0
+	calendarmeetingFields := schema.CalendarMeeting{}.Fields()
+	_ = calendarmeetingFields
+	// calendarmeetingDescCreatedAt is the schema descriptor for created_at field.
+	calendarmeetingDescCreatedAt := calendarmeetingMixinFields0[0].Descriptor()
+	// calendarmeeting.DefaultCreatedAt holds the default value on creation for the created_at field.
+	calendarmeeting.DefaultCreatedAt = calendarmeetingDescCreatedAt.Default.(func() time.Time)
+	// calendarmeetingDescUpdatedAt is the schema descriptor for updated_at field.
+	calendarmeetingDescUpdatedAt := calendarmeetingMixinFields0[1].Descriptor()
+	// calendarmeeting.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	calendarmeeting.DefaultUpdatedAt = calendarmeetingDescUpdatedAt.Default.(func() time.Time)
+	// calendarmeeting.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	calendarmeeting.UpdateDefaultUpdatedAt = calendarmeetingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// calendarmeetingDescCalendarEventID is the schema descriptor for calendar_event_id field.
+	calendarmeetingDescCalendarEventID := calendarmeetingFields[1].Descriptor()
+	// calendarmeeting.CalendarEventIDValidator is a validator for the "calendar_event_id" field. It is called by the builders before save.
+	calendarmeeting.CalendarEventIDValidator = calendarmeetingDescCalendarEventID.Validators[0].(func(string) error)
+	// calendarmeetingDescCalendarSource is the schema descriptor for calendar_source field.
+	calendarmeetingDescCalendarSource := calendarmeetingFields[2].Descriptor()
+	// calendarmeeting.DefaultCalendarSource holds the default value on creation for the calendar_source field.
+	calendarmeeting.DefaultCalendarSource = calendarmeetingDescCalendarSource.Default.(string)
+	// calendarmeetingDescTitle is the schema descriptor for title field.
+	calendarmeetingDescTitle := calendarmeetingFields[3].Descriptor()
+	// calendarmeeting.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	calendarmeeting.TitleValidator = calendarmeetingDescTitle.Validators[0].(func(string) error)
+	chatfileMixin := schema.ChatFile{}.Mixin()
+	chatfileMixinFields0 := chatfileMixin[0].Fields()
+	_ = chatfileMixinFields0
+	chatfileFields := schema.ChatFile{}.Fields()
+	_ = chatfileFields
+	// chatfileDescCreatedAt is the schema descriptor for created_at field.
+	chatfileDescCreatedAt := chatfileMixinFields0[0].Descriptor()
+	// chatfile.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chatfile.DefaultCreatedAt = chatfileDescCreatedAt.Default.(func() time.Time)
+	// chatfileDescUpdatedAt is the schema descriptor for updated_at field.
+	chatfileDescUpdatedAt := chatfileMixinFields0[1].Descriptor()
+	// chatfile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chatfile.DefaultUpdatedAt = chatfileDescUpdatedAt.Default.(func() time.Time)
+	// chatfile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chatfile.UpdateDefaultUpdatedAt = chatfileDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chatfileDescThumbnail is the schema descriptor for thumbnail field.
+	chatfileDescThumbnail := chatfileFields[2].Descriptor()
+	// chatfile.DefaultThumbnail holds the default value on creation for the thumbnail field.
+	chatfile.DefaultThumbnail = chatfileDescThumbnail.Default.(string)
+	// chatfileDescThumbName is the schema descriptor for thumb_name field.
+	chatfileDescThumbName := chatfileFields[5].Descriptor()
+	// chatfile.DefaultThumbName holds the default value on creation for the thumb_name field.
+	chatfile.DefaultThumbName = chatfileDescThumbName.Default.(string)
+	chatmessageMixin := schema.ChatMessage{}.Mixin()
+	chatmessageMixinFields0 := chatmessageMixin[0].Fields()
+	_ = chatmessageMixinFields0
+	chatmessageFields := schema.ChatMessage{}.Fields()
+	_ = chatmessageFields
+	// chatmessageDescCreatedAt is the schema descriptor for created_at field.
+	chatmessageDescCreatedAt := chatmessageMixinFields0[0].Descriptor()
+	// chatmessage.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chatmessage.DefaultCreatedAt = chatmessageDescCreatedAt.Default.(func() time.Time)
+	// chatmessageDescUpdatedAt is the schema descriptor for updated_at field.
+	chatmessageDescUpdatedAt := chatmessageMixinFields0[1].Descriptor()
+	// chatmessage.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chatmessage.DefaultUpdatedAt = chatmessageDescUpdatedAt.Default.(func() time.Time)
+	// chatmessage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chatmessage.UpdateDefaultUpdatedAt = chatmessageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chatmessageDescReported is the schema descriptor for reported field.
+	chatmessageDescReported := chatmessageFields[7].Descriptor()
+	// chatmessage.DefaultReported holds the default value on creation for the reported field.
+	chatmessage.DefaultReported = chatmessageDescReported.Default.(bool)
+	chatsessionMixin := schema.ChatSession{}.Mixin()
+	chatsessionMixinFields0 := chatsessionMixin[0].Fields()
+	_ = chatsessionMixinFields0
+	chatsessionFields := schema.ChatSession{}.Fields()
+	_ = chatsessionFields
+	// chatsessionDescCreatedAt is the schema descriptor for created_at field.
+	chatsessionDescCreatedAt := chatsessionMixinFields0[0].Descriptor()
+	// chatsession.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chatsession.DefaultCreatedAt = chatsessionDescCreatedAt.Default.(func() time.Time)
+	// chatsessionDescUpdatedAt is the schema descriptor for updated_at field.
+	chatsessionDescUpdatedAt := chatsessionMixinFields0[1].Descriptor()
+	// chatsession.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chatsession.DefaultUpdatedAt = chatsessionDescUpdatedAt.Default.(func() time.Time)
+	// chatsession.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chatsession.UpdateDefaultUpdatedAt = chatsessionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chatsessionDescTitle is the schema descriptor for title field.
+	chatsessionDescTitle := chatsessionFields[1].Descriptor()
+	// chatsession.DefaultTitle holds the default value on creation for the title field.
+	chatsession.DefaultTitle = chatsessionDescTitle.Default.(string)
+	// chatsessionDescStarred is the schema descriptor for starred field.
+	chatsessionDescStarred := chatsessionFields[3].Descriptor()
+	// chatsession.DefaultStarred holds the default value on creation for the starred field.
+	chatsession.DefaultStarred = chatsessionDescStarred.Default.(bool)
 	conversationMixin := schema.Conversation{}.Mixin()
 	conversationMixinFields0 := conversationMixin[0].Fields()
 	_ = conversationMixinFields0
@@ -82,6 +184,41 @@ func init() {
 	conversationDescSummary := conversationFields[1].Descriptor()
 	// conversation.DefaultSummary holds the default value on creation for the summary field.
 	conversation.DefaultSummary = conversationDescSummary.Default.(string)
+	// conversationDescVisibility is the schema descriptor for visibility field.
+	conversationDescVisibility := conversationFields[2].Descriptor()
+	// conversation.DefaultVisibility holds the default value on creation for the visibility field.
+	conversation.DefaultVisibility = conversationDescVisibility.Default.(string)
+	// conversationDescStarred is the schema descriptor for starred field.
+	conversationDescStarred := conversationFields[3].Descriptor()
+	// conversation.DefaultStarred holds the default value on creation for the starred field.
+	conversation.DefaultStarred = conversationDescStarred.Default.(bool)
+	csatratingMixin := schema.CsatRating{}.Mixin()
+	csatratingMixinFields0 := csatratingMixin[0].Fields()
+	_ = csatratingMixinFields0
+	csatratingFields := schema.CsatRating{}.Fields()
+	_ = csatratingFields
+	// csatratingDescCreatedAt is the schema descriptor for created_at field.
+	csatratingDescCreatedAt := csatratingMixinFields0[0].Descriptor()
+	// csatrating.DefaultCreatedAt holds the default value on creation for the created_at field.
+	csatrating.DefaultCreatedAt = csatratingDescCreatedAt.Default.(func() time.Time)
+	// csatratingDescUpdatedAt is the schema descriptor for updated_at field.
+	csatratingDescUpdatedAt := csatratingMixinFields0[1].Descriptor()
+	// csatrating.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	csatrating.DefaultUpdatedAt = csatratingDescUpdatedAt.Default.(func() time.Time)
+	// csatrating.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	csatrating.UpdateDefaultUpdatedAt = csatratingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// csatratingDescAppVersion is the schema descriptor for app_version field.
+	csatratingDescAppVersion := csatratingFields[2].Descriptor()
+	// csatrating.DefaultAppVersion holds the default value on creation for the app_version field.
+	csatrating.DefaultAppVersion = csatratingDescAppVersion.Default.(string)
+	// csatratingDescComment is the schema descriptor for comment field.
+	csatratingDescComment := csatratingFields[4].Descriptor()
+	// csatrating.DefaultComment holds the default value on creation for the comment field.
+	csatrating.DefaultComment = csatratingDescComment.Default.(string)
+	// csatratingDescRevision is the schema descriptor for revision field.
+	csatratingDescRevision := csatratingFields[5].Descriptor()
+	// csatrating.DefaultRevision holds the default value on creation for the revision field.
+	csatrating.DefaultRevision = csatratingDescRevision.Default.(int)
 	deviceMixin := schema.Device{}.Mixin()
 	deviceMixinFields0 := deviceMixin[0].Fields()
 	_ = deviceMixinFields0
@@ -113,6 +250,87 @@ func init() {
 	deviceDescBatteryLevel := deviceFields[3].Descriptor()
 	// device.DefaultBatteryLevel holds the default value on creation for the battery_level field.
 	device.DefaultBatteryLevel = deviceDescBatteryLevel.Default.(int)
+	folderMixin := schema.Folder{}.Mixin()
+	folderMixinFields0 := folderMixin[0].Fields()
+	_ = folderMixinFields0
+	folderFields := schema.Folder{}.Fields()
+	_ = folderFields
+	// folderDescCreatedAt is the schema descriptor for created_at field.
+	folderDescCreatedAt := folderMixinFields0[0].Descriptor()
+	// folder.DefaultCreatedAt holds the default value on creation for the created_at field.
+	folder.DefaultCreatedAt = folderDescCreatedAt.Default.(func() time.Time)
+	// folderDescUpdatedAt is the schema descriptor for updated_at field.
+	folderDescUpdatedAt := folderMixinFields0[1].Descriptor()
+	// folder.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	folder.DefaultUpdatedAt = folderDescUpdatedAt.Default.(func() time.Time)
+	// folder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	folder.UpdateDefaultUpdatedAt = folderDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// folderDescName is the schema descriptor for name field.
+	folderDescName := folderFields[1].Descriptor()
+	// folder.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	folder.NameValidator = folderDescName.Validators[0].(func(string) error)
+	// folderDescColor is the schema descriptor for color field.
+	folderDescColor := folderFields[3].Descriptor()
+	// folder.DefaultColor holds the default value on creation for the color field.
+	folder.DefaultColor = folderDescColor.Default.(string)
+	// folderDescIcon is the schema descriptor for icon field.
+	folderDescIcon := folderFields[4].Descriptor()
+	// folder.DefaultIcon holds the default value on creation for the icon field.
+	folder.DefaultIcon = folderDescIcon.Default.(string)
+	// folderDescOrder is the schema descriptor for order field.
+	folderDescOrder := folderFields[5].Descriptor()
+	// folder.DefaultOrder holds the default value on creation for the order field.
+	folder.DefaultOrder = folderDescOrder.Default.(int)
+	// folderDescIsDefault is the schema descriptor for is_default field.
+	folderDescIsDefault := folderFields[6].Descriptor()
+	// folder.DefaultIsDefault holds the default value on creation for the is_default field.
+	folder.DefaultIsDefault = folderDescIsDefault.Default.(bool)
+	// folderDescIsSystem is the schema descriptor for is_system field.
+	folderDescIsSystem := folderFields[7].Descriptor()
+	// folder.DefaultIsSystem holds the default value on creation for the is_system field.
+	folder.DefaultIsSystem = folderDescIsSystem.Default.(bool)
+	goalMixin := schema.Goal{}.Mixin()
+	goalMixinFields0 := goalMixin[0].Fields()
+	_ = goalMixinFields0
+	goalFields := schema.Goal{}.Fields()
+	_ = goalFields
+	// goalDescCreatedAt is the schema descriptor for created_at field.
+	goalDescCreatedAt := goalMixinFields0[0].Descriptor()
+	// goal.DefaultCreatedAt holds the default value on creation for the created_at field.
+	goal.DefaultCreatedAt = goalDescCreatedAt.Default.(func() time.Time)
+	// goalDescUpdatedAt is the schema descriptor for updated_at field.
+	goalDescUpdatedAt := goalMixinFields0[1].Descriptor()
+	// goal.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	goal.DefaultUpdatedAt = goalDescUpdatedAt.Default.(func() time.Time)
+	// goal.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	goal.UpdateDefaultUpdatedAt = goalDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// goalDescTitle is the schema descriptor for title field.
+	goalDescTitle := goalFields[1].Descriptor()
+	// goal.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	goal.TitleValidator = goalDescTitle.Validators[0].(func(string) error)
+	// goalDescDesiredOutcome is the schema descriptor for desired_outcome field.
+	goalDescDesiredOutcome := goalFields[2].Descriptor()
+	// goal.DefaultDesiredOutcome holds the default value on creation for the desired_outcome field.
+	goal.DefaultDesiredOutcome = goalDescDesiredOutcome.Default.(string)
+	goalprogresseventMixin := schema.GoalProgressEvent{}.Mixin()
+	goalprogresseventMixinFields0 := goalprogresseventMixin[0].Fields()
+	_ = goalprogresseventMixinFields0
+	goalprogresseventFields := schema.GoalProgressEvent{}.Fields()
+	_ = goalprogresseventFields
+	// goalprogresseventDescCreatedAt is the schema descriptor for created_at field.
+	goalprogresseventDescCreatedAt := goalprogresseventMixinFields0[0].Descriptor()
+	// goalprogressevent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	goalprogressevent.DefaultCreatedAt = goalprogresseventDescCreatedAt.Default.(func() time.Time)
+	// goalprogresseventDescUpdatedAt is the schema descriptor for updated_at field.
+	goalprogresseventDescUpdatedAt := goalprogresseventMixinFields0[1].Descriptor()
+	// goalprogressevent.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	goalprogressevent.DefaultUpdatedAt = goalprogresseventDescUpdatedAt.Default.(func() time.Time)
+	// goalprogressevent.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	goalprogressevent.UpdateDefaultUpdatedAt = goalprogresseventDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// goalprogresseventDescSummary is the schema descriptor for summary field.
+	goalprogresseventDescSummary := goalprogresseventFields[3].Descriptor()
+	// goalprogressevent.SummaryValidator is a validator for the "summary" field. It is called by the builders before save.
+	goalprogressevent.SummaryValidator = goalprogresseventDescSummary.Validators[0].(func(string) error)
 	memoryMixin := schema.Memory{}.Mixin()
 	memoryMixinFields0 := memoryMixin[0].Fields()
 	_ = memoryMixinFields0
@@ -128,12 +346,102 @@ func init() {
 	memory.DefaultUpdatedAt = memoryDescUpdatedAt.Default.(func() time.Time)
 	// memory.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	memory.UpdateDefaultUpdatedAt = memoryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// memoryDescCategory is the schema descriptor for category field.
+	memoryDescCategory := memoryFields[1].Descriptor()
+	// memory.DefaultCategory holds the default value on creation for the category field.
+	memory.DefaultCategory = memoryDescCategory.Default.(string)
+	// memoryDescVisibility is the schema descriptor for visibility field.
+	memoryDescVisibility := memoryFields[2].Descriptor()
+	// memory.DefaultVisibility holds the default value on creation for the visibility field.
+	memory.DefaultVisibility = memoryDescVisibility.Default.(string)
+	// memoryDescIsRead is the schema descriptor for is_read field.
+	memoryDescIsRead := memoryFields[4].Descriptor()
+	// memory.DefaultIsRead holds the default value on creation for the is_read field.
+	memory.DefaultIsRead = memoryDescIsRead.Default.(bool)
+	// memoryDescIsDismissed is the schema descriptor for is_dismissed field.
+	memoryDescIsDismissed := memoryFields[5].Descriptor()
+	// memory.DefaultIsDismissed holds the default value on creation for the is_dismissed field.
+	memory.DefaultIsDismissed = memoryDescIsDismissed.Default.(bool)
 	// memoryDescImportance is the schema descriptor for importance field.
-	memoryDescImportance := memoryFields[2].Descriptor()
+	memoryDescImportance := memoryFields[7].Descriptor()
 	// memory.DefaultImportance holds the default value on creation for the importance field.
 	memory.DefaultImportance = memoryDescImportance.Default.(int)
 	// memory.ImportanceValidator is a validator for the "importance" field. It is called by the builders before save.
 	memory.ImportanceValidator = memoryDescImportance.Validators[0].(func(int) error)
+	notificationtokenMixin := schema.NotificationToken{}.Mixin()
+	notificationtokenMixinFields0 := notificationtokenMixin[0].Fields()
+	_ = notificationtokenMixinFields0
+	notificationtokenFields := schema.NotificationToken{}.Fields()
+	_ = notificationtokenFields
+	// notificationtokenDescCreatedAt is the schema descriptor for created_at field.
+	notificationtokenDescCreatedAt := notificationtokenMixinFields0[0].Descriptor()
+	// notificationtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notificationtoken.DefaultCreatedAt = notificationtokenDescCreatedAt.Default.(func() time.Time)
+	// notificationtokenDescUpdatedAt is the schema descriptor for updated_at field.
+	notificationtokenDescUpdatedAt := notificationtokenMixinFields0[1].Descriptor()
+	// notificationtoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	notificationtoken.DefaultUpdatedAt = notificationtokenDescUpdatedAt.Default.(func() time.Time)
+	// notificationtoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	notificationtoken.UpdateDefaultUpdatedAt = notificationtokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationtokenDescToken is the schema descriptor for token field.
+	notificationtokenDescToken := notificationtokenFields[0].Descriptor()
+	// notificationtoken.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	notificationtoken.TokenValidator = notificationtokenDescToken.Validators[0].(func(string) error)
+	// notificationtokenDescPlatform is the schema descriptor for platform field.
+	notificationtokenDescPlatform := notificationtokenFields[1].Descriptor()
+	// notificationtoken.DefaultPlatform holds the default value on creation for the platform field.
+	notificationtoken.DefaultPlatform = notificationtokenDescPlatform.Default.(string)
+	// notificationtokenDescDeviceKey is the schema descriptor for device_key field.
+	notificationtokenDescDeviceKey := notificationtokenFields[2].Descriptor()
+	// notificationtoken.DefaultDeviceKey holds the default value on creation for the device_key field.
+	notificationtoken.DefaultDeviceKey = notificationtokenDescDeviceKey.Default.(string)
+	syncjobMixin := schema.SyncJob{}.Mixin()
+	syncjobMixinFields0 := syncjobMixin[0].Fields()
+	_ = syncjobMixinFields0
+	syncjobFields := schema.SyncJob{}.Fields()
+	_ = syncjobFields
+	// syncjobDescCreatedAt is the schema descriptor for created_at field.
+	syncjobDescCreatedAt := syncjobMixinFields0[0].Descriptor()
+	// syncjob.DefaultCreatedAt holds the default value on creation for the created_at field.
+	syncjob.DefaultCreatedAt = syncjobDescCreatedAt.Default.(func() time.Time)
+	// syncjobDescUpdatedAt is the schema descriptor for updated_at field.
+	syncjobDescUpdatedAt := syncjobMixinFields0[1].Descriptor()
+	// syncjob.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	syncjob.DefaultUpdatedAt = syncjobDescUpdatedAt.Default.(func() time.Time)
+	// syncjob.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	syncjob.UpdateDefaultUpdatedAt = syncjobDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// syncjobDescJobID is the schema descriptor for job_id field.
+	syncjobDescJobID := syncjobFields[0].Descriptor()
+	// syncjob.JobIDValidator is a validator for the "job_id" field. It is called by the builders before save.
+	syncjob.JobIDValidator = syncjobDescJobID.Validators[0].(func(string) error)
+	// syncjobDescUID is the schema descriptor for uid field.
+	syncjobDescUID := syncjobFields[1].Descriptor()
+	// syncjob.UIDValidator is a validator for the "uid" field. It is called by the builders before save.
+	syncjob.UIDValidator = syncjobDescUID.Validators[0].(func(string) error)
+	// syncjobDescStatus is the schema descriptor for status field.
+	syncjobDescStatus := syncjobFields[3].Descriptor()
+	// syncjob.DefaultStatus holds the default value on creation for the status field.
+	syncjob.DefaultStatus = syncjobDescStatus.Default.(string)
+	// syncjobDescTotalSegments is the schema descriptor for total_segments field.
+	syncjobDescTotalSegments := syncjobFields[4].Descriptor()
+	// syncjob.DefaultTotalSegments holds the default value on creation for the total_segments field.
+	syncjob.DefaultTotalSegments = syncjobDescTotalSegments.Default.(int)
+	// syncjobDescProcessedSegments is the schema descriptor for processed_segments field.
+	syncjobDescProcessedSegments := syncjobFields[5].Descriptor()
+	// syncjob.DefaultProcessedSegments holds the default value on creation for the processed_segments field.
+	syncjob.DefaultProcessedSegments = syncjobDescProcessedSegments.Default.(int)
+	// syncjobDescSuccessfulSegments is the schema descriptor for successful_segments field.
+	syncjobDescSuccessfulSegments := syncjobFields[6].Descriptor()
+	// syncjob.DefaultSuccessfulSegments holds the default value on creation for the successful_segments field.
+	syncjob.DefaultSuccessfulSegments = syncjobDescSuccessfulSegments.Default.(int)
+	// syncjobDescFailedSegments is the schema descriptor for failed_segments field.
+	syncjobDescFailedSegments := syncjobFields[7].Descriptor()
+	// syncjob.DefaultFailedSegments holds the default value on creation for the failed_segments field.
+	syncjob.DefaultFailedSegments = syncjobDescFailedSegments.Default.(int)
+	// syncjobDescLane is the schema descriptor for lane field.
+	syncjobDescLane := syncjobFields[8].Descriptor()
+	// syncjob.DefaultLane holds the default value on creation for the lane field.
+	syncjob.DefaultLane = syncjobDescLane.Default.(string)
 	todoMixin := schema.Todo{}.Mixin()
 	todoMixinFields0 := todoMixin[0].Fields()
 	_ = todoMixinFields0
@@ -176,16 +484,24 @@ func init() {
 	transcriptsegmentDescSpeaker := transcriptsegmentFields[0].Descriptor()
 	// transcriptsegment.DefaultSpeaker holds the default value on creation for the speaker field.
 	transcriptsegment.DefaultSpeaker = transcriptsegmentDescSpeaker.Default.(string)
+	// transcriptsegmentDescSpeakerID is the schema descriptor for speaker_id field.
+	transcriptsegmentDescSpeakerID := transcriptsegmentFields[1].Descriptor()
+	// transcriptsegment.DefaultSpeakerID holds the default value on creation for the speaker_id field.
+	transcriptsegment.DefaultSpeakerID = transcriptsegmentDescSpeakerID.Default.(int)
+	// transcriptsegmentDescIsUser is the schema descriptor for is_user field.
+	transcriptsegmentDescIsUser := transcriptsegmentFields[2].Descriptor()
+	// transcriptsegment.DefaultIsUser holds the default value on creation for the is_user field.
+	transcriptsegment.DefaultIsUser = transcriptsegmentDescIsUser.Default.(bool)
 	// transcriptsegmentDescStartMs is the schema descriptor for start_ms field.
-	transcriptsegmentDescStartMs := transcriptsegmentFields[2].Descriptor()
+	transcriptsegmentDescStartMs := transcriptsegmentFields[5].Descriptor()
 	// transcriptsegment.StartMsValidator is a validator for the "start_ms" field. It is called by the builders before save.
 	transcriptsegment.StartMsValidator = transcriptsegmentDescStartMs.Validators[0].(func(int64) error)
 	// transcriptsegmentDescEndMs is the schema descriptor for end_ms field.
-	transcriptsegmentDescEndMs := transcriptsegmentFields[3].Descriptor()
+	transcriptsegmentDescEndMs := transcriptsegmentFields[6].Descriptor()
 	// transcriptsegment.EndMsValidator is a validator for the "end_ms" field. It is called by the builders before save.
 	transcriptsegment.EndMsValidator = transcriptsegmentDescEndMs.Validators[0].(func(int64) error)
 	// transcriptsegmentDescSource is the schema descriptor for source field.
-	transcriptsegmentDescSource := transcriptsegmentFields[4].Descriptor()
+	transcriptsegmentDescSource := transcriptsegmentFields[7].Descriptor()
 	// transcriptsegment.DefaultSource holds the default value on creation for the source field.
 	transcriptsegment.DefaultSource = transcriptsegmentDescSource.Default.(string)
 	userMixin := schema.User{}.Mixin()
@@ -203,12 +519,48 @@ func init() {
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// userDescExternalUID is the schema descriptor for external_uid field.
+	userDescExternalUID := userFields[0].Descriptor()
+	// user.ExternalUIDValidator is a validator for the "external_uid" field. It is called by the builders before save.
+	user.ExternalUIDValidator = userDescExternalUID.Validators[0].(func(string) error)
 	// userDescEmail is the schema descriptor for email field.
-	userDescEmail := userFields[0].Descriptor()
+	userDescEmail := userFields[1].Descriptor()
 	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
 	// userDescName is the schema descriptor for name field.
-	userDescName := userFields[1].Descriptor()
+	userDescName := userFields[2].Descriptor()
 	// user.DefaultName holds the default value on creation for the name field.
 	user.DefaultName = userDescName.Default.(string)
+	// userDescLanguage is the schema descriptor for language field.
+	userDescLanguage := userFields[3].Descriptor()
+	// user.DefaultLanguage holds the default value on creation for the language field.
+	user.DefaultLanguage = userDescLanguage.Default.(string)
+	// userDescTimeZone is the schema descriptor for time_zone field.
+	userDescTimeZone := userFields[4].Descriptor()
+	// user.DefaultTimeZone holds the default value on creation for the time_zone field.
+	user.DefaultTimeZone = userDescTimeZone.Default.(string)
+	// userDescPrivateCloudSyncEnabled is the schema descriptor for private_cloud_sync_enabled field.
+	userDescPrivateCloudSyncEnabled := userFields[6].Descriptor()
+	// user.DefaultPrivateCloudSyncEnabled holds the default value on creation for the private_cloud_sync_enabled field.
+	user.DefaultPrivateCloudSyncEnabled = userDescPrivateCloudSyncEnabled.Default.(bool)
+	// userDescMeetingNoteScreenshotsEnabled is the schema descriptor for meeting_note_screenshots_enabled field.
+	userDescMeetingNoteScreenshotsEnabled := userFields[7].Descriptor()
+	// user.DefaultMeetingNoteScreenshotsEnabled holds the default value on creation for the meeting_note_screenshots_enabled field.
+	user.DefaultMeetingNoteScreenshotsEnabled = userDescMeetingNoteScreenshotsEnabled.Default.(bool)
+	// userDescStoreRecordingPermission is the schema descriptor for store_recording_permission field.
+	userDescStoreRecordingPermission := userFields[8].Descriptor()
+	// user.DefaultStoreRecordingPermission holds the default value on creation for the store_recording_permission field.
+	user.DefaultStoreRecordingPermission = userDescStoreRecordingPermission.Default.(bool)
+	// userDescDailySummaryEnabled is the schema descriptor for daily_summary_enabled field.
+	userDescDailySummaryEnabled := userFields[9].Descriptor()
+	// user.DefaultDailySummaryEnabled holds the default value on creation for the daily_summary_enabled field.
+	user.DefaultDailySummaryEnabled = userDescDailySummaryEnabled.Default.(bool)
+	// userDescDailySummaryHourLocal is the schema descriptor for daily_summary_hour_local field.
+	userDescDailySummaryHourLocal := userFields[10].Descriptor()
+	// user.DefaultDailySummaryHourLocal holds the default value on creation for the daily_summary_hour_local field.
+	user.DefaultDailySummaryHourLocal = userDescDailySummaryHourLocal.Default.(int)
+	// userDescMentorNotificationFrequency is the schema descriptor for mentor_notification_frequency field.
+	userDescMentorNotificationFrequency := userFields[11].Descriptor()
+	// user.DefaultMentorNotificationFrequency holds the default value on creation for the mentor_notification_frequency field.
+	user.DefaultMentorNotificationFrequency = userDescMentorNotificationFrequency.Default.(int)
 }

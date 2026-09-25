@@ -16,9 +16,11 @@ func (Todo) Fields() []ent.Field {
 		field.Text("description").Default(""),
 		field.Time("due_at").Optional().Nillable(),
 		field.Enum("status").Values("open", "completed", "cancelled").Default("open"),
+		field.Int("user_id").Optional().Nillable(),
+		field.Int("conversation_id").Optional().Nillable(),
 	}
 }
 
 func (Todo) Edges() []ent.Edge {
-	return []ent.Edge{edge.From("user", User.Type).Ref("todos").Unique(), edge.From("conversation", Conversation.Type).Ref("todos").Unique()}
+	return []ent.Edge{edge.From("user", User.Type).Ref("todos").Unique().Field("user_id"), edge.From("conversation", Conversation.Type).Ref("todos").Unique().Field("conversation_id")}
 }

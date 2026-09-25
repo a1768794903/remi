@@ -20,6 +20,54 @@ func (f ActionItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ActionItemMutation", m)
 }
 
+// The CalendarMeetingFunc type is an adapter to allow the use of ordinary
+// function as CalendarMeeting mutator.
+type CalendarMeetingFunc func(context.Context, *ent.CalendarMeetingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CalendarMeetingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CalendarMeetingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CalendarMeetingMutation", m)
+}
+
+// The ChatFileFunc type is an adapter to allow the use of ordinary
+// function as ChatFile mutator.
+type ChatFileFunc func(context.Context, *ent.ChatFileMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChatFileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ChatFileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChatFileMutation", m)
+}
+
+// The ChatMessageFunc type is an adapter to allow the use of ordinary
+// function as ChatMessage mutator.
+type ChatMessageFunc func(context.Context, *ent.ChatMessageMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChatMessageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ChatMessageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChatMessageMutation", m)
+}
+
+// The ChatSessionFunc type is an adapter to allow the use of ordinary
+// function as ChatSession mutator.
+type ChatSessionFunc func(context.Context, *ent.ChatSessionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChatSessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ChatSessionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChatSessionMutation", m)
+}
+
 // The ConversationFunc type is an adapter to allow the use of ordinary
 // function as Conversation mutator.
 type ConversationFunc func(context.Context, *ent.ConversationMutation) (ent.Value, error)
@@ -30,6 +78,18 @@ func (f ConversationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ConversationMutation", m)
+}
+
+// The CsatRatingFunc type is an adapter to allow the use of ordinary
+// function as CsatRating mutator.
+type CsatRatingFunc func(context.Context, *ent.CsatRatingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CsatRatingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CsatRatingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CsatRatingMutation", m)
 }
 
 // The DeviceFunc type is an adapter to allow the use of ordinary
@@ -44,6 +104,42 @@ func (f DeviceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DeviceMutation", m)
 }
 
+// The FolderFunc type is an adapter to allow the use of ordinary
+// function as Folder mutator.
+type FolderFunc func(context.Context, *ent.FolderMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FolderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FolderMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FolderMutation", m)
+}
+
+// The GoalFunc type is an adapter to allow the use of ordinary
+// function as Goal mutator.
+type GoalFunc func(context.Context, *ent.GoalMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GoalFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GoalMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GoalMutation", m)
+}
+
+// The GoalProgressEventFunc type is an adapter to allow the use of ordinary
+// function as GoalProgressEvent mutator.
+type GoalProgressEventFunc func(context.Context, *ent.GoalProgressEventMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GoalProgressEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GoalProgressEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GoalProgressEventMutation", m)
+}
+
 // The MemoryFunc type is an adapter to allow the use of ordinary
 // function as Memory mutator.
 type MemoryFunc func(context.Context, *ent.MemoryMutation) (ent.Value, error)
@@ -54,6 +150,30 @@ func (f MemoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemoryMutation", m)
+}
+
+// The NotificationTokenFunc type is an adapter to allow the use of ordinary
+// function as NotificationToken mutator.
+type NotificationTokenFunc func(context.Context, *ent.NotificationTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.NotificationTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationTokenMutation", m)
+}
+
+// The SyncJobFunc type is an adapter to allow the use of ordinary
+// function as SyncJob mutator.
+type SyncJobFunc func(context.Context, *ent.SyncJobMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SyncJobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SyncJobMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SyncJobMutation", m)
 }
 
 // The TodoFunc type is an adapter to allow the use of ordinary

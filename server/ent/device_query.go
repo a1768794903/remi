@@ -27,7 +27,6 @@ type DeviceQuery struct {
 	predicates        []predicate.Device
 	withUser          *UserQuery
 	withConversations *ConversationQuery
-	withFKs           bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -407,19 +406,12 @@ func (_q *DeviceQuery) prepareQuery(ctx context.Context) error {
 func (_q *DeviceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Device, error) {
 	var (
 		nodes       = []*Device{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
 			_q.withUser != nil,
 			_q.withConversations != nil,
 		}
 	)
-	if _q.withUser != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, device.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Device).scanValues(nil, columns)
 	}
@@ -458,10 +450,10 @@ func (_q *DeviceQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Device)
 	for i := range nodes {
-		if nodes[i].user_devices == nil {
+		if nodes[i].UserID == nil {
 			continue
 		}
-		fk := *nodes[i].user_devices
+		fk := *nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -478,7 +470,7 @@ func (_q *DeviceQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_devices" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -496,7 +488,9 @@ func (_q *DeviceQuery) loadConversations(ctx context.Context, query *Conversatio
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(conversation.FieldDeviceID)
+	}
 	query.Where(predicate.Conversation(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(device.ConversationsColumn), fks...))
 	}))
@@ -505,13 +499,13 @@ func (_q *DeviceQuery) loadConversations(ctx context.Context, query *Conversatio
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.device_conversations
+		fk := n.DeviceID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "device_conversations" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "device_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "device_conversations" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "device_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -542,6 +536,9 @@ func (_q *DeviceQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != device.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withUser != nil {
+			_spec.Node.AddColumnOnce(device.FieldUserID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -19,9 +19,12 @@ The first skeleton provides:
 - checked-in MySQL migration at `migrations/001_init.sql`;
 - MySQL, Redis, and API Docker Compose services.
 
-The WebSocket currently acknowledges audio statistics. STT, Firebase token
-verification, persistence, conversation finalization, and LLM analysis are
-the next implementation phases.
+The WebSocket persists conversation sessions and final STT segments through
+the configured provider. The current Go migration also exposes action-item,
+conversation lifecycle/search, transcript, memory CRUD, and authenticated
+multipart STT proxy routes. Firebase token verification, durable
+finalization workers, LLM analysis, and the remaining Python router families
+are still migration work and are not represented as completed here.
 
 ## Run locally
 

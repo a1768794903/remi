@@ -32,10 +32,11 @@ type Device struct {
 	BatteryLevel int `json:"battery_level,omitempty"`
 	// LastSeenAt holds the value of the "last_seen_at" field.
 	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID *int `json:"user_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the DeviceQuery when eager-loading is set.
 	Edges        DeviceEdges `json:"edges"`
-	user_devices *int
 	selectValues sql.SelectValues
 }
 
@@ -75,14 +76,12 @@ func (*Device) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case device.FieldID, device.FieldBatteryLevel:
+		case device.FieldID, device.FieldBatteryLevel, device.FieldUserID:
 			values[i] = new(sql.NullInt64)
 		case device.FieldDeviceID, device.FieldName, device.FieldFirmwareVersion:
 			values[i] = new(sql.NullString)
 		case device.FieldCreatedAt, device.FieldUpdatedAt, device.FieldLastSeenAt:
 			values[i] = new(sql.NullTime)
-		case device.ForeignKeys[0]: // user_devices
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -147,12 +146,12 @@ func (_m *Device) assignValues(columns []string, values []any) error {
 				_m.LastSeenAt = new(time.Time)
 				*_m.LastSeenAt = value.Time
 			}
-		case device.ForeignKeys[0]:
+		case device.FieldUserID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_devices", value)
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				_m.user_devices = new(int)
-				*_m.user_devices = int(value.Int64)
+				_m.UserID = new(int)
+				*_m.UserID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -221,6 +220,11 @@ func (_m *Device) String() string {
 	if v := _m.LastSeenAt; v != nil {
 		builder.WriteString("last_seen_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

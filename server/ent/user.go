@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"remi/server/ent/user"
 	"strings"
@@ -21,10 +22,38 @@ type User struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// ExternalUID holds the value of the "external_uid" field.
+	ExternalUID string `json:"external_uid,omitempty"`
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Language holds the value of the "language" field.
+	Language string `json:"language,omitempty"`
+	// TimeZone holds the value of the "time_zone" field.
+	TimeZone string `json:"time_zone,omitempty"`
+	// Onboarding holds the value of the "onboarding" field.
+	Onboarding map[string]interface{} `json:"onboarding,omitempty"`
+	// PrivateCloudSyncEnabled holds the value of the "private_cloud_sync_enabled" field.
+	PrivateCloudSyncEnabled bool `json:"private_cloud_sync_enabled,omitempty"`
+	// MeetingNoteScreenshotsEnabled holds the value of the "meeting_note_screenshots_enabled" field.
+	MeetingNoteScreenshotsEnabled bool `json:"meeting_note_screenshots_enabled,omitempty"`
+	// StoreRecordingPermission holds the value of the "store_recording_permission" field.
+	StoreRecordingPermission bool `json:"store_recording_permission,omitempty"`
+	// DailySummaryEnabled holds the value of the "daily_summary_enabled" field.
+	DailySummaryEnabled bool `json:"daily_summary_enabled,omitempty"`
+	// DailySummaryHourLocal holds the value of the "daily_summary_hour_local" field.
+	DailySummaryHourLocal int `json:"daily_summary_hour_local,omitempty"`
+	// MentorNotificationFrequency holds the value of the "mentor_notification_frequency" field.
+	MentorNotificationFrequency int `json:"mentor_notification_frequency,omitempty"`
+	// Integrations holds the value of the "integrations" field.
+	Integrations map[string]interface{} `json:"integrations,omitempty"`
+	// NotificationSettings holds the value of the "notification_settings" field.
+	NotificationSettings map[string]interface{} `json:"notification_settings,omitempty"`
+	// AssistantSettings holds the value of the "assistant_settings" field.
+	AssistantSettings map[string]interface{} `json:"assistant_settings,omitempty"`
+	// AiProfile holds the value of the "ai_profile" field.
+	AiProfile map[string]interface{} `json:"ai_profile,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -43,9 +72,25 @@ type UserEdges struct {
 	Todos []*Todo `json:"todos,omitempty"`
 	// ActionItems holds the value of the action_items edge.
 	ActionItems []*ActionItem `json:"action_items,omitempty"`
+	// ChatMessages holds the value of the chat_messages edge.
+	ChatMessages []*ChatMessage `json:"chat_messages,omitempty"`
+	// ChatSessions holds the value of the chat_sessions edge.
+	ChatSessions []*ChatSession `json:"chat_sessions,omitempty"`
+	// NotificationTokens holds the value of the notification_tokens edge.
+	NotificationTokens []*NotificationToken `json:"notification_tokens,omitempty"`
+	// Folders holds the value of the folders edge.
+	Folders []*Folder `json:"folders,omitempty"`
+	// Goals holds the value of the goals edge.
+	Goals []*Goal `json:"goals,omitempty"`
+	// CalendarMeetings holds the value of the calendar_meetings edge.
+	CalendarMeetings []*CalendarMeeting `json:"calendar_meetings,omitempty"`
+	// CsatRatings holds the value of the csat_ratings edge.
+	CsatRatings []*CsatRating `json:"csat_ratings,omitempty"`
+	// ChatFiles holds the value of the chat_files edge.
+	ChatFiles []*ChatFile `json:"chat_files,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [13]bool
 }
 
 // DevicesOrErr returns the Devices value or an error if the edge
@@ -93,14 +138,90 @@ func (e UserEdges) ActionItemsOrErr() ([]*ActionItem, error) {
 	return nil, &NotLoadedError{edge: "action_items"}
 }
 
+// ChatMessagesOrErr returns the ChatMessages value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ChatMessagesOrErr() ([]*ChatMessage, error) {
+	if e.loadedTypes[5] {
+		return e.ChatMessages, nil
+	}
+	return nil, &NotLoadedError{edge: "chat_messages"}
+}
+
+// ChatSessionsOrErr returns the ChatSessions value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ChatSessionsOrErr() ([]*ChatSession, error) {
+	if e.loadedTypes[6] {
+		return e.ChatSessions, nil
+	}
+	return nil, &NotLoadedError{edge: "chat_sessions"}
+}
+
+// NotificationTokensOrErr returns the NotificationTokens value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) NotificationTokensOrErr() ([]*NotificationToken, error) {
+	if e.loadedTypes[7] {
+		return e.NotificationTokens, nil
+	}
+	return nil, &NotLoadedError{edge: "notification_tokens"}
+}
+
+// FoldersOrErr returns the Folders value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FoldersOrErr() ([]*Folder, error) {
+	if e.loadedTypes[8] {
+		return e.Folders, nil
+	}
+	return nil, &NotLoadedError{edge: "folders"}
+}
+
+// GoalsOrErr returns the Goals value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) GoalsOrErr() ([]*Goal, error) {
+	if e.loadedTypes[9] {
+		return e.Goals, nil
+	}
+	return nil, &NotLoadedError{edge: "goals"}
+}
+
+// CalendarMeetingsOrErr returns the CalendarMeetings value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CalendarMeetingsOrErr() ([]*CalendarMeeting, error) {
+	if e.loadedTypes[10] {
+		return e.CalendarMeetings, nil
+	}
+	return nil, &NotLoadedError{edge: "calendar_meetings"}
+}
+
+// CsatRatingsOrErr returns the CsatRatings value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CsatRatingsOrErr() ([]*CsatRating, error) {
+	if e.loadedTypes[11] {
+		return e.CsatRatings, nil
+	}
+	return nil, &NotLoadedError{edge: "csat_ratings"}
+}
+
+// ChatFilesOrErr returns the ChatFiles value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ChatFilesOrErr() ([]*ChatFile, error) {
+	if e.loadedTypes[12] {
+		return e.ChatFiles, nil
+	}
+	return nil, &NotLoadedError{edge: "chat_files"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldID:
+		case user.FieldOnboarding, user.FieldIntegrations, user.FieldNotificationSettings, user.FieldAssistantSettings, user.FieldAiProfile:
+			values[i] = new([]byte)
+		case user.FieldPrivateCloudSyncEnabled, user.FieldMeetingNoteScreenshotsEnabled, user.FieldStoreRecordingPermission, user.FieldDailySummaryEnabled:
+			values[i] = new(sql.NullBool)
+		case user.FieldID, user.FieldDailySummaryHourLocal, user.FieldMentorNotificationFrequency:
 			values[i] = new(sql.NullInt64)
-		case user.FieldEmail, user.FieldName:
+		case user.FieldExternalUID, user.FieldEmail, user.FieldName, user.FieldLanguage, user.FieldTimeZone:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -137,6 +258,12 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
+		case user.FieldExternalUID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field external_uid", values[i])
+			} else if value.Valid {
+				_m.ExternalUID = value.String
+			}
 		case user.FieldEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field email", values[i])
@@ -148,6 +275,94 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
+			}
+		case user.FieldLanguage:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field language", values[i])
+			} else if value.Valid {
+				_m.Language = value.String
+			}
+		case user.FieldTimeZone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field time_zone", values[i])
+			} else if value.Valid {
+				_m.TimeZone = value.String
+			}
+		case user.FieldOnboarding:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field onboarding", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Onboarding); err != nil {
+					return fmt.Errorf("unmarshal field onboarding: %w", err)
+				}
+			}
+		case user.FieldPrivateCloudSyncEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field private_cloud_sync_enabled", values[i])
+			} else if value.Valid {
+				_m.PrivateCloudSyncEnabled = value.Bool
+			}
+		case user.FieldMeetingNoteScreenshotsEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field meeting_note_screenshots_enabled", values[i])
+			} else if value.Valid {
+				_m.MeetingNoteScreenshotsEnabled = value.Bool
+			}
+		case user.FieldStoreRecordingPermission:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field store_recording_permission", values[i])
+			} else if value.Valid {
+				_m.StoreRecordingPermission = value.Bool
+			}
+		case user.FieldDailySummaryEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field daily_summary_enabled", values[i])
+			} else if value.Valid {
+				_m.DailySummaryEnabled = value.Bool
+			}
+		case user.FieldDailySummaryHourLocal:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field daily_summary_hour_local", values[i])
+			} else if value.Valid {
+				_m.DailySummaryHourLocal = int(value.Int64)
+			}
+		case user.FieldMentorNotificationFrequency:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field mentor_notification_frequency", values[i])
+			} else if value.Valid {
+				_m.MentorNotificationFrequency = int(value.Int64)
+			}
+		case user.FieldIntegrations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field integrations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Integrations); err != nil {
+					return fmt.Errorf("unmarshal field integrations: %w", err)
+				}
+			}
+		case user.FieldNotificationSettings:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field notification_settings", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.NotificationSettings); err != nil {
+					return fmt.Errorf("unmarshal field notification_settings: %w", err)
+				}
+			}
+		case user.FieldAssistantSettings:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field assistant_settings", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AssistantSettings); err != nil {
+					return fmt.Errorf("unmarshal field assistant_settings: %w", err)
+				}
+			}
+		case user.FieldAiProfile:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field ai_profile", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AiProfile); err != nil {
+					return fmt.Errorf("unmarshal field ai_profile: %w", err)
+				}
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -187,6 +402,46 @@ func (_m *User) QueryActionItems() *ActionItemQuery {
 	return NewUserClient(_m.config).QueryActionItems(_m)
 }
 
+// QueryChatMessages queries the "chat_messages" edge of the User entity.
+func (_m *User) QueryChatMessages() *ChatMessageQuery {
+	return NewUserClient(_m.config).QueryChatMessages(_m)
+}
+
+// QueryChatSessions queries the "chat_sessions" edge of the User entity.
+func (_m *User) QueryChatSessions() *ChatSessionQuery {
+	return NewUserClient(_m.config).QueryChatSessions(_m)
+}
+
+// QueryNotificationTokens queries the "notification_tokens" edge of the User entity.
+func (_m *User) QueryNotificationTokens() *NotificationTokenQuery {
+	return NewUserClient(_m.config).QueryNotificationTokens(_m)
+}
+
+// QueryFolders queries the "folders" edge of the User entity.
+func (_m *User) QueryFolders() *FolderQuery {
+	return NewUserClient(_m.config).QueryFolders(_m)
+}
+
+// QueryGoals queries the "goals" edge of the User entity.
+func (_m *User) QueryGoals() *GoalQuery {
+	return NewUserClient(_m.config).QueryGoals(_m)
+}
+
+// QueryCalendarMeetings queries the "calendar_meetings" edge of the User entity.
+func (_m *User) QueryCalendarMeetings() *CalendarMeetingQuery {
+	return NewUserClient(_m.config).QueryCalendarMeetings(_m)
+}
+
+// QueryCsatRatings queries the "csat_ratings" edge of the User entity.
+func (_m *User) QueryCsatRatings() *CsatRatingQuery {
+	return NewUserClient(_m.config).QueryCsatRatings(_m)
+}
+
+// QueryChatFiles queries the "chat_files" edge of the User entity.
+func (_m *User) QueryChatFiles() *ChatFileQuery {
+	return NewUserClient(_m.config).QueryChatFiles(_m)
+}
+
 // Update returns a builder for updating this User.
 // Note that you need to call User.Unwrap() before calling this method if this User
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -216,11 +471,53 @@ func (_m *User) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
+	builder.WriteString("external_uid=")
+	builder.WriteString(_m.ExternalUID)
+	builder.WriteString(", ")
 	builder.WriteString("email=")
 	builder.WriteString(_m.Email)
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("language=")
+	builder.WriteString(_m.Language)
+	builder.WriteString(", ")
+	builder.WriteString("time_zone=")
+	builder.WriteString(_m.TimeZone)
+	builder.WriteString(", ")
+	builder.WriteString("onboarding=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Onboarding))
+	builder.WriteString(", ")
+	builder.WriteString("private_cloud_sync_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PrivateCloudSyncEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("meeting_note_screenshots_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.MeetingNoteScreenshotsEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("store_recording_permission=")
+	builder.WriteString(fmt.Sprintf("%v", _m.StoreRecordingPermission))
+	builder.WriteString(", ")
+	builder.WriteString("daily_summary_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DailySummaryEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("daily_summary_hour_local=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DailySummaryHourLocal))
+	builder.WriteString(", ")
+	builder.WriteString("mentor_notification_frequency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.MentorNotificationFrequency))
+	builder.WriteString(", ")
+	builder.WriteString("integrations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Integrations))
+	builder.WriteString(", ")
+	builder.WriteString("notification_settings=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NotificationSettings))
+	builder.WriteString(", ")
+	builder.WriteString("assistant_settings=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AssistantSettings))
+	builder.WriteString(", ")
+	builder.WriteString("ai_profile=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AiProfile))
 	builder.WriteByte(')')
 	return builder.String()
 }

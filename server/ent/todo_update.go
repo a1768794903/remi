@@ -98,37 +98,49 @@ func (_u *TodoUpdate) SetNillableStatus(v *todo.Status) *TodoUpdate {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *TodoUpdate) SetUserID(id int) *TodoUpdate {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *TodoUpdate) SetUserID(v int) *TodoUpdate {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *TodoUpdate) SetNillableUserID(id *int) *TodoUpdate {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *TodoUpdate) SetNillableUserID(v *int) *TodoUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *TodoUpdate) ClearUserID() *TodoUpdate {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_u *TodoUpdate) SetConversationID(v int) *TodoUpdate {
+	_u.mutation.SetConversationID(v)
+	return _u
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *TodoUpdate) SetNillableConversationID(v *int) *TodoUpdate {
+	if v != nil {
+		_u.SetConversationID(*v)
+	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *TodoUpdate) ClearConversationID() *TodoUpdate {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
 func (_u *TodoUpdate) SetUser(v *User) *TodoUpdate {
 	return _u.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *TodoUpdate) SetConversationID(id int) *TodoUpdate {
-	_u.mutation.SetConversationID(id)
-	return _u
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *TodoUpdate) SetNillableConversationID(id *int) *TodoUpdate {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
-	}
-	return _u
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.
@@ -380,37 +392,49 @@ func (_u *TodoUpdateOne) SetNillableStatus(v *todo.Status) *TodoUpdateOne {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *TodoUpdateOne) SetUserID(id int) *TodoUpdateOne {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *TodoUpdateOne) SetUserID(v int) *TodoUpdateOne {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *TodoUpdateOne) SetNillableUserID(id *int) *TodoUpdateOne {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *TodoUpdateOne) SetNillableUserID(v *int) *TodoUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *TodoUpdateOne) ClearUserID() *TodoUpdateOne {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_u *TodoUpdateOne) SetConversationID(v int) *TodoUpdateOne {
+	_u.mutation.SetConversationID(v)
+	return _u
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *TodoUpdateOne) SetNillableConversationID(v *int) *TodoUpdateOne {
+	if v != nil {
+		_u.SetConversationID(*v)
+	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *TodoUpdateOne) ClearConversationID() *TodoUpdateOne {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
 func (_u *TodoUpdateOne) SetUser(v *User) *TodoUpdateOne {
 	return _u.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *TodoUpdateOne) SetConversationID(id int) *TodoUpdateOne {
-	_u.mutation.SetConversationID(id)
-	return _u
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *TodoUpdateOne) SetNillableConversationID(id *int) *TodoUpdateOne {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
-	}
-	return _u
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.

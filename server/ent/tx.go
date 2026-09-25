@@ -14,12 +14,32 @@ type Tx struct {
 	config
 	// ActionItem is the client for interacting with the ActionItem builders.
 	ActionItem *ActionItemClient
+	// CalendarMeeting is the client for interacting with the CalendarMeeting builders.
+	CalendarMeeting *CalendarMeetingClient
+	// ChatFile is the client for interacting with the ChatFile builders.
+	ChatFile *ChatFileClient
+	// ChatMessage is the client for interacting with the ChatMessage builders.
+	ChatMessage *ChatMessageClient
+	// ChatSession is the client for interacting with the ChatSession builders.
+	ChatSession *ChatSessionClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
+	// CsatRating is the client for interacting with the CsatRating builders.
+	CsatRating *CsatRatingClient
 	// Device is the client for interacting with the Device builders.
 	Device *DeviceClient
+	// Folder is the client for interacting with the Folder builders.
+	Folder *FolderClient
+	// Goal is the client for interacting with the Goal builders.
+	Goal *GoalClient
+	// GoalProgressEvent is the client for interacting with the GoalProgressEvent builders.
+	GoalProgressEvent *GoalProgressEventClient
 	// Memory is the client for interacting with the Memory builders.
 	Memory *MemoryClient
+	// NotificationToken is the client for interacting with the NotificationToken builders.
+	NotificationToken *NotificationTokenClient
+	// SyncJob is the client for interacting with the SyncJob builders.
+	SyncJob *SyncJobClient
 	// Todo is the client for interacting with the Todo builders.
 	Todo *TodoClient
 	// TranscriptSegment is the client for interacting with the TranscriptSegment builders.
@@ -158,9 +178,19 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.ActionItem = NewActionItemClient(tx.config)
+	tx.CalendarMeeting = NewCalendarMeetingClient(tx.config)
+	tx.ChatFile = NewChatFileClient(tx.config)
+	tx.ChatMessage = NewChatMessageClient(tx.config)
+	tx.ChatSession = NewChatSessionClient(tx.config)
 	tx.Conversation = NewConversationClient(tx.config)
+	tx.CsatRating = NewCsatRatingClient(tx.config)
 	tx.Device = NewDeviceClient(tx.config)
+	tx.Folder = NewFolderClient(tx.config)
+	tx.Goal = NewGoalClient(tx.config)
+	tx.GoalProgressEvent = NewGoalProgressEventClient(tx.config)
 	tx.Memory = NewMemoryClient(tx.config)
+	tx.NotificationToken = NewNotificationTokenClient(tx.config)
+	tx.SyncJob = NewSyncJobClient(tx.config)
 	tx.Todo = NewTodoClient(tx.config)
 	tx.TranscriptSegment = NewTranscriptSegmentClient(tx.config)
 	tx.User = NewUserClient(tx.config)

@@ -70,6 +70,21 @@ func Speaker(v string) predicate.TranscriptSegment {
 	return predicate.TranscriptSegment(sql.FieldEQ(FieldSpeaker, v))
 }
 
+// SpeakerID applies equality check predicate on the "speaker_id" field. It's identical to SpeakerIDEQ.
+func SpeakerID(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldSpeakerID, v))
+}
+
+// IsUser applies equality check predicate on the "is_user" field. It's identical to IsUserEQ.
+func IsUser(v bool) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldIsUser, v))
+}
+
+// PersonID applies equality check predicate on the "person_id" field. It's identical to PersonIDEQ.
+func PersonID(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldPersonID, v))
+}
+
 // Text applies equality check predicate on the "text" field. It's identical to TextEQ.
 func Text(v string) predicate.TranscriptSegment {
 	return predicate.TranscriptSegment(sql.FieldEQ(FieldText, v))
@@ -88,6 +103,11 @@ func EndMs(v int64) predicate.TranscriptSegment {
 // Source applies equality check predicate on the "source" field. It's identical to SourceEQ.
 func Source(v string) predicate.TranscriptSegment {
 	return predicate.TranscriptSegment(sql.FieldEQ(FieldSource, v))
+}
+
+// ConversationID applies equality check predicate on the "conversation_id" field. It's identical to ConversationIDEQ.
+func ConversationID(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldConversationID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -233,6 +253,131 @@ func SpeakerEqualFold(v string) predicate.TranscriptSegment {
 // SpeakerContainsFold applies the ContainsFold predicate on the "speaker" field.
 func SpeakerContainsFold(v string) predicate.TranscriptSegment {
 	return predicate.TranscriptSegment(sql.FieldContainsFold(FieldSpeaker, v))
+}
+
+// SpeakerIDEQ applies the EQ predicate on the "speaker_id" field.
+func SpeakerIDEQ(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldSpeakerID, v))
+}
+
+// SpeakerIDNEQ applies the NEQ predicate on the "speaker_id" field.
+func SpeakerIDNEQ(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNEQ(FieldSpeakerID, v))
+}
+
+// SpeakerIDIn applies the In predicate on the "speaker_id" field.
+func SpeakerIDIn(vs ...int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldIn(FieldSpeakerID, vs...))
+}
+
+// SpeakerIDNotIn applies the NotIn predicate on the "speaker_id" field.
+func SpeakerIDNotIn(vs ...int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNotIn(FieldSpeakerID, vs...))
+}
+
+// SpeakerIDGT applies the GT predicate on the "speaker_id" field.
+func SpeakerIDGT(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldGT(FieldSpeakerID, v))
+}
+
+// SpeakerIDGTE applies the GTE predicate on the "speaker_id" field.
+func SpeakerIDGTE(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldGTE(FieldSpeakerID, v))
+}
+
+// SpeakerIDLT applies the LT predicate on the "speaker_id" field.
+func SpeakerIDLT(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldLT(FieldSpeakerID, v))
+}
+
+// SpeakerIDLTE applies the LTE predicate on the "speaker_id" field.
+func SpeakerIDLTE(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldLTE(FieldSpeakerID, v))
+}
+
+// IsUserEQ applies the EQ predicate on the "is_user" field.
+func IsUserEQ(v bool) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldIsUser, v))
+}
+
+// IsUserNEQ applies the NEQ predicate on the "is_user" field.
+func IsUserNEQ(v bool) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNEQ(FieldIsUser, v))
+}
+
+// PersonIDEQ applies the EQ predicate on the "person_id" field.
+func PersonIDEQ(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldPersonID, v))
+}
+
+// PersonIDNEQ applies the NEQ predicate on the "person_id" field.
+func PersonIDNEQ(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNEQ(FieldPersonID, v))
+}
+
+// PersonIDIn applies the In predicate on the "person_id" field.
+func PersonIDIn(vs ...string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldIn(FieldPersonID, vs...))
+}
+
+// PersonIDNotIn applies the NotIn predicate on the "person_id" field.
+func PersonIDNotIn(vs ...string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNotIn(FieldPersonID, vs...))
+}
+
+// PersonIDGT applies the GT predicate on the "person_id" field.
+func PersonIDGT(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldGT(FieldPersonID, v))
+}
+
+// PersonIDGTE applies the GTE predicate on the "person_id" field.
+func PersonIDGTE(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldGTE(FieldPersonID, v))
+}
+
+// PersonIDLT applies the LT predicate on the "person_id" field.
+func PersonIDLT(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldLT(FieldPersonID, v))
+}
+
+// PersonIDLTE applies the LTE predicate on the "person_id" field.
+func PersonIDLTE(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldLTE(FieldPersonID, v))
+}
+
+// PersonIDContains applies the Contains predicate on the "person_id" field.
+func PersonIDContains(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldContains(FieldPersonID, v))
+}
+
+// PersonIDHasPrefix applies the HasPrefix predicate on the "person_id" field.
+func PersonIDHasPrefix(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldHasPrefix(FieldPersonID, v))
+}
+
+// PersonIDHasSuffix applies the HasSuffix predicate on the "person_id" field.
+func PersonIDHasSuffix(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldHasSuffix(FieldPersonID, v))
+}
+
+// PersonIDIsNil applies the IsNil predicate on the "person_id" field.
+func PersonIDIsNil() predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldIsNull(FieldPersonID))
+}
+
+// PersonIDNotNil applies the NotNil predicate on the "person_id" field.
+func PersonIDNotNil() predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNotNull(FieldPersonID))
+}
+
+// PersonIDEqualFold applies the EqualFold predicate on the "person_id" field.
+func PersonIDEqualFold(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEqualFold(FieldPersonID, v))
+}
+
+// PersonIDContainsFold applies the ContainsFold predicate on the "person_id" field.
+func PersonIDContainsFold(v string) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldContainsFold(FieldPersonID, v))
 }
 
 // TextEQ applies the EQ predicate on the "text" field.
@@ -443,6 +588,36 @@ func SourceEqualFold(v string) predicate.TranscriptSegment {
 // SourceContainsFold applies the ContainsFold predicate on the "source" field.
 func SourceContainsFold(v string) predicate.TranscriptSegment {
 	return predicate.TranscriptSegment(sql.FieldContainsFold(FieldSource, v))
+}
+
+// ConversationIDEQ applies the EQ predicate on the "conversation_id" field.
+func ConversationIDEQ(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldEQ(FieldConversationID, v))
+}
+
+// ConversationIDNEQ applies the NEQ predicate on the "conversation_id" field.
+func ConversationIDNEQ(v int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNEQ(FieldConversationID, v))
+}
+
+// ConversationIDIn applies the In predicate on the "conversation_id" field.
+func ConversationIDIn(vs ...int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldIn(FieldConversationID, vs...))
+}
+
+// ConversationIDNotIn applies the NotIn predicate on the "conversation_id" field.
+func ConversationIDNotIn(vs ...int) predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNotIn(FieldConversationID, vs...))
+}
+
+// ConversationIDIsNil applies the IsNil predicate on the "conversation_id" field.
+func ConversationIDIsNil() predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldIsNull(FieldConversationID))
+}
+
+// ConversationIDNotNil applies the NotNil predicate on the "conversation_id" field.
+func ConversationIDNotNil() predicate.TranscriptSegment {
+	return predicate.TranscriptSegment(sql.FieldNotNull(FieldConversationID))
 }
 
 // HasConversation applies the HasEdge predicate on the "conversation" edge.

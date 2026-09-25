@@ -80,6 +80,16 @@ func DueAt(v time.Time) predicate.Todo {
 	return predicate.Todo(sql.FieldEQ(FieldDueAt, v))
 }
 
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v int) predicate.Todo {
+	return predicate.Todo(sql.FieldEQ(FieldUserID, v))
+}
+
+// ConversationID applies equality check predicate on the "conversation_id" field. It's identical to ConversationIDEQ.
+func ConversationID(v int) predicate.Todo {
+	return predicate.Todo(sql.FieldEQ(FieldConversationID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Todo {
 	return predicate.Todo(sql.FieldEQ(FieldCreatedAt, v))
@@ -358,6 +368,66 @@ func StatusIn(vs ...Status) predicate.Todo {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.Todo {
 	return predicate.Todo(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v int) predicate.Todo {
+	return predicate.Todo(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v int) predicate.Todo {
+	return predicate.Todo(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...int) predicate.Todo {
+	return predicate.Todo(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...int) predicate.Todo {
+	return predicate.Todo(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// UserIDIsNil applies the IsNil predicate on the "user_id" field.
+func UserIDIsNil() predicate.Todo {
+	return predicate.Todo(sql.FieldIsNull(FieldUserID))
+}
+
+// UserIDNotNil applies the NotNil predicate on the "user_id" field.
+func UserIDNotNil() predicate.Todo {
+	return predicate.Todo(sql.FieldNotNull(FieldUserID))
+}
+
+// ConversationIDEQ applies the EQ predicate on the "conversation_id" field.
+func ConversationIDEQ(v int) predicate.Todo {
+	return predicate.Todo(sql.FieldEQ(FieldConversationID, v))
+}
+
+// ConversationIDNEQ applies the NEQ predicate on the "conversation_id" field.
+func ConversationIDNEQ(v int) predicate.Todo {
+	return predicate.Todo(sql.FieldNEQ(FieldConversationID, v))
+}
+
+// ConversationIDIn applies the In predicate on the "conversation_id" field.
+func ConversationIDIn(vs ...int) predicate.Todo {
+	return predicate.Todo(sql.FieldIn(FieldConversationID, vs...))
+}
+
+// ConversationIDNotIn applies the NotIn predicate on the "conversation_id" field.
+func ConversationIDNotIn(vs ...int) predicate.Todo {
+	return predicate.Todo(sql.FieldNotIn(FieldConversationID, vs...))
+}
+
+// ConversationIDIsNil applies the IsNil predicate on the "conversation_id" field.
+func ConversationIDIsNil() predicate.Todo {
+	return predicate.Todo(sql.FieldIsNull(FieldConversationID))
+}
+
+// ConversationIDNotNil applies the NotNil predicate on the "conversation_id" field.
+func ConversationIDNotNil() predicate.Todo {
+	return predicate.Todo(sql.FieldNotNull(FieldConversationID))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

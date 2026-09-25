@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"remi/server/ent/conversation"
 	"remi/server/ent/memory"
@@ -25,18 +26,30 @@ type Memory struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type memory.Type `json:"type,omitempty"`
+	// Category holds the value of the "category" field.
+	Category string `json:"category,omitempty"`
+	// Visibility holds the value of the "visibility" field.
+	Visibility string `json:"visibility,omitempty"`
+	// Tags holds the value of the "tags" field.
+	Tags []string `json:"tags,omitempty"`
+	// IsRead holds the value of the "is_read" field.
+	IsRead bool `json:"is_read,omitempty"`
+	// IsDismissed holds the value of the "is_dismissed" field.
+	IsDismissed bool `json:"is_dismissed,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
 	// Importance holds the value of the "importance" field.
 	Importance int `json:"importance,omitempty"`
 	// EventTime holds the value of the "event_time" field.
 	EventTime *time.Time `json:"event_time,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID *int `json:"user_id,omitempty"`
+	// ConversationID holds the value of the "conversation_id" field.
+	ConversationID *int `json:"conversation_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the MemoryQuery when eager-loading is set.
-	Edges                 MemoryEdges `json:"edges"`
-	conversation_memories *int
-	user_memories         *int
-	selectValues          sql.SelectValues
+	Edges        MemoryEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // MemoryEdges holds the relations/edges for other nodes in the graph.
@@ -77,16 +90,16 @@ func (*Memory) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case memory.FieldID, memory.FieldImportance:
+		case memory.FieldTags:
+			values[i] = new([]byte)
+		case memory.FieldIsRead, memory.FieldIsDismissed:
+			values[i] = new(sql.NullBool)
+		case memory.FieldID, memory.FieldImportance, memory.FieldUserID, memory.FieldConversationID:
 			values[i] = new(sql.NullInt64)
-		case memory.FieldType, memory.FieldContent:
+		case memory.FieldType, memory.FieldCategory, memory.FieldVisibility, memory.FieldContent:
 			values[i] = new(sql.NullString)
 		case memory.FieldCreatedAt, memory.FieldUpdatedAt, memory.FieldEventTime:
 			values[i] = new(sql.NullTime)
-		case memory.ForeignKeys[0]: // conversation_memories
-			values[i] = new(sql.NullInt64)
-		case memory.ForeignKeys[1]: // user_memories
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -126,6 +139,38 @@ func (_m *Memory) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Type = memory.Type(value.String)
 			}
+		case memory.FieldCategory:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field category", values[i])
+			} else if value.Valid {
+				_m.Category = value.String
+			}
+		case memory.FieldVisibility:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field visibility", values[i])
+			} else if value.Valid {
+				_m.Visibility = value.String
+			}
+		case memory.FieldTags:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tags", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Tags); err != nil {
+					return fmt.Errorf("unmarshal field tags: %w", err)
+				}
+			}
+		case memory.FieldIsRead:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_read", values[i])
+			} else if value.Valid {
+				_m.IsRead = value.Bool
+			}
+		case memory.FieldIsDismissed:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_dismissed", values[i])
+			} else if value.Valid {
+				_m.IsDismissed = value.Bool
+			}
 		case memory.FieldContent:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field content", values[i])
@@ -145,19 +190,19 @@ func (_m *Memory) assignValues(columns []string, values []any) error {
 				_m.EventTime = new(time.Time)
 				*_m.EventTime = value.Time
 			}
-		case memory.ForeignKeys[0]:
+		case memory.FieldUserID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field conversation_memories", value)
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				_m.conversation_memories = new(int)
-				*_m.conversation_memories = int(value.Int64)
+				_m.UserID = new(int)
+				*_m.UserID = int(value.Int64)
 			}
-		case memory.ForeignKeys[1]:
+		case memory.FieldConversationID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_memories", value)
+				return fmt.Errorf("unexpected type %T for field conversation_id", values[i])
 			} else if value.Valid {
-				_m.user_memories = new(int)
-				*_m.user_memories = int(value.Int64)
+				_m.ConversationID = new(int)
+				*_m.ConversationID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -214,6 +259,21 @@ func (_m *Memory) String() string {
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
+	builder.WriteString("category=")
+	builder.WriteString(_m.Category)
+	builder.WriteString(", ")
+	builder.WriteString("visibility=")
+	builder.WriteString(_m.Visibility)
+	builder.WriteString(", ")
+	builder.WriteString("tags=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Tags))
+	builder.WriteString(", ")
+	builder.WriteString("is_read=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsRead))
+	builder.WriteString(", ")
+	builder.WriteString("is_dismissed=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsDismissed))
+	builder.WriteString(", ")
 	builder.WriteString("content=")
 	builder.WriteString(_m.Content)
 	builder.WriteString(", ")
@@ -223,6 +283,16 @@ func (_m *Memory) String() string {
 	if v := _m.EventTime; v != nil {
 		builder.WriteString("event_time=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ConversationID; v != nil {
+		builder.WriteString("conversation_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

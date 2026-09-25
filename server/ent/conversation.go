@@ -3,9 +3,11 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"remi/server/ent/conversation"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
 	"remi/server/ent/user"
 	"strings"
 	"time"
@@ -27,18 +29,30 @@ type Conversation struct {
 	Title string `json:"title,omitempty"`
 	// Summary holds the value of the "summary" field.
 	Summary string `json:"summary,omitempty"`
+	// Visibility holds the value of the "visibility" field.
+	Visibility string `json:"visibility,omitempty"`
+	// Starred holds the value of the "starred" field.
+	Starred bool `json:"starred,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
 	StartedAt time.Time `json:"started_at,omitempty"`
 	// EndedAt holds the value of the "ended_at" field.
 	EndedAt *time.Time `json:"ended_at,omitempty"`
 	// Status holds the value of the "status" field.
 	Status conversation.Status `json:"status,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID *int `json:"user_id,omitempty"`
+	// DeviceID holds the value of the "device_id" field.
+	DeviceID *int `json:"device_id,omitempty"`
+	// FolderID holds the value of the "folder_id" field.
+	FolderID *int `json:"folder_id,omitempty"`
+	// AudioFiles holds the value of the "audio_files" field.
+	AudioFiles []map[string]interface{} `json:"audio_files,omitempty"`
+	// ConversationAudio holds the value of the "conversation_audio" field.
+	ConversationAudio map[string]interface{} `json:"conversation_audio,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ConversationQuery when eager-loading is set.
-	Edges                ConversationEdges `json:"edges"`
-	device_conversations *int
-	user_conversations   *int
-	selectValues         sql.SelectValues
+	Edges        ConversationEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // ConversationEdges holds the relations/edges for other nodes in the graph.
@@ -47,6 +61,8 @@ type ConversationEdges struct {
 	User *User `json:"user,omitempty"`
 	// Device holds the value of the device edge.
 	Device *Device `json:"device,omitempty"`
+	// Folder holds the value of the folder edge.
+	Folder *Folder `json:"folder,omitempty"`
 	// TranscriptSegments holds the value of the transcript_segments edge.
 	TranscriptSegments []*TranscriptSegment `json:"transcript_segments,omitempty"`
 	// Memories holds the value of the memories edge.
@@ -57,7 +73,7 @@ type ConversationEdges struct {
 	ActionItems []*ActionItem `json:"action_items,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -82,10 +98,21 @@ func (e ConversationEdges) DeviceOrErr() (*Device, error) {
 	return nil, &NotLoadedError{edge: "device"}
 }
 
+// FolderOrErr returns the Folder value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ConversationEdges) FolderOrErr() (*Folder, error) {
+	if e.Folder != nil {
+		return e.Folder, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: folder.Label}
+	}
+	return nil, &NotLoadedError{edge: "folder"}
+}
+
 // TranscriptSegmentsOrErr returns the TranscriptSegments value or an error if the edge
 // was not loaded in eager-loading.
 func (e ConversationEdges) TranscriptSegmentsOrErr() ([]*TranscriptSegment, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.TranscriptSegments, nil
 	}
 	return nil, &NotLoadedError{edge: "transcript_segments"}
@@ -94,7 +121,7 @@ func (e ConversationEdges) TranscriptSegmentsOrErr() ([]*TranscriptSegment, erro
 // MemoriesOrErr returns the Memories value or an error if the edge
 // was not loaded in eager-loading.
 func (e ConversationEdges) MemoriesOrErr() ([]*Memory, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.Memories, nil
 	}
 	return nil, &NotLoadedError{edge: "memories"}
@@ -103,7 +130,7 @@ func (e ConversationEdges) MemoriesOrErr() ([]*Memory, error) {
 // TodosOrErr returns the Todos value or an error if the edge
 // was not loaded in eager-loading.
 func (e ConversationEdges) TodosOrErr() ([]*Todo, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Todos, nil
 	}
 	return nil, &NotLoadedError{edge: "todos"}
@@ -112,7 +139,7 @@ func (e ConversationEdges) TodosOrErr() ([]*Todo, error) {
 // ActionItemsOrErr returns the ActionItems value or an error if the edge
 // was not loaded in eager-loading.
 func (e ConversationEdges) ActionItemsOrErr() ([]*ActionItem, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.ActionItems, nil
 	}
 	return nil, &NotLoadedError{edge: "action_items"}
@@ -123,16 +150,16 @@ func (*Conversation) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case conversation.FieldID:
+		case conversation.FieldAudioFiles, conversation.FieldConversationAudio:
+			values[i] = new([]byte)
+		case conversation.FieldStarred:
+			values[i] = new(sql.NullBool)
+		case conversation.FieldID, conversation.FieldUserID, conversation.FieldDeviceID, conversation.FieldFolderID:
 			values[i] = new(sql.NullInt64)
-		case conversation.FieldTitle, conversation.FieldSummary, conversation.FieldStatus:
+		case conversation.FieldTitle, conversation.FieldSummary, conversation.FieldVisibility, conversation.FieldStatus:
 			values[i] = new(sql.NullString)
 		case conversation.FieldCreatedAt, conversation.FieldUpdatedAt, conversation.FieldStartedAt, conversation.FieldEndedAt:
 			values[i] = new(sql.NullTime)
-		case conversation.ForeignKeys[0]: // device_conversations
-			values[i] = new(sql.NullInt64)
-		case conversation.ForeignKeys[1]: // user_conversations
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -178,6 +205,18 @@ func (_m *Conversation) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Summary = value.String
 			}
+		case conversation.FieldVisibility:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field visibility", values[i])
+			} else if value.Valid {
+				_m.Visibility = value.String
+			}
+		case conversation.FieldStarred:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field starred", values[i])
+			} else if value.Valid {
+				_m.Starred = value.Bool
+			}
 		case conversation.FieldStartedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field started_at", values[i])
@@ -197,19 +236,42 @@ func (_m *Conversation) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = conversation.Status(value.String)
 			}
-		case conversation.ForeignKeys[0]:
+		case conversation.FieldUserID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field device_conversations", value)
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				_m.device_conversations = new(int)
-				*_m.device_conversations = int(value.Int64)
+				_m.UserID = new(int)
+				*_m.UserID = int(value.Int64)
 			}
-		case conversation.ForeignKeys[1]:
+		case conversation.FieldDeviceID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_conversations", value)
+				return fmt.Errorf("unexpected type %T for field device_id", values[i])
 			} else if value.Valid {
-				_m.user_conversations = new(int)
-				*_m.user_conversations = int(value.Int64)
+				_m.DeviceID = new(int)
+				*_m.DeviceID = int(value.Int64)
+			}
+		case conversation.FieldFolderID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field folder_id", values[i])
+			} else if value.Valid {
+				_m.FolderID = new(int)
+				*_m.FolderID = int(value.Int64)
+			}
+		case conversation.FieldAudioFiles:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field audio_files", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AudioFiles); err != nil {
+					return fmt.Errorf("unmarshal field audio_files: %w", err)
+				}
+			}
+		case conversation.FieldConversationAudio:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field conversation_audio", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ConversationAudio); err != nil {
+					return fmt.Errorf("unmarshal field conversation_audio: %w", err)
+				}
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -232,6 +294,11 @@ func (_m *Conversation) QueryUser() *UserQuery {
 // QueryDevice queries the "device" edge of the Conversation entity.
 func (_m *Conversation) QueryDevice() *DeviceQuery {
 	return NewConversationClient(_m.config).QueryDevice(_m)
+}
+
+// QueryFolder queries the "folder" edge of the Conversation entity.
+func (_m *Conversation) QueryFolder() *FolderQuery {
+	return NewConversationClient(_m.config).QueryFolder(_m)
 }
 
 // QueryTranscriptSegments queries the "transcript_segments" edge of the Conversation entity.
@@ -289,6 +356,12 @@ func (_m *Conversation) String() string {
 	builder.WriteString("summary=")
 	builder.WriteString(_m.Summary)
 	builder.WriteString(", ")
+	builder.WriteString("visibility=")
+	builder.WriteString(_m.Visibility)
+	builder.WriteString(", ")
+	builder.WriteString("starred=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Starred))
+	builder.WriteString(", ")
 	builder.WriteString("started_at=")
 	builder.WriteString(_m.StartedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -299,6 +372,27 @@ func (_m *Conversation) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.DeviceID; v != nil {
+		builder.WriteString("device_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.FolderID; v != nil {
+		builder.WriteString("folder_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("audio_files=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AudioFiles))
+	builder.WriteString(", ")
+	builder.WriteString("conversation_audio=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ConversationAudio))
 	builder.WriteByte(')')
 	return builder.String()
 }

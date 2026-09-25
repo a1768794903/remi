@@ -18,10 +18,38 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldExternalUID holds the string denoting the external_uid field in the database.
+	FieldExternalUID = "external_uid"
 	// FieldEmail holds the string denoting the email field in the database.
 	FieldEmail = "email"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldLanguage holds the string denoting the language field in the database.
+	FieldLanguage = "language"
+	// FieldTimeZone holds the string denoting the time_zone field in the database.
+	FieldTimeZone = "time_zone"
+	// FieldOnboarding holds the string denoting the onboarding field in the database.
+	FieldOnboarding = "onboarding"
+	// FieldPrivateCloudSyncEnabled holds the string denoting the private_cloud_sync_enabled field in the database.
+	FieldPrivateCloudSyncEnabled = "private_cloud_sync_enabled"
+	// FieldMeetingNoteScreenshotsEnabled holds the string denoting the meeting_note_screenshots_enabled field in the database.
+	FieldMeetingNoteScreenshotsEnabled = "meeting_note_screenshots_enabled"
+	// FieldStoreRecordingPermission holds the string denoting the store_recording_permission field in the database.
+	FieldStoreRecordingPermission = "store_recording_permission"
+	// FieldDailySummaryEnabled holds the string denoting the daily_summary_enabled field in the database.
+	FieldDailySummaryEnabled = "daily_summary_enabled"
+	// FieldDailySummaryHourLocal holds the string denoting the daily_summary_hour_local field in the database.
+	FieldDailySummaryHourLocal = "daily_summary_hour_local"
+	// FieldMentorNotificationFrequency holds the string denoting the mentor_notification_frequency field in the database.
+	FieldMentorNotificationFrequency = "mentor_notification_frequency"
+	// FieldIntegrations holds the string denoting the integrations field in the database.
+	FieldIntegrations = "integrations"
+	// FieldNotificationSettings holds the string denoting the notification_settings field in the database.
+	FieldNotificationSettings = "notification_settings"
+	// FieldAssistantSettings holds the string denoting the assistant_settings field in the database.
+	FieldAssistantSettings = "assistant_settings"
+	// FieldAiProfile holds the string denoting the ai_profile field in the database.
+	FieldAiProfile = "ai_profile"
 	// EdgeDevices holds the string denoting the devices edge name in mutations.
 	EdgeDevices = "devices"
 	// EdgeConversations holds the string denoting the conversations edge name in mutations.
@@ -32,6 +60,22 @@ const (
 	EdgeTodos = "todos"
 	// EdgeActionItems holds the string denoting the action_items edge name in mutations.
 	EdgeActionItems = "action_items"
+	// EdgeChatMessages holds the string denoting the chat_messages edge name in mutations.
+	EdgeChatMessages = "chat_messages"
+	// EdgeChatSessions holds the string denoting the chat_sessions edge name in mutations.
+	EdgeChatSessions = "chat_sessions"
+	// EdgeNotificationTokens holds the string denoting the notification_tokens edge name in mutations.
+	EdgeNotificationTokens = "notification_tokens"
+	// EdgeFolders holds the string denoting the folders edge name in mutations.
+	EdgeFolders = "folders"
+	// EdgeGoals holds the string denoting the goals edge name in mutations.
+	EdgeGoals = "goals"
+	// EdgeCalendarMeetings holds the string denoting the calendar_meetings edge name in mutations.
+	EdgeCalendarMeetings = "calendar_meetings"
+	// EdgeCsatRatings holds the string denoting the csat_ratings edge name in mutations.
+	EdgeCsatRatings = "csat_ratings"
+	// EdgeChatFiles holds the string denoting the chat_files edge name in mutations.
+	EdgeChatFiles = "chat_files"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// DevicesTable is the table that holds the devices relation/edge.
@@ -40,35 +84,91 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "device" package.
 	DevicesInverseTable = "devices"
 	// DevicesColumn is the table column denoting the devices relation/edge.
-	DevicesColumn = "user_devices"
+	DevicesColumn = "user_id"
 	// ConversationsTable is the table that holds the conversations relation/edge.
 	ConversationsTable = "conversations"
 	// ConversationsInverseTable is the table name for the Conversation entity.
 	// It exists in this package in order to avoid circular dependency with the "conversation" package.
 	ConversationsInverseTable = "conversations"
 	// ConversationsColumn is the table column denoting the conversations relation/edge.
-	ConversationsColumn = "user_conversations"
+	ConversationsColumn = "user_id"
 	// MemoriesTable is the table that holds the memories relation/edge.
 	MemoriesTable = "memories"
 	// MemoriesInverseTable is the table name for the Memory entity.
 	// It exists in this package in order to avoid circular dependency with the "memory" package.
 	MemoriesInverseTable = "memories"
 	// MemoriesColumn is the table column denoting the memories relation/edge.
-	MemoriesColumn = "user_memories"
+	MemoriesColumn = "user_id"
 	// TodosTable is the table that holds the todos relation/edge.
 	TodosTable = "todos"
 	// TodosInverseTable is the table name for the Todo entity.
 	// It exists in this package in order to avoid circular dependency with the "todo" package.
 	TodosInverseTable = "todos"
 	// TodosColumn is the table column denoting the todos relation/edge.
-	TodosColumn = "user_todos"
+	TodosColumn = "user_id"
 	// ActionItemsTable is the table that holds the action_items relation/edge.
 	ActionItemsTable = "action_items"
 	// ActionItemsInverseTable is the table name for the ActionItem entity.
 	// It exists in this package in order to avoid circular dependency with the "actionitem" package.
 	ActionItemsInverseTable = "action_items"
 	// ActionItemsColumn is the table column denoting the action_items relation/edge.
-	ActionItemsColumn = "user_action_items"
+	ActionItemsColumn = "user_id"
+	// ChatMessagesTable is the table that holds the chat_messages relation/edge.
+	ChatMessagesTable = "chat_messages"
+	// ChatMessagesInverseTable is the table name for the ChatMessage entity.
+	// It exists in this package in order to avoid circular dependency with the "chatmessage" package.
+	ChatMessagesInverseTable = "chat_messages"
+	// ChatMessagesColumn is the table column denoting the chat_messages relation/edge.
+	ChatMessagesColumn = "user_id"
+	// ChatSessionsTable is the table that holds the chat_sessions relation/edge.
+	ChatSessionsTable = "chat_sessions"
+	// ChatSessionsInverseTable is the table name for the ChatSession entity.
+	// It exists in this package in order to avoid circular dependency with the "chatsession" package.
+	ChatSessionsInverseTable = "chat_sessions"
+	// ChatSessionsColumn is the table column denoting the chat_sessions relation/edge.
+	ChatSessionsColumn = "user_id"
+	// NotificationTokensTable is the table that holds the notification_tokens relation/edge.
+	NotificationTokensTable = "notification_tokens"
+	// NotificationTokensInverseTable is the table name for the NotificationToken entity.
+	// It exists in this package in order to avoid circular dependency with the "notificationtoken" package.
+	NotificationTokensInverseTable = "notification_tokens"
+	// NotificationTokensColumn is the table column denoting the notification_tokens relation/edge.
+	NotificationTokensColumn = "user_id"
+	// FoldersTable is the table that holds the folders relation/edge.
+	FoldersTable = "folders"
+	// FoldersInverseTable is the table name for the Folder entity.
+	// It exists in this package in order to avoid circular dependency with the "folder" package.
+	FoldersInverseTable = "folders"
+	// FoldersColumn is the table column denoting the folders relation/edge.
+	FoldersColumn = "user_id"
+	// GoalsTable is the table that holds the goals relation/edge.
+	GoalsTable = "goals"
+	// GoalsInverseTable is the table name for the Goal entity.
+	// It exists in this package in order to avoid circular dependency with the "goal" package.
+	GoalsInverseTable = "goals"
+	// GoalsColumn is the table column denoting the goals relation/edge.
+	GoalsColumn = "user_id"
+	// CalendarMeetingsTable is the table that holds the calendar_meetings relation/edge.
+	CalendarMeetingsTable = "calendar_meetings"
+	// CalendarMeetingsInverseTable is the table name for the CalendarMeeting entity.
+	// It exists in this package in order to avoid circular dependency with the "calendarmeeting" package.
+	CalendarMeetingsInverseTable = "calendar_meetings"
+	// CalendarMeetingsColumn is the table column denoting the calendar_meetings relation/edge.
+	CalendarMeetingsColumn = "user_id"
+	// CsatRatingsTable is the table that holds the csat_ratings relation/edge.
+	CsatRatingsTable = "csat_ratings"
+	// CsatRatingsInverseTable is the table name for the CsatRating entity.
+	// It exists in this package in order to avoid circular dependency with the "csatrating" package.
+	CsatRatingsInverseTable = "csat_ratings"
+	// CsatRatingsColumn is the table column denoting the csat_ratings relation/edge.
+	CsatRatingsColumn = "user_id"
+	// ChatFilesTable is the table that holds the chat_files relation/edge.
+	ChatFilesTable = "chat_files"
+	// ChatFilesInverseTable is the table name for the ChatFile entity.
+	// It exists in this package in order to avoid circular dependency with the "chatfile" package.
+	ChatFilesInverseTable = "chat_files"
+	// ChatFilesColumn is the table column denoting the chat_files relation/edge.
+	ChatFilesColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -76,8 +176,22 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+	FieldExternalUID,
 	FieldEmail,
 	FieldName,
+	FieldLanguage,
+	FieldTimeZone,
+	FieldOnboarding,
+	FieldPrivateCloudSyncEnabled,
+	FieldMeetingNoteScreenshotsEnabled,
+	FieldStoreRecordingPermission,
+	FieldDailySummaryEnabled,
+	FieldDailySummaryHourLocal,
+	FieldMentorNotificationFrequency,
+	FieldIntegrations,
+	FieldNotificationSettings,
+	FieldAssistantSettings,
+	FieldAiProfile,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -97,10 +211,28 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// ExternalUIDValidator is a validator for the "external_uid" field. It is called by the builders before save.
+	ExternalUIDValidator func(string) error
 	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	EmailValidator func(string) error
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
+	// DefaultLanguage holds the default value on creation for the "language" field.
+	DefaultLanguage string
+	// DefaultTimeZone holds the default value on creation for the "time_zone" field.
+	DefaultTimeZone string
+	// DefaultPrivateCloudSyncEnabled holds the default value on creation for the "private_cloud_sync_enabled" field.
+	DefaultPrivateCloudSyncEnabled bool
+	// DefaultMeetingNoteScreenshotsEnabled holds the default value on creation for the "meeting_note_screenshots_enabled" field.
+	DefaultMeetingNoteScreenshotsEnabled bool
+	// DefaultStoreRecordingPermission holds the default value on creation for the "store_recording_permission" field.
+	DefaultStoreRecordingPermission bool
+	// DefaultDailySummaryEnabled holds the default value on creation for the "daily_summary_enabled" field.
+	DefaultDailySummaryEnabled bool
+	// DefaultDailySummaryHourLocal holds the default value on creation for the "daily_summary_hour_local" field.
+	DefaultDailySummaryHourLocal int
+	// DefaultMentorNotificationFrequency holds the default value on creation for the "mentor_notification_frequency" field.
+	DefaultMentorNotificationFrequency int
 )
 
 // OrderOption defines the ordering options for the User queries.
@@ -121,6 +253,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
+// ByExternalUID orders the results by the external_uid field.
+func ByExternalUID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExternalUID, opts...).ToFunc()
+}
+
 // ByEmail orders the results by the email field.
 func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmail, opts...).ToFunc()
@@ -129,6 +266,46 @@ func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByLanguage orders the results by the language field.
+func ByLanguage(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLanguage, opts...).ToFunc()
+}
+
+// ByTimeZone orders the results by the time_zone field.
+func ByTimeZone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimeZone, opts...).ToFunc()
+}
+
+// ByPrivateCloudSyncEnabled orders the results by the private_cloud_sync_enabled field.
+func ByPrivateCloudSyncEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrivateCloudSyncEnabled, opts...).ToFunc()
+}
+
+// ByMeetingNoteScreenshotsEnabled orders the results by the meeting_note_screenshots_enabled field.
+func ByMeetingNoteScreenshotsEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMeetingNoteScreenshotsEnabled, opts...).ToFunc()
+}
+
+// ByStoreRecordingPermission orders the results by the store_recording_permission field.
+func ByStoreRecordingPermission(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStoreRecordingPermission, opts...).ToFunc()
+}
+
+// ByDailySummaryEnabled orders the results by the daily_summary_enabled field.
+func ByDailySummaryEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailySummaryEnabled, opts...).ToFunc()
+}
+
+// ByDailySummaryHourLocal orders the results by the daily_summary_hour_local field.
+func ByDailySummaryHourLocal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailySummaryHourLocal, opts...).ToFunc()
+}
+
+// ByMentorNotificationFrequency orders the results by the mentor_notification_frequency field.
+func ByMentorNotificationFrequency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMentorNotificationFrequency, opts...).ToFunc()
 }
 
 // ByDevicesCount orders the results by devices count.
@@ -200,6 +377,118 @@ func ByActionItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newActionItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByChatMessagesCount orders the results by chat_messages count.
+func ByChatMessagesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChatMessagesStep(), opts...)
+	}
+}
+
+// ByChatMessages orders the results by chat_messages terms.
+func ByChatMessages(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChatMessagesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByChatSessionsCount orders the results by chat_sessions count.
+func ByChatSessionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChatSessionsStep(), opts...)
+	}
+}
+
+// ByChatSessions orders the results by chat_sessions terms.
+func ByChatSessions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChatSessionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByNotificationTokensCount orders the results by notification_tokens count.
+func ByNotificationTokensCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotificationTokensStep(), opts...)
+	}
+}
+
+// ByNotificationTokens orders the results by notification_tokens terms.
+func ByNotificationTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotificationTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByFoldersCount orders the results by folders count.
+func ByFoldersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFoldersStep(), opts...)
+	}
+}
+
+// ByFolders orders the results by folders terms.
+func ByFolders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFoldersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByGoalsCount orders the results by goals count.
+func ByGoalsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newGoalsStep(), opts...)
+	}
+}
+
+// ByGoals orders the results by goals terms.
+func ByGoals(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGoalsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCalendarMeetingsCount orders the results by calendar_meetings count.
+func ByCalendarMeetingsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCalendarMeetingsStep(), opts...)
+	}
+}
+
+// ByCalendarMeetings orders the results by calendar_meetings terms.
+func ByCalendarMeetings(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCalendarMeetingsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCsatRatingsCount orders the results by csat_ratings count.
+func ByCsatRatingsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCsatRatingsStep(), opts...)
+	}
+}
+
+// ByCsatRatings orders the results by csat_ratings terms.
+func ByCsatRatings(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCsatRatingsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByChatFilesCount orders the results by chat_files count.
+func ByChatFilesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChatFilesStep(), opts...)
+	}
+}
+
+// ByChatFiles orders the results by chat_files terms.
+func ByChatFiles(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChatFilesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newDevicesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -233,5 +522,61 @@ func newActionItemsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ActionItemsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ActionItemsTable, ActionItemsColumn),
+	)
+}
+func newChatMessagesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChatMessagesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChatMessagesTable, ChatMessagesColumn),
+	)
+}
+func newChatSessionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChatSessionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChatSessionsTable, ChatSessionsColumn),
+	)
+}
+func newNotificationTokensStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotificationTokensInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotificationTokensTable, NotificationTokensColumn),
+	)
+}
+func newFoldersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FoldersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FoldersTable, FoldersColumn),
+	)
+}
+func newGoalsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GoalsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, GoalsTable, GoalsColumn),
+	)
+}
+func newCalendarMeetingsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CalendarMeetingsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CalendarMeetingsTable, CalendarMeetingsColumn),
+	)
+}
+func newCsatRatingsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CsatRatingsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CsatRatingsTable, CsatRatingsColumn),
+	)
+}
+func newChatFilesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChatFilesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChatFilesTable, ChatFilesColumn),
 	)
 }

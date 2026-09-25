@@ -7,6 +7,12 @@
 # out of the first commit until their Go/API parity work is complete.
 
 # Temporarily out of the first version: migrated reference baselines.
+backend/
+web/
+sdks/
+
+# Agent planning scratch state is local-only.
+.superpowers/
 
 # Flutter / Dart generated output.
 app/.dart_tool/

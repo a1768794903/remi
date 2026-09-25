@@ -49,6 +49,61 @@ func (_u *TranscriptSegmentUpdate) SetNillableSpeaker(v *string) *TranscriptSegm
 	return _u
 }
 
+// SetSpeakerID sets the "speaker_id" field.
+func (_u *TranscriptSegmentUpdate) SetSpeakerID(v int) *TranscriptSegmentUpdate {
+	_u.mutation.ResetSpeakerID()
+	_u.mutation.SetSpeakerID(v)
+	return _u
+}
+
+// SetNillableSpeakerID sets the "speaker_id" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdate) SetNillableSpeakerID(v *int) *TranscriptSegmentUpdate {
+	if v != nil {
+		_u.SetSpeakerID(*v)
+	}
+	return _u
+}
+
+// AddSpeakerID adds value to the "speaker_id" field.
+func (_u *TranscriptSegmentUpdate) AddSpeakerID(v int) *TranscriptSegmentUpdate {
+	_u.mutation.AddSpeakerID(v)
+	return _u
+}
+
+// SetIsUser sets the "is_user" field.
+func (_u *TranscriptSegmentUpdate) SetIsUser(v bool) *TranscriptSegmentUpdate {
+	_u.mutation.SetIsUser(v)
+	return _u
+}
+
+// SetNillableIsUser sets the "is_user" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdate) SetNillableIsUser(v *bool) *TranscriptSegmentUpdate {
+	if v != nil {
+		_u.SetIsUser(*v)
+	}
+	return _u
+}
+
+// SetPersonID sets the "person_id" field.
+func (_u *TranscriptSegmentUpdate) SetPersonID(v string) *TranscriptSegmentUpdate {
+	_u.mutation.SetPersonID(v)
+	return _u
+}
+
+// SetNillablePersonID sets the "person_id" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdate) SetNillablePersonID(v *string) *TranscriptSegmentUpdate {
+	if v != nil {
+		_u.SetPersonID(*v)
+	}
+	return _u
+}
+
+// ClearPersonID clears the value of the "person_id" field.
+func (_u *TranscriptSegmentUpdate) ClearPersonID() *TranscriptSegmentUpdate {
+	_u.mutation.ClearPersonID()
+	return _u
+}
+
 // SetText sets the "text" field.
 func (_u *TranscriptSegmentUpdate) SetText(v string) *TranscriptSegmentUpdate {
 	_u.mutation.SetText(v)
@@ -119,17 +174,23 @@ func (_u *TranscriptSegmentUpdate) SetNillableSource(v *string) *TranscriptSegme
 	return _u
 }
 
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *TranscriptSegmentUpdate) SetConversationID(id int) *TranscriptSegmentUpdate {
-	_u.mutation.SetConversationID(id)
+// SetConversationID sets the "conversation_id" field.
+func (_u *TranscriptSegmentUpdate) SetConversationID(v int) *TranscriptSegmentUpdate {
+	_u.mutation.SetConversationID(v)
 	return _u
 }
 
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *TranscriptSegmentUpdate) SetNillableConversationID(id *int) *TranscriptSegmentUpdate {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdate) SetNillableConversationID(v *int) *TranscriptSegmentUpdate {
+	if v != nil {
+		_u.SetConversationID(*v)
 	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *TranscriptSegmentUpdate) ClearConversationID() *TranscriptSegmentUpdate {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
@@ -218,6 +279,21 @@ func (_u *TranscriptSegmentUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if value, ok := _u.mutation.Speaker(); ok {
 		_spec.SetField(transcriptsegment.FieldSpeaker, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.SpeakerID(); ok {
+		_spec.SetField(transcriptsegment.FieldSpeakerID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSpeakerID(); ok {
+		_spec.AddField(transcriptsegment.FieldSpeakerID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.IsUser(); ok {
+		_spec.SetField(transcriptsegment.FieldIsUser, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.PersonID(); ok {
+		_spec.SetField(transcriptsegment.FieldPersonID, field.TypeString, value)
+	}
+	if _u.mutation.PersonIDCleared() {
+		_spec.ClearField(transcriptsegment.FieldPersonID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Text(); ok {
 		_spec.SetField(transcriptsegment.FieldText, field.TypeString, value)
 	}
@@ -305,6 +381,61 @@ func (_u *TranscriptSegmentUpdateOne) SetNillableSpeaker(v *string) *TranscriptS
 	return _u
 }
 
+// SetSpeakerID sets the "speaker_id" field.
+func (_u *TranscriptSegmentUpdateOne) SetSpeakerID(v int) *TranscriptSegmentUpdateOne {
+	_u.mutation.ResetSpeakerID()
+	_u.mutation.SetSpeakerID(v)
+	return _u
+}
+
+// SetNillableSpeakerID sets the "speaker_id" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdateOne) SetNillableSpeakerID(v *int) *TranscriptSegmentUpdateOne {
+	if v != nil {
+		_u.SetSpeakerID(*v)
+	}
+	return _u
+}
+
+// AddSpeakerID adds value to the "speaker_id" field.
+func (_u *TranscriptSegmentUpdateOne) AddSpeakerID(v int) *TranscriptSegmentUpdateOne {
+	_u.mutation.AddSpeakerID(v)
+	return _u
+}
+
+// SetIsUser sets the "is_user" field.
+func (_u *TranscriptSegmentUpdateOne) SetIsUser(v bool) *TranscriptSegmentUpdateOne {
+	_u.mutation.SetIsUser(v)
+	return _u
+}
+
+// SetNillableIsUser sets the "is_user" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdateOne) SetNillableIsUser(v *bool) *TranscriptSegmentUpdateOne {
+	if v != nil {
+		_u.SetIsUser(*v)
+	}
+	return _u
+}
+
+// SetPersonID sets the "person_id" field.
+func (_u *TranscriptSegmentUpdateOne) SetPersonID(v string) *TranscriptSegmentUpdateOne {
+	_u.mutation.SetPersonID(v)
+	return _u
+}
+
+// SetNillablePersonID sets the "person_id" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdateOne) SetNillablePersonID(v *string) *TranscriptSegmentUpdateOne {
+	if v != nil {
+		_u.SetPersonID(*v)
+	}
+	return _u
+}
+
+// ClearPersonID clears the value of the "person_id" field.
+func (_u *TranscriptSegmentUpdateOne) ClearPersonID() *TranscriptSegmentUpdateOne {
+	_u.mutation.ClearPersonID()
+	return _u
+}
+
 // SetText sets the "text" field.
 func (_u *TranscriptSegmentUpdateOne) SetText(v string) *TranscriptSegmentUpdateOne {
 	_u.mutation.SetText(v)
@@ -375,17 +506,23 @@ func (_u *TranscriptSegmentUpdateOne) SetNillableSource(v *string) *TranscriptSe
 	return _u
 }
 
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *TranscriptSegmentUpdateOne) SetConversationID(id int) *TranscriptSegmentUpdateOne {
-	_u.mutation.SetConversationID(id)
+// SetConversationID sets the "conversation_id" field.
+func (_u *TranscriptSegmentUpdateOne) SetConversationID(v int) *TranscriptSegmentUpdateOne {
+	_u.mutation.SetConversationID(v)
 	return _u
 }
 
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *TranscriptSegmentUpdateOne) SetNillableConversationID(id *int) *TranscriptSegmentUpdateOne {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *TranscriptSegmentUpdateOne) SetNillableConversationID(v *int) *TranscriptSegmentUpdateOne {
+	if v != nil {
+		_u.SetConversationID(*v)
 	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *TranscriptSegmentUpdateOne) ClearConversationID() *TranscriptSegmentUpdateOne {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
@@ -503,6 +640,21 @@ func (_u *TranscriptSegmentUpdateOne) sqlSave(ctx context.Context) (_node *Trans
 	}
 	if value, ok := _u.mutation.Speaker(); ok {
 		_spec.SetField(transcriptsegment.FieldSpeaker, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SpeakerID(); ok {
+		_spec.SetField(transcriptsegment.FieldSpeakerID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSpeakerID(); ok {
+		_spec.AddField(transcriptsegment.FieldSpeakerID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.IsUser(); ok {
+		_spec.SetField(transcriptsegment.FieldIsUser, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.PersonID(); ok {
+		_spec.SetField(transcriptsegment.FieldPersonID, field.TypeString, value)
+	}
+	if _u.mutation.PersonIDCleared() {
+		_spec.ClearField(transcriptsegment.FieldPersonID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Text(); ok {
 		_spec.SetField(transcriptsegment.FieldText, field.TypeString, value)

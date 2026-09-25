@@ -21,12 +21,26 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldCategory holds the string denoting the category field in the database.
+	FieldCategory = "category"
+	// FieldVisibility holds the string denoting the visibility field in the database.
+	FieldVisibility = "visibility"
+	// FieldTags holds the string denoting the tags field in the database.
+	FieldTags = "tags"
+	// FieldIsRead holds the string denoting the is_read field in the database.
+	FieldIsRead = "is_read"
+	// FieldIsDismissed holds the string denoting the is_dismissed field in the database.
+	FieldIsDismissed = "is_dismissed"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
 	// FieldImportance holds the string denoting the importance field in the database.
 	FieldImportance = "importance"
 	// FieldEventTime holds the string denoting the event_time field in the database.
 	FieldEventTime = "event_time"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
+	// FieldConversationID holds the string denoting the conversation_id field in the database.
+	FieldConversationID = "conversation_id"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeConversation holds the string denoting the conversation edge name in mutations.
@@ -39,14 +53,14 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "user_memories"
+	UserColumn = "user_id"
 	// ConversationTable is the table that holds the conversation relation/edge.
 	ConversationTable = "memories"
 	// ConversationInverseTable is the table name for the Conversation entity.
 	// It exists in this package in order to avoid circular dependency with the "conversation" package.
 	ConversationInverseTable = "conversations"
 	// ConversationColumn is the table column denoting the conversation relation/edge.
-	ConversationColumn = "conversation_memories"
+	ConversationColumn = "conversation_id"
 )
 
 // Columns holds all SQL columns for memory fields.
@@ -55,27 +69,22 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldType,
+	FieldCategory,
+	FieldVisibility,
+	FieldTags,
+	FieldIsRead,
+	FieldIsDismissed,
 	FieldContent,
 	FieldImportance,
 	FieldEventTime,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "memories"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"conversation_memories",
-	"user_memories",
+	FieldUserID,
+	FieldConversationID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -89,6 +98,14 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultCategory holds the default value on creation for the "category" field.
+	DefaultCategory string
+	// DefaultVisibility holds the default value on creation for the "visibility" field.
+	DefaultVisibility string
+	// DefaultIsRead holds the default value on creation for the "is_read" field.
+	DefaultIsRead bool
+	// DefaultIsDismissed holds the default value on creation for the "is_dismissed" field.
+	DefaultIsDismissed bool
 	// DefaultImportance holds the default value on creation for the "importance" field.
 	DefaultImportance int
 	// ImportanceValidator is a validator for the "importance" field. It is called by the builders before save.
@@ -146,6 +163,26 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
+// ByCategory orders the results by the category field.
+func ByCategory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCategory, opts...).ToFunc()
+}
+
+// ByVisibility orders the results by the visibility field.
+func ByVisibility(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVisibility, opts...).ToFunc()
+}
+
+// ByIsRead orders the results by the is_read field.
+func ByIsRead(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsRead, opts...).ToFunc()
+}
+
+// ByIsDismissed orders the results by the is_dismissed field.
+func ByIsDismissed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsDismissed, opts...).ToFunc()
+}
+
 // ByContent orders the results by the content field.
 func ByContent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldContent, opts...).ToFunc()
@@ -159,6 +196,16 @@ func ByImportance(opts ...sql.OrderTermOption) OrderOption {
 // ByEventTime orders the results by the event_time field.
 func ByEventTime(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEventTime, opts...).ToFunc()
+}
+
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByConversationID orders the results by the conversation_id field.
+func ByConversationID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConversationID, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

@@ -63,6 +63,48 @@ func (_c *TranscriptSegmentCreate) SetNillableSpeaker(v *string) *TranscriptSegm
 	return _c
 }
 
+// SetSpeakerID sets the "speaker_id" field.
+func (_c *TranscriptSegmentCreate) SetSpeakerID(v int) *TranscriptSegmentCreate {
+	_c.mutation.SetSpeakerID(v)
+	return _c
+}
+
+// SetNillableSpeakerID sets the "speaker_id" field if the given value is not nil.
+func (_c *TranscriptSegmentCreate) SetNillableSpeakerID(v *int) *TranscriptSegmentCreate {
+	if v != nil {
+		_c.SetSpeakerID(*v)
+	}
+	return _c
+}
+
+// SetIsUser sets the "is_user" field.
+func (_c *TranscriptSegmentCreate) SetIsUser(v bool) *TranscriptSegmentCreate {
+	_c.mutation.SetIsUser(v)
+	return _c
+}
+
+// SetNillableIsUser sets the "is_user" field if the given value is not nil.
+func (_c *TranscriptSegmentCreate) SetNillableIsUser(v *bool) *TranscriptSegmentCreate {
+	if v != nil {
+		_c.SetIsUser(*v)
+	}
+	return _c
+}
+
+// SetPersonID sets the "person_id" field.
+func (_c *TranscriptSegmentCreate) SetPersonID(v string) *TranscriptSegmentCreate {
+	_c.mutation.SetPersonID(v)
+	return _c
+}
+
+// SetNillablePersonID sets the "person_id" field if the given value is not nil.
+func (_c *TranscriptSegmentCreate) SetNillablePersonID(v *string) *TranscriptSegmentCreate {
+	if v != nil {
+		_c.SetPersonID(*v)
+	}
+	return _c
+}
+
 // SetText sets the "text" field.
 func (_c *TranscriptSegmentCreate) SetText(v string) *TranscriptSegmentCreate {
 	_c.mutation.SetText(v)
@@ -95,16 +137,16 @@ func (_c *TranscriptSegmentCreate) SetNillableSource(v *string) *TranscriptSegme
 	return _c
 }
 
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_c *TranscriptSegmentCreate) SetConversationID(id int) *TranscriptSegmentCreate {
-	_c.mutation.SetConversationID(id)
+// SetConversationID sets the "conversation_id" field.
+func (_c *TranscriptSegmentCreate) SetConversationID(v int) *TranscriptSegmentCreate {
+	_c.mutation.SetConversationID(v)
 	return _c
 }
 
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_c *TranscriptSegmentCreate) SetNillableConversationID(id *int) *TranscriptSegmentCreate {
-	if id != nil {
-		_c = _c.SetConversationID(*id)
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_c *TranscriptSegmentCreate) SetNillableConversationID(v *int) *TranscriptSegmentCreate {
+	if v != nil {
+		_c.SetConversationID(*v)
 	}
 	return _c
 }
@@ -161,6 +203,14 @@ func (_c *TranscriptSegmentCreate) defaults() {
 		v := transcriptsegment.DefaultSpeaker
 		_c.mutation.SetSpeaker(v)
 	}
+	if _, ok := _c.mutation.SpeakerID(); !ok {
+		v := transcriptsegment.DefaultSpeakerID
+		_c.mutation.SetSpeakerID(v)
+	}
+	if _, ok := _c.mutation.IsUser(); !ok {
+		v := transcriptsegment.DefaultIsUser
+		_c.mutation.SetIsUser(v)
+	}
 	if _, ok := _c.mutation.Source(); !ok {
 		v := transcriptsegment.DefaultSource
 		_c.mutation.SetSource(v)
@@ -177,6 +227,12 @@ func (_c *TranscriptSegmentCreate) check() error {
 	}
 	if _, ok := _c.mutation.Speaker(); !ok {
 		return &ValidationError{Name: "speaker", err: errors.New(`ent: missing required field "TranscriptSegment.speaker"`)}
+	}
+	if _, ok := _c.mutation.SpeakerID(); !ok {
+		return &ValidationError{Name: "speaker_id", err: errors.New(`ent: missing required field "TranscriptSegment.speaker_id"`)}
+	}
+	if _, ok := _c.mutation.IsUser(); !ok {
+		return &ValidationError{Name: "is_user", err: errors.New(`ent: missing required field "TranscriptSegment.is_user"`)}
 	}
 	if _, ok := _c.mutation.Text(); !ok {
 		return &ValidationError{Name: "text", err: errors.New(`ent: missing required field "TranscriptSegment.text"`)}
@@ -238,6 +294,18 @@ func (_c *TranscriptSegmentCreate) createSpec() (*TranscriptSegment, *sqlgraph.C
 		_spec.SetField(transcriptsegment.FieldSpeaker, field.TypeString, value)
 		_node.Speaker = value
 	}
+	if value, ok := _c.mutation.SpeakerID(); ok {
+		_spec.SetField(transcriptsegment.FieldSpeakerID, field.TypeInt, value)
+		_node.SpeakerID = value
+	}
+	if value, ok := _c.mutation.IsUser(); ok {
+		_spec.SetField(transcriptsegment.FieldIsUser, field.TypeBool, value)
+		_node.IsUser = value
+	}
+	if value, ok := _c.mutation.PersonID(); ok {
+		_spec.SetField(transcriptsegment.FieldPersonID, field.TypeString, value)
+		_node.PersonID = &value
+	}
 	if value, ok := _c.mutation.Text(); ok {
 		_spec.SetField(transcriptsegment.FieldText, field.TypeString, value)
 		_node.Text = value
@@ -268,7 +336,7 @@ func (_c *TranscriptSegmentCreate) createSpec() (*TranscriptSegment, *sqlgraph.C
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.conversation_transcript_segments = &nodes[0]
+		_node.ConversationID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

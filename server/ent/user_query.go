@@ -8,9 +8,17 @@ import (
 	"fmt"
 	"math"
 	"remi/server/ent/actionitem"
+	"remi/server/ent/calendarmeeting"
+	"remi/server/ent/chatfile"
+	"remi/server/ent/chatmessage"
+	"remi/server/ent/chatsession"
 	"remi/server/ent/conversation"
+	"remi/server/ent/csatrating"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
+	"remi/server/ent/goal"
 	"remi/server/ent/memory"
+	"remi/server/ent/notificationtoken"
 	"remi/server/ent/predicate"
 	"remi/server/ent/todo"
 	"remi/server/ent/user"
@@ -24,15 +32,23 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx               *QueryContext
-	order             []user.OrderOption
-	inters            []Interceptor
-	predicates        []predicate.User
-	withDevices       *DeviceQuery
-	withConversations *ConversationQuery
-	withMemories      *MemoryQuery
-	withTodos         *TodoQuery
-	withActionItems   *ActionItemQuery
+	ctx                    *QueryContext
+	order                  []user.OrderOption
+	inters                 []Interceptor
+	predicates             []predicate.User
+	withDevices            *DeviceQuery
+	withConversations      *ConversationQuery
+	withMemories           *MemoryQuery
+	withTodos              *TodoQuery
+	withActionItems        *ActionItemQuery
+	withChatMessages       *ChatMessageQuery
+	withChatSessions       *ChatSessionQuery
+	withNotificationTokens *NotificationTokenQuery
+	withFolders            *FolderQuery
+	withGoals              *GoalQuery
+	withCalendarMeetings   *CalendarMeetingQuery
+	withCsatRatings        *CsatRatingQuery
+	withChatFiles          *ChatFileQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -172,6 +188,182 @@ func (_q *UserQuery) QueryActionItems() *ActionItemQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(actionitem.Table, actionitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.ActionItemsTable, user.ActionItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChatMessages chains the current query on the "chat_messages" edge.
+func (_q *UserQuery) QueryChatMessages() *ChatMessageQuery {
+	query := (&ChatMessageClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(chatmessage.Table, chatmessage.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ChatMessagesTable, user.ChatMessagesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChatSessions chains the current query on the "chat_sessions" edge.
+func (_q *UserQuery) QueryChatSessions() *ChatSessionQuery {
+	query := (&ChatSessionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(chatsession.Table, chatsession.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ChatSessionsTable, user.ChatSessionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNotificationTokens chains the current query on the "notification_tokens" edge.
+func (_q *UserQuery) QueryNotificationTokens() *NotificationTokenQuery {
+	query := (&NotificationTokenClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(notificationtoken.Table, notificationtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.NotificationTokensTable, user.NotificationTokensColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFolders chains the current query on the "folders" edge.
+func (_q *UserQuery) QueryFolders() *FolderQuery {
+	query := (&FolderClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(folder.Table, folder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.FoldersTable, user.FoldersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGoals chains the current query on the "goals" edge.
+func (_q *UserQuery) QueryGoals() *GoalQuery {
+	query := (&GoalClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(goal.Table, goal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.GoalsTable, user.GoalsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCalendarMeetings chains the current query on the "calendar_meetings" edge.
+func (_q *UserQuery) QueryCalendarMeetings() *CalendarMeetingQuery {
+	query := (&CalendarMeetingClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(calendarmeeting.Table, calendarmeeting.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CalendarMeetingsTable, user.CalendarMeetingsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCsatRatings chains the current query on the "csat_ratings" edge.
+func (_q *UserQuery) QueryCsatRatings() *CsatRatingQuery {
+	query := (&CsatRatingClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(csatrating.Table, csatrating.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CsatRatingsTable, user.CsatRatingsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChatFiles chains the current query on the "chat_files" edge.
+func (_q *UserQuery) QueryChatFiles() *ChatFileQuery {
+	query := (&ChatFileClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(chatfile.Table, chatfile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ChatFilesTable, user.ChatFilesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -366,16 +558,24 @@ func (_q *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:            _q.config,
-		ctx:               _q.ctx.Clone(),
-		order:             append([]user.OrderOption{}, _q.order...),
-		inters:            append([]Interceptor{}, _q.inters...),
-		predicates:        append([]predicate.User{}, _q.predicates...),
-		withDevices:       _q.withDevices.Clone(),
-		withConversations: _q.withConversations.Clone(),
-		withMemories:      _q.withMemories.Clone(),
-		withTodos:         _q.withTodos.Clone(),
-		withActionItems:   _q.withActionItems.Clone(),
+		config:                 _q.config,
+		ctx:                    _q.ctx.Clone(),
+		order:                  append([]user.OrderOption{}, _q.order...),
+		inters:                 append([]Interceptor{}, _q.inters...),
+		predicates:             append([]predicate.User{}, _q.predicates...),
+		withDevices:            _q.withDevices.Clone(),
+		withConversations:      _q.withConversations.Clone(),
+		withMemories:           _q.withMemories.Clone(),
+		withTodos:              _q.withTodos.Clone(),
+		withActionItems:        _q.withActionItems.Clone(),
+		withChatMessages:       _q.withChatMessages.Clone(),
+		withChatSessions:       _q.withChatSessions.Clone(),
+		withNotificationTokens: _q.withNotificationTokens.Clone(),
+		withFolders:            _q.withFolders.Clone(),
+		withGoals:              _q.withGoals.Clone(),
+		withCalendarMeetings:   _q.withCalendarMeetings.Clone(),
+		withCsatRatings:        _q.withCsatRatings.Clone(),
+		withChatFiles:          _q.withChatFiles.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -434,6 +634,94 @@ func (_q *UserQuery) WithActionItems(opts ...func(*ActionItemQuery)) *UserQuery 
 		opt(query)
 	}
 	_q.withActionItems = query
+	return _q
+}
+
+// WithChatMessages tells the query-builder to eager-load the nodes that are connected to
+// the "chat_messages" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithChatMessages(opts ...func(*ChatMessageQuery)) *UserQuery {
+	query := (&ChatMessageClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChatMessages = query
+	return _q
+}
+
+// WithChatSessions tells the query-builder to eager-load the nodes that are connected to
+// the "chat_sessions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithChatSessions(opts ...func(*ChatSessionQuery)) *UserQuery {
+	query := (&ChatSessionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChatSessions = query
+	return _q
+}
+
+// WithNotificationTokens tells the query-builder to eager-load the nodes that are connected to
+// the "notification_tokens" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithNotificationTokens(opts ...func(*NotificationTokenQuery)) *UserQuery {
+	query := (&NotificationTokenClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNotificationTokens = query
+	return _q
+}
+
+// WithFolders tells the query-builder to eager-load the nodes that are connected to
+// the "folders" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithFolders(opts ...func(*FolderQuery)) *UserQuery {
+	query := (&FolderClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withFolders = query
+	return _q
+}
+
+// WithGoals tells the query-builder to eager-load the nodes that are connected to
+// the "goals" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithGoals(opts ...func(*GoalQuery)) *UserQuery {
+	query := (&GoalClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withGoals = query
+	return _q
+}
+
+// WithCalendarMeetings tells the query-builder to eager-load the nodes that are connected to
+// the "calendar_meetings" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithCalendarMeetings(opts ...func(*CalendarMeetingQuery)) *UserQuery {
+	query := (&CalendarMeetingClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCalendarMeetings = query
+	return _q
+}
+
+// WithCsatRatings tells the query-builder to eager-load the nodes that are connected to
+// the "csat_ratings" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithCsatRatings(opts ...func(*CsatRatingQuery)) *UserQuery {
+	query := (&CsatRatingClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCsatRatings = query
+	return _q
+}
+
+// WithChatFiles tells the query-builder to eager-load the nodes that are connected to
+// the "chat_files" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithChatFiles(opts ...func(*ChatFileQuery)) *UserQuery {
+	query := (&ChatFileClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChatFiles = query
 	return _q
 }
 
@@ -515,12 +803,20 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [13]bool{
 			_q.withDevices != nil,
 			_q.withConversations != nil,
 			_q.withMemories != nil,
 			_q.withTodos != nil,
 			_q.withActionItems != nil,
+			_q.withChatMessages != nil,
+			_q.withChatSessions != nil,
+			_q.withNotificationTokens != nil,
+			_q.withFolders != nil,
+			_q.withGoals != nil,
+			_q.withCalendarMeetings != nil,
+			_q.withCsatRatings != nil,
+			_q.withChatFiles != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -576,6 +872,64 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			return nil, err
 		}
 	}
+	if query := _q.withChatMessages; query != nil {
+		if err := _q.loadChatMessages(ctx, query, nodes,
+			func(n *User) { n.Edges.ChatMessages = []*ChatMessage{} },
+			func(n *User, e *ChatMessage) { n.Edges.ChatMessages = append(n.Edges.ChatMessages, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChatSessions; query != nil {
+		if err := _q.loadChatSessions(ctx, query, nodes,
+			func(n *User) { n.Edges.ChatSessions = []*ChatSession{} },
+			func(n *User, e *ChatSession) { n.Edges.ChatSessions = append(n.Edges.ChatSessions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNotificationTokens; query != nil {
+		if err := _q.loadNotificationTokens(ctx, query, nodes,
+			func(n *User) { n.Edges.NotificationTokens = []*NotificationToken{} },
+			func(n *User, e *NotificationToken) {
+				n.Edges.NotificationTokens = append(n.Edges.NotificationTokens, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withFolders; query != nil {
+		if err := _q.loadFolders(ctx, query, nodes,
+			func(n *User) { n.Edges.Folders = []*Folder{} },
+			func(n *User, e *Folder) { n.Edges.Folders = append(n.Edges.Folders, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withGoals; query != nil {
+		if err := _q.loadGoals(ctx, query, nodes,
+			func(n *User) { n.Edges.Goals = []*Goal{} },
+			func(n *User, e *Goal) { n.Edges.Goals = append(n.Edges.Goals, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCalendarMeetings; query != nil {
+		if err := _q.loadCalendarMeetings(ctx, query, nodes,
+			func(n *User) { n.Edges.CalendarMeetings = []*CalendarMeeting{} },
+			func(n *User, e *CalendarMeeting) { n.Edges.CalendarMeetings = append(n.Edges.CalendarMeetings, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCsatRatings; query != nil {
+		if err := _q.loadCsatRatings(ctx, query, nodes,
+			func(n *User) { n.Edges.CsatRatings = []*CsatRating{} },
+			func(n *User, e *CsatRating) { n.Edges.CsatRatings = append(n.Edges.CsatRatings, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChatFiles; query != nil {
+		if err := _q.loadChatFiles(ctx, query, nodes,
+			func(n *User) { n.Edges.ChatFiles = []*ChatFile{} },
+			func(n *User, e *ChatFile) { n.Edges.ChatFiles = append(n.Edges.ChatFiles, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -589,7 +943,9 @@ func (_q *UserQuery) loadDevices(ctx context.Context, query *DeviceQuery, nodes 
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(device.FieldUserID)
+	}
 	query.Where(predicate.Device(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.DevicesColumn), fks...))
 	}))
@@ -598,13 +954,13 @@ func (_q *UserQuery) loadDevices(ctx context.Context, query *DeviceQuery, nodes 
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_devices
+		fk := n.UserID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_devices" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_devices" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -620,7 +976,9 @@ func (_q *UserQuery) loadConversations(ctx context.Context, query *ConversationQ
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(conversation.FieldUserID)
+	}
 	query.Where(predicate.Conversation(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.ConversationsColumn), fks...))
 	}))
@@ -629,13 +987,13 @@ func (_q *UserQuery) loadConversations(ctx context.Context, query *ConversationQ
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_conversations
+		fk := n.UserID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_conversations" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_conversations" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -651,7 +1009,9 @@ func (_q *UserQuery) loadMemories(ctx context.Context, query *MemoryQuery, nodes
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(memory.FieldUserID)
+	}
 	query.Where(predicate.Memory(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.MemoriesColumn), fks...))
 	}))
@@ -660,13 +1020,13 @@ func (_q *UserQuery) loadMemories(ctx context.Context, query *MemoryQuery, nodes
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_memories
+		fk := n.UserID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_memories" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_memories" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -682,7 +1042,9 @@ func (_q *UserQuery) loadTodos(ctx context.Context, query *TodoQuery, nodes []*U
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(todo.FieldUserID)
+	}
 	query.Where(predicate.Todo(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.TodosColumn), fks...))
 	}))
@@ -691,13 +1053,13 @@ func (_q *UserQuery) loadTodos(ctx context.Context, query *TodoQuery, nodes []*U
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_todos
+		fk := n.UserID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_todos" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_todos" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -713,7 +1075,9 @@ func (_q *UserQuery) loadActionItems(ctx context.Context, query *ActionItemQuery
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(actionitem.FieldUserID)
+	}
 	query.Where(predicate.ActionItem(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.ActionItemsColumn), fks...))
 	}))
@@ -722,13 +1086,277 @@ func (_q *UserQuery) loadActionItems(ctx context.Context, query *ActionItemQuery
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_action_items
+		fk := n.UserID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_action_items" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_action_items" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadChatMessages(ctx context.Context, query *ChatMessageQuery, nodes []*User, init func(*User), assign func(*User, *ChatMessage)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chatmessage.FieldUserID)
+	}
+	query.Where(predicate.ChatMessage(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ChatMessagesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadChatSessions(ctx context.Context, query *ChatSessionQuery, nodes []*User, init func(*User), assign func(*User, *ChatSession)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chatsession.FieldUserID)
+	}
+	query.Where(predicate.ChatSession(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ChatSessionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadNotificationTokens(ctx context.Context, query *NotificationTokenQuery, nodes []*User, init func(*User), assign func(*User, *NotificationToken)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(notificationtoken.FieldUserID)
+	}
+	query.Where(predicate.NotificationToken(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.NotificationTokensColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadFolders(ctx context.Context, query *FolderQuery, nodes []*User, init func(*User), assign func(*User, *Folder)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(folder.FieldUserID)
+	}
+	query.Where(predicate.Folder(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.FoldersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadGoals(ctx context.Context, query *GoalQuery, nodes []*User, init func(*User), assign func(*User, *Goal)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(goal.FieldUserID)
+	}
+	query.Where(predicate.Goal(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.GoalsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadCalendarMeetings(ctx context.Context, query *CalendarMeetingQuery, nodes []*User, init func(*User), assign func(*User, *CalendarMeeting)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(calendarmeeting.FieldUserID)
+	}
+	query.Where(predicate.CalendarMeeting(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.CalendarMeetingsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadCsatRatings(ctx context.Context, query *CsatRatingQuery, nodes []*User, init func(*User), assign func(*User, *CsatRating)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(csatrating.FieldUserID)
+	}
+	query.Where(predicate.CsatRating(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.CsatRatingsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadChatFiles(ctx context.Context, query *ChatFileQuery, nodes []*User, init func(*User), assign func(*User, *ChatFile)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chatfile.FieldUserID)
+	}
+	query.Where(predicate.ChatFile(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ChatFilesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

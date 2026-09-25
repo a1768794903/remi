@@ -26,7 +26,6 @@ type ActionItemQuery struct {
 	predicates       []predicate.ActionItem
 	withUser         *UserQuery
 	withConversation *ConversationQuery
-	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -406,19 +405,12 @@ func (_q *ActionItemQuery) prepareQuery(ctx context.Context) error {
 func (_q *ActionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ActionItem, error) {
 	var (
 		nodes       = []*ActionItem{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
 			_q.withUser != nil,
 			_q.withConversation != nil,
 		}
 	)
-	if _q.withUser != nil || _q.withConversation != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, actionitem.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*ActionItem).scanValues(nil, columns)
 	}
@@ -456,10 +448,10 @@ func (_q *ActionItemQuery) loadUser(ctx context.Context, query *UserQuery, nodes
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*ActionItem)
 	for i := range nodes {
-		if nodes[i].user_action_items == nil {
+		if nodes[i].UserID == nil {
 			continue
 		}
-		fk := *nodes[i].user_action_items
+		fk := *nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -476,7 +468,7 @@ func (_q *ActionItemQuery) loadUser(ctx context.Context, query *UserQuery, nodes
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_action_items" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -488,10 +480,10 @@ func (_q *ActionItemQuery) loadConversation(ctx context.Context, query *Conversa
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*ActionItem)
 	for i := range nodes {
-		if nodes[i].conversation_action_items == nil {
+		if nodes[i].ConversationID == nil {
 			continue
 		}
-		fk := *nodes[i].conversation_action_items
+		fk := *nodes[i].ConversationID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -508,7 +500,7 @@ func (_q *ActionItemQuery) loadConversation(ctx context.Context, query *Conversa
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "conversation_action_items" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "conversation_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -541,6 +533,12 @@ func (_q *ActionItemQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != actionitem.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withUser != nil {
+			_spec.Node.AddColumnOnce(actionitem.FieldUserID)
+		}
+		if _q.withConversation != nil {
+			_spec.Node.AddColumnOnce(actionitem.FieldConversationID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

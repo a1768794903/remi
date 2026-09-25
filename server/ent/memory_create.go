@@ -64,6 +64,68 @@ func (_c *MemoryCreate) SetNillableType(v *memory.Type) *MemoryCreate {
 	return _c
 }
 
+// SetCategory sets the "category" field.
+func (_c *MemoryCreate) SetCategory(v string) *MemoryCreate {
+	_c.mutation.SetCategory(v)
+	return _c
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_c *MemoryCreate) SetNillableCategory(v *string) *MemoryCreate {
+	if v != nil {
+		_c.SetCategory(*v)
+	}
+	return _c
+}
+
+// SetVisibility sets the "visibility" field.
+func (_c *MemoryCreate) SetVisibility(v string) *MemoryCreate {
+	_c.mutation.SetVisibility(v)
+	return _c
+}
+
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_c *MemoryCreate) SetNillableVisibility(v *string) *MemoryCreate {
+	if v != nil {
+		_c.SetVisibility(*v)
+	}
+	return _c
+}
+
+// SetTags sets the "tags" field.
+func (_c *MemoryCreate) SetTags(v []string) *MemoryCreate {
+	_c.mutation.SetTags(v)
+	return _c
+}
+
+// SetIsRead sets the "is_read" field.
+func (_c *MemoryCreate) SetIsRead(v bool) *MemoryCreate {
+	_c.mutation.SetIsRead(v)
+	return _c
+}
+
+// SetNillableIsRead sets the "is_read" field if the given value is not nil.
+func (_c *MemoryCreate) SetNillableIsRead(v *bool) *MemoryCreate {
+	if v != nil {
+		_c.SetIsRead(*v)
+	}
+	return _c
+}
+
+// SetIsDismissed sets the "is_dismissed" field.
+func (_c *MemoryCreate) SetIsDismissed(v bool) *MemoryCreate {
+	_c.mutation.SetIsDismissed(v)
+	return _c
+}
+
+// SetNillableIsDismissed sets the "is_dismissed" field if the given value is not nil.
+func (_c *MemoryCreate) SetNillableIsDismissed(v *bool) *MemoryCreate {
+	if v != nil {
+		_c.SetIsDismissed(*v)
+	}
+	return _c
+}
+
 // SetContent sets the "content" field.
 func (_c *MemoryCreate) SetContent(v string) *MemoryCreate {
 	_c.mutation.SetContent(v)
@@ -98,16 +160,30 @@ func (_c *MemoryCreate) SetNillableEventTime(v *time.Time) *MemoryCreate {
 	return _c
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_c *MemoryCreate) SetUserID(id int) *MemoryCreate {
-	_c.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_c *MemoryCreate) SetUserID(v int) *MemoryCreate {
+	_c.mutation.SetUserID(v)
 	return _c
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_c *MemoryCreate) SetNillableUserID(id *int) *MemoryCreate {
-	if id != nil {
-		_c = _c.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_c *MemoryCreate) SetNillableUserID(v *int) *MemoryCreate {
+	if v != nil {
+		_c.SetUserID(*v)
+	}
+	return _c
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_c *MemoryCreate) SetConversationID(v int) *MemoryCreate {
+	_c.mutation.SetConversationID(v)
+	return _c
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_c *MemoryCreate) SetNillableConversationID(v *int) *MemoryCreate {
+	if v != nil {
+		_c.SetConversationID(*v)
 	}
 	return _c
 }
@@ -115,20 +191,6 @@ func (_c *MemoryCreate) SetNillableUserID(id *int) *MemoryCreate {
 // SetUser sets the "user" edge to the User entity.
 func (_c *MemoryCreate) SetUser(v *User) *MemoryCreate {
 	return _c.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_c *MemoryCreate) SetConversationID(id int) *MemoryCreate {
-	_c.mutation.SetConversationID(id)
-	return _c
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_c *MemoryCreate) SetNillableConversationID(id *int) *MemoryCreate {
-	if id != nil {
-		_c = _c.SetConversationID(*id)
-	}
-	return _c
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.
@@ -183,6 +245,22 @@ func (_c *MemoryCreate) defaults() {
 		v := memory.DefaultType
 		_c.mutation.SetType(v)
 	}
+	if _, ok := _c.mutation.Category(); !ok {
+		v := memory.DefaultCategory
+		_c.mutation.SetCategory(v)
+	}
+	if _, ok := _c.mutation.Visibility(); !ok {
+		v := memory.DefaultVisibility
+		_c.mutation.SetVisibility(v)
+	}
+	if _, ok := _c.mutation.IsRead(); !ok {
+		v := memory.DefaultIsRead
+		_c.mutation.SetIsRead(v)
+	}
+	if _, ok := _c.mutation.IsDismissed(); !ok {
+		v := memory.DefaultIsDismissed
+		_c.mutation.SetIsDismissed(v)
+	}
 	if _, ok := _c.mutation.Importance(); !ok {
 		v := memory.DefaultImportance
 		_c.mutation.SetImportance(v)
@@ -204,6 +282,18 @@ func (_c *MemoryCreate) check() error {
 		if err := memory.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Memory.type": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.Category(); !ok {
+		return &ValidationError{Name: "category", err: errors.New(`ent: missing required field "Memory.category"`)}
+	}
+	if _, ok := _c.mutation.Visibility(); !ok {
+		return &ValidationError{Name: "visibility", err: errors.New(`ent: missing required field "Memory.visibility"`)}
+	}
+	if _, ok := _c.mutation.IsRead(); !ok {
+		return &ValidationError{Name: "is_read", err: errors.New(`ent: missing required field "Memory.is_read"`)}
+	}
+	if _, ok := _c.mutation.IsDismissed(); !ok {
+		return &ValidationError{Name: "is_dismissed", err: errors.New(`ent: missing required field "Memory.is_dismissed"`)}
 	}
 	if _, ok := _c.mutation.Content(); !ok {
 		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Memory.content"`)}
@@ -254,6 +344,26 @@ func (_c *MemoryCreate) createSpec() (*Memory, *sqlgraph.CreateSpec) {
 		_spec.SetField(memory.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
+	if value, ok := _c.mutation.Category(); ok {
+		_spec.SetField(memory.FieldCategory, field.TypeString, value)
+		_node.Category = value
+	}
+	if value, ok := _c.mutation.Visibility(); ok {
+		_spec.SetField(memory.FieldVisibility, field.TypeString, value)
+		_node.Visibility = value
+	}
+	if value, ok := _c.mutation.Tags(); ok {
+		_spec.SetField(memory.FieldTags, field.TypeJSON, value)
+		_node.Tags = value
+	}
+	if value, ok := _c.mutation.IsRead(); ok {
+		_spec.SetField(memory.FieldIsRead, field.TypeBool, value)
+		_node.IsRead = value
+	}
+	if value, ok := _c.mutation.IsDismissed(); ok {
+		_spec.SetField(memory.FieldIsDismissed, field.TypeBool, value)
+		_node.IsDismissed = value
+	}
 	if value, ok := _c.mutation.Content(); ok {
 		_spec.SetField(memory.FieldContent, field.TypeString, value)
 		_node.Content = value
@@ -280,7 +390,7 @@ func (_c *MemoryCreate) createSpec() (*Memory, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_memories = &nodes[0]
+		_node.UserID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ConversationIDs(); len(nodes) > 0 {
@@ -297,7 +407,7 @@ func (_c *MemoryCreate) createSpec() (*Memory, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.conversation_memories = &nodes[0]
+		_node.ConversationID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

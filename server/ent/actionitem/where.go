@@ -140,6 +140,16 @@ func AppleReminderID(v string) predicate.ActionItem {
 	return predicate.ActionItem(sql.FieldEQ(FieldAppleReminderID, v))
 }
 
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldEQ(FieldUserID, v))
+}
+
+// ConversationID applies equality check predicate on the "conversation_id" field. It's identical to ConversationIDEQ.
+func ConversationID(v int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldEQ(FieldConversationID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.ActionItem {
 	return predicate.ActionItem(sql.FieldEQ(FieldCreatedAt, v))
@@ -1053,6 +1063,66 @@ func AppleReminderIDEqualFold(v string) predicate.ActionItem {
 // AppleReminderIDContainsFold applies the ContainsFold predicate on the "apple_reminder_id" field.
 func AppleReminderIDContainsFold(v string) predicate.ActionItem {
 	return predicate.ActionItem(sql.FieldContainsFold(FieldAppleReminderID, v))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// UserIDIsNil applies the IsNil predicate on the "user_id" field.
+func UserIDIsNil() predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldIsNull(FieldUserID))
+}
+
+// UserIDNotNil applies the NotNil predicate on the "user_id" field.
+func UserIDNotNil() predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldNotNull(FieldUserID))
+}
+
+// ConversationIDEQ applies the EQ predicate on the "conversation_id" field.
+func ConversationIDEQ(v int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldEQ(FieldConversationID, v))
+}
+
+// ConversationIDNEQ applies the NEQ predicate on the "conversation_id" field.
+func ConversationIDNEQ(v int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldNEQ(FieldConversationID, v))
+}
+
+// ConversationIDIn applies the In predicate on the "conversation_id" field.
+func ConversationIDIn(vs ...int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldIn(FieldConversationID, vs...))
+}
+
+// ConversationIDNotIn applies the NotIn predicate on the "conversation_id" field.
+func ConversationIDNotIn(vs ...int) predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldNotIn(FieldConversationID, vs...))
+}
+
+// ConversationIDIsNil applies the IsNil predicate on the "conversation_id" field.
+func ConversationIDIsNil() predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldIsNull(FieldConversationID))
+}
+
+// ConversationIDNotNil applies the NotNil predicate on the "conversation_id" field.
+func ConversationIDNotNil() predicate.ActionItem {
+	return predicate.ActionItem(sql.FieldNotNull(FieldConversationID))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

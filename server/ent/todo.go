@@ -31,12 +31,14 @@ type Todo struct {
 	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
 	Status todo.Status `json:"status,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID *int `json:"user_id,omitempty"`
+	// ConversationID holds the value of the "conversation_id" field.
+	ConversationID *int `json:"conversation_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the TodoQuery when eager-loading is set.
-	Edges              TodoEdges `json:"edges"`
-	conversation_todos *int
-	user_todos         *int
-	selectValues       sql.SelectValues
+	Edges        TodoEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // TodoEdges holds the relations/edges for other nodes in the graph.
@@ -77,16 +79,12 @@ func (*Todo) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case todo.FieldID:
+		case todo.FieldID, todo.FieldUserID, todo.FieldConversationID:
 			values[i] = new(sql.NullInt64)
 		case todo.FieldTitle, todo.FieldDescription, todo.FieldStatus:
 			values[i] = new(sql.NullString)
 		case todo.FieldCreatedAt, todo.FieldUpdatedAt, todo.FieldDueAt:
 			values[i] = new(sql.NullTime)
-		case todo.ForeignKeys[0]: // conversation_todos
-			values[i] = new(sql.NullInt64)
-		case todo.ForeignKeys[1]: // user_todos
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -145,19 +143,19 @@ func (_m *Todo) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = todo.Status(value.String)
 			}
-		case todo.ForeignKeys[0]:
+		case todo.FieldUserID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field conversation_todos", value)
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				_m.conversation_todos = new(int)
-				*_m.conversation_todos = int(value.Int64)
+				_m.UserID = new(int)
+				*_m.UserID = int(value.Int64)
 			}
-		case todo.ForeignKeys[1]:
+		case todo.FieldConversationID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_todos", value)
+				return fmt.Errorf("unexpected type %T for field conversation_id", values[i])
 			} else if value.Valid {
-				_m.user_todos = new(int)
-				*_m.user_todos = int(value.Int64)
+				_m.ConversationID = new(int)
+				*_m.ConversationID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -224,6 +222,16 @@ func (_m *Todo) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ConversationID; v != nil {
+		builder.WriteString("conversation_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

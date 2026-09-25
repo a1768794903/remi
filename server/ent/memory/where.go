@@ -65,6 +65,26 @@ func UpdatedAt(v time.Time) predicate.Memory {
 	return predicate.Memory(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
+// Category applies equality check predicate on the "category" field. It's identical to CategoryEQ.
+func Category(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldCategory, v))
+}
+
+// Visibility applies equality check predicate on the "visibility" field. It's identical to VisibilityEQ.
+func Visibility(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldVisibility, v))
+}
+
+// IsRead applies equality check predicate on the "is_read" field. It's identical to IsReadEQ.
+func IsRead(v bool) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldIsRead, v))
+}
+
+// IsDismissed applies equality check predicate on the "is_dismissed" field. It's identical to IsDismissedEQ.
+func IsDismissed(v bool) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldIsDismissed, v))
+}
+
 // Content applies equality check predicate on the "content" field. It's identical to ContentEQ.
 func Content(v string) predicate.Memory {
 	return predicate.Memory(sql.FieldEQ(FieldContent, v))
@@ -78,6 +98,16 @@ func Importance(v int) predicate.Memory {
 // EventTime applies equality check predicate on the "event_time" field. It's identical to EventTimeEQ.
 func EventTime(v time.Time) predicate.Memory {
 	return predicate.Memory(sql.FieldEQ(FieldEventTime, v))
+}
+
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v int) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldUserID, v))
+}
+
+// ConversationID applies equality check predicate on the "conversation_id" field. It's identical to ConversationIDEQ.
+func ConversationID(v int) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldConversationID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -178,6 +208,166 @@ func TypeIn(vs ...Type) predicate.Memory {
 // TypeNotIn applies the NotIn predicate on the "type" field.
 func TypeNotIn(vs ...Type) predicate.Memory {
 	return predicate.Memory(sql.FieldNotIn(FieldType, vs...))
+}
+
+// CategoryEQ applies the EQ predicate on the "category" field.
+func CategoryEQ(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldCategory, v))
+}
+
+// CategoryNEQ applies the NEQ predicate on the "category" field.
+func CategoryNEQ(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldNEQ(FieldCategory, v))
+}
+
+// CategoryIn applies the In predicate on the "category" field.
+func CategoryIn(vs ...string) predicate.Memory {
+	return predicate.Memory(sql.FieldIn(FieldCategory, vs...))
+}
+
+// CategoryNotIn applies the NotIn predicate on the "category" field.
+func CategoryNotIn(vs ...string) predicate.Memory {
+	return predicate.Memory(sql.FieldNotIn(FieldCategory, vs...))
+}
+
+// CategoryGT applies the GT predicate on the "category" field.
+func CategoryGT(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldGT(FieldCategory, v))
+}
+
+// CategoryGTE applies the GTE predicate on the "category" field.
+func CategoryGTE(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldGTE(FieldCategory, v))
+}
+
+// CategoryLT applies the LT predicate on the "category" field.
+func CategoryLT(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldLT(FieldCategory, v))
+}
+
+// CategoryLTE applies the LTE predicate on the "category" field.
+func CategoryLTE(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldLTE(FieldCategory, v))
+}
+
+// CategoryContains applies the Contains predicate on the "category" field.
+func CategoryContains(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldContains(FieldCategory, v))
+}
+
+// CategoryHasPrefix applies the HasPrefix predicate on the "category" field.
+func CategoryHasPrefix(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldHasPrefix(FieldCategory, v))
+}
+
+// CategoryHasSuffix applies the HasSuffix predicate on the "category" field.
+func CategoryHasSuffix(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldHasSuffix(FieldCategory, v))
+}
+
+// CategoryEqualFold applies the EqualFold predicate on the "category" field.
+func CategoryEqualFold(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldEqualFold(FieldCategory, v))
+}
+
+// CategoryContainsFold applies the ContainsFold predicate on the "category" field.
+func CategoryContainsFold(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldContainsFold(FieldCategory, v))
+}
+
+// VisibilityEQ applies the EQ predicate on the "visibility" field.
+func VisibilityEQ(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldVisibility, v))
+}
+
+// VisibilityNEQ applies the NEQ predicate on the "visibility" field.
+func VisibilityNEQ(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldNEQ(FieldVisibility, v))
+}
+
+// VisibilityIn applies the In predicate on the "visibility" field.
+func VisibilityIn(vs ...string) predicate.Memory {
+	return predicate.Memory(sql.FieldIn(FieldVisibility, vs...))
+}
+
+// VisibilityNotIn applies the NotIn predicate on the "visibility" field.
+func VisibilityNotIn(vs ...string) predicate.Memory {
+	return predicate.Memory(sql.FieldNotIn(FieldVisibility, vs...))
+}
+
+// VisibilityGT applies the GT predicate on the "visibility" field.
+func VisibilityGT(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldGT(FieldVisibility, v))
+}
+
+// VisibilityGTE applies the GTE predicate on the "visibility" field.
+func VisibilityGTE(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldGTE(FieldVisibility, v))
+}
+
+// VisibilityLT applies the LT predicate on the "visibility" field.
+func VisibilityLT(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldLT(FieldVisibility, v))
+}
+
+// VisibilityLTE applies the LTE predicate on the "visibility" field.
+func VisibilityLTE(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldLTE(FieldVisibility, v))
+}
+
+// VisibilityContains applies the Contains predicate on the "visibility" field.
+func VisibilityContains(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldContains(FieldVisibility, v))
+}
+
+// VisibilityHasPrefix applies the HasPrefix predicate on the "visibility" field.
+func VisibilityHasPrefix(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldHasPrefix(FieldVisibility, v))
+}
+
+// VisibilityHasSuffix applies the HasSuffix predicate on the "visibility" field.
+func VisibilityHasSuffix(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldHasSuffix(FieldVisibility, v))
+}
+
+// VisibilityEqualFold applies the EqualFold predicate on the "visibility" field.
+func VisibilityEqualFold(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldEqualFold(FieldVisibility, v))
+}
+
+// VisibilityContainsFold applies the ContainsFold predicate on the "visibility" field.
+func VisibilityContainsFold(v string) predicate.Memory {
+	return predicate.Memory(sql.FieldContainsFold(FieldVisibility, v))
+}
+
+// TagsIsNil applies the IsNil predicate on the "tags" field.
+func TagsIsNil() predicate.Memory {
+	return predicate.Memory(sql.FieldIsNull(FieldTags))
+}
+
+// TagsNotNil applies the NotNil predicate on the "tags" field.
+func TagsNotNil() predicate.Memory {
+	return predicate.Memory(sql.FieldNotNull(FieldTags))
+}
+
+// IsReadEQ applies the EQ predicate on the "is_read" field.
+func IsReadEQ(v bool) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldIsRead, v))
+}
+
+// IsReadNEQ applies the NEQ predicate on the "is_read" field.
+func IsReadNEQ(v bool) predicate.Memory {
+	return predicate.Memory(sql.FieldNEQ(FieldIsRead, v))
+}
+
+// IsDismissedEQ applies the EQ predicate on the "is_dismissed" field.
+func IsDismissedEQ(v bool) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldIsDismissed, v))
+}
+
+// IsDismissedNEQ applies the NEQ predicate on the "is_dismissed" field.
+func IsDismissedNEQ(v bool) predicate.Memory {
+	return predicate.Memory(sql.FieldNEQ(FieldIsDismissed, v))
 }
 
 // ContentEQ applies the EQ predicate on the "content" field.
@@ -333,6 +523,66 @@ func EventTimeIsNil() predicate.Memory {
 // EventTimeNotNil applies the NotNil predicate on the "event_time" field.
 func EventTimeNotNil() predicate.Memory {
 	return predicate.Memory(sql.FieldNotNull(FieldEventTime))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v int) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v int) predicate.Memory {
+	return predicate.Memory(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...int) predicate.Memory {
+	return predicate.Memory(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...int) predicate.Memory {
+	return predicate.Memory(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// UserIDIsNil applies the IsNil predicate on the "user_id" field.
+func UserIDIsNil() predicate.Memory {
+	return predicate.Memory(sql.FieldIsNull(FieldUserID))
+}
+
+// UserIDNotNil applies the NotNil predicate on the "user_id" field.
+func UserIDNotNil() predicate.Memory {
+	return predicate.Memory(sql.FieldNotNull(FieldUserID))
+}
+
+// ConversationIDEQ applies the EQ predicate on the "conversation_id" field.
+func ConversationIDEQ(v int) predicate.Memory {
+	return predicate.Memory(sql.FieldEQ(FieldConversationID, v))
+}
+
+// ConversationIDNEQ applies the NEQ predicate on the "conversation_id" field.
+func ConversationIDNEQ(v int) predicate.Memory {
+	return predicate.Memory(sql.FieldNEQ(FieldConversationID, v))
+}
+
+// ConversationIDIn applies the In predicate on the "conversation_id" field.
+func ConversationIDIn(vs ...int) predicate.Memory {
+	return predicate.Memory(sql.FieldIn(FieldConversationID, vs...))
+}
+
+// ConversationIDNotIn applies the NotIn predicate on the "conversation_id" field.
+func ConversationIDNotIn(vs ...int) predicate.Memory {
+	return predicate.Memory(sql.FieldNotIn(FieldConversationID, vs...))
+}
+
+// ConversationIDIsNil applies the IsNil predicate on the "conversation_id" field.
+func ConversationIDIsNil() predicate.Memory {
+	return predicate.Memory(sql.FieldIsNull(FieldConversationID))
+}
+
+// ConversationIDNotNil applies the NotNil predicate on the "conversation_id" field.
+func ConversationIDNotNil() predicate.Memory {
+	return predicate.Memory(sql.FieldNotNull(FieldConversationID))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

@@ -7,9 +7,17 @@ import (
 	"errors"
 	"fmt"
 	"remi/server/ent/actionitem"
+	"remi/server/ent/calendarmeeting"
+	"remi/server/ent/chatfile"
+	"remi/server/ent/chatmessage"
+	"remi/server/ent/chatsession"
 	"remi/server/ent/conversation"
+	"remi/server/ent/csatrating"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
+	"remi/server/ent/goal"
 	"remi/server/ent/memory"
+	"remi/server/ent/notificationtoken"
 	"remi/server/ent/predicate"
 	"remi/server/ent/todo"
 	"remi/server/ent/user"
@@ -39,6 +47,20 @@ func (_u *UserUpdate) SetUpdatedAt(v time.Time) *UserUpdate {
 	return _u
 }
 
+// SetExternalUID sets the "external_uid" field.
+func (_u *UserUpdate) SetExternalUID(v string) *UserUpdate {
+	_u.mutation.SetExternalUID(v)
+	return _u
+}
+
+// SetNillableExternalUID sets the "external_uid" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableExternalUID(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetExternalUID(*v)
+	}
+	return _u
+}
+
 // SetEmail sets the "email" field.
 func (_u *UserUpdate) SetEmail(v string) *UserUpdate {
 	_u.mutation.SetEmail(v)
@@ -64,6 +86,192 @@ func (_u *UserUpdate) SetNillableName(v *string) *UserUpdate {
 	if v != nil {
 		_u.SetName(*v)
 	}
+	return _u
+}
+
+// SetLanguage sets the "language" field.
+func (_u *UserUpdate) SetLanguage(v string) *UserUpdate {
+	_u.mutation.SetLanguage(v)
+	return _u
+}
+
+// SetNillableLanguage sets the "language" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableLanguage(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetLanguage(*v)
+	}
+	return _u
+}
+
+// SetTimeZone sets the "time_zone" field.
+func (_u *UserUpdate) SetTimeZone(v string) *UserUpdate {
+	_u.mutation.SetTimeZone(v)
+	return _u
+}
+
+// SetNillableTimeZone sets the "time_zone" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableTimeZone(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetTimeZone(*v)
+	}
+	return _u
+}
+
+// SetOnboarding sets the "onboarding" field.
+func (_u *UserUpdate) SetOnboarding(v map[string]interface{}) *UserUpdate {
+	_u.mutation.SetOnboarding(v)
+	return _u
+}
+
+// ClearOnboarding clears the value of the "onboarding" field.
+func (_u *UserUpdate) ClearOnboarding() *UserUpdate {
+	_u.mutation.ClearOnboarding()
+	return _u
+}
+
+// SetPrivateCloudSyncEnabled sets the "private_cloud_sync_enabled" field.
+func (_u *UserUpdate) SetPrivateCloudSyncEnabled(v bool) *UserUpdate {
+	_u.mutation.SetPrivateCloudSyncEnabled(v)
+	return _u
+}
+
+// SetNillablePrivateCloudSyncEnabled sets the "private_cloud_sync_enabled" field if the given value is not nil.
+func (_u *UserUpdate) SetNillablePrivateCloudSyncEnabled(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetPrivateCloudSyncEnabled(*v)
+	}
+	return _u
+}
+
+// SetMeetingNoteScreenshotsEnabled sets the "meeting_note_screenshots_enabled" field.
+func (_u *UserUpdate) SetMeetingNoteScreenshotsEnabled(v bool) *UserUpdate {
+	_u.mutation.SetMeetingNoteScreenshotsEnabled(v)
+	return _u
+}
+
+// SetNillableMeetingNoteScreenshotsEnabled sets the "meeting_note_screenshots_enabled" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableMeetingNoteScreenshotsEnabled(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetMeetingNoteScreenshotsEnabled(*v)
+	}
+	return _u
+}
+
+// SetStoreRecordingPermission sets the "store_recording_permission" field.
+func (_u *UserUpdate) SetStoreRecordingPermission(v bool) *UserUpdate {
+	_u.mutation.SetStoreRecordingPermission(v)
+	return _u
+}
+
+// SetNillableStoreRecordingPermission sets the "store_recording_permission" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableStoreRecordingPermission(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetStoreRecordingPermission(*v)
+	}
+	return _u
+}
+
+// SetDailySummaryEnabled sets the "daily_summary_enabled" field.
+func (_u *UserUpdate) SetDailySummaryEnabled(v bool) *UserUpdate {
+	_u.mutation.SetDailySummaryEnabled(v)
+	return _u
+}
+
+// SetNillableDailySummaryEnabled sets the "daily_summary_enabled" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableDailySummaryEnabled(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetDailySummaryEnabled(*v)
+	}
+	return _u
+}
+
+// SetDailySummaryHourLocal sets the "daily_summary_hour_local" field.
+func (_u *UserUpdate) SetDailySummaryHourLocal(v int) *UserUpdate {
+	_u.mutation.ResetDailySummaryHourLocal()
+	_u.mutation.SetDailySummaryHourLocal(v)
+	return _u
+}
+
+// SetNillableDailySummaryHourLocal sets the "daily_summary_hour_local" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableDailySummaryHourLocal(v *int) *UserUpdate {
+	if v != nil {
+		_u.SetDailySummaryHourLocal(*v)
+	}
+	return _u
+}
+
+// AddDailySummaryHourLocal adds value to the "daily_summary_hour_local" field.
+func (_u *UserUpdate) AddDailySummaryHourLocal(v int) *UserUpdate {
+	_u.mutation.AddDailySummaryHourLocal(v)
+	return _u
+}
+
+// SetMentorNotificationFrequency sets the "mentor_notification_frequency" field.
+func (_u *UserUpdate) SetMentorNotificationFrequency(v int) *UserUpdate {
+	_u.mutation.ResetMentorNotificationFrequency()
+	_u.mutation.SetMentorNotificationFrequency(v)
+	return _u
+}
+
+// SetNillableMentorNotificationFrequency sets the "mentor_notification_frequency" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableMentorNotificationFrequency(v *int) *UserUpdate {
+	if v != nil {
+		_u.SetMentorNotificationFrequency(*v)
+	}
+	return _u
+}
+
+// AddMentorNotificationFrequency adds value to the "mentor_notification_frequency" field.
+func (_u *UserUpdate) AddMentorNotificationFrequency(v int) *UserUpdate {
+	_u.mutation.AddMentorNotificationFrequency(v)
+	return _u
+}
+
+// SetIntegrations sets the "integrations" field.
+func (_u *UserUpdate) SetIntegrations(v map[string]interface{}) *UserUpdate {
+	_u.mutation.SetIntegrations(v)
+	return _u
+}
+
+// ClearIntegrations clears the value of the "integrations" field.
+func (_u *UserUpdate) ClearIntegrations() *UserUpdate {
+	_u.mutation.ClearIntegrations()
+	return _u
+}
+
+// SetNotificationSettings sets the "notification_settings" field.
+func (_u *UserUpdate) SetNotificationSettings(v map[string]interface{}) *UserUpdate {
+	_u.mutation.SetNotificationSettings(v)
+	return _u
+}
+
+// ClearNotificationSettings clears the value of the "notification_settings" field.
+func (_u *UserUpdate) ClearNotificationSettings() *UserUpdate {
+	_u.mutation.ClearNotificationSettings()
+	return _u
+}
+
+// SetAssistantSettings sets the "assistant_settings" field.
+func (_u *UserUpdate) SetAssistantSettings(v map[string]interface{}) *UserUpdate {
+	_u.mutation.SetAssistantSettings(v)
+	return _u
+}
+
+// ClearAssistantSettings clears the value of the "assistant_settings" field.
+func (_u *UserUpdate) ClearAssistantSettings() *UserUpdate {
+	_u.mutation.ClearAssistantSettings()
+	return _u
+}
+
+// SetAiProfile sets the "ai_profile" field.
+func (_u *UserUpdate) SetAiProfile(v map[string]interface{}) *UserUpdate {
+	_u.mutation.SetAiProfile(v)
+	return _u
+}
+
+// ClearAiProfile clears the value of the "ai_profile" field.
+func (_u *UserUpdate) ClearAiProfile() *UserUpdate {
+	_u.mutation.ClearAiProfile()
 	return _u
 }
 
@@ -140,6 +348,126 @@ func (_u *UserUpdate) AddActionItems(v ...*ActionItem) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddActionItemIDs(ids...)
+}
+
+// AddChatMessageIDs adds the "chat_messages" edge to the ChatMessage entity by IDs.
+func (_u *UserUpdate) AddChatMessageIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddChatMessageIDs(ids...)
+	return _u
+}
+
+// AddChatMessages adds the "chat_messages" edges to the ChatMessage entity.
+func (_u *UserUpdate) AddChatMessages(v ...*ChatMessage) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChatMessageIDs(ids...)
+}
+
+// AddChatSessionIDs adds the "chat_sessions" edge to the ChatSession entity by IDs.
+func (_u *UserUpdate) AddChatSessionIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddChatSessionIDs(ids...)
+	return _u
+}
+
+// AddChatSessions adds the "chat_sessions" edges to the ChatSession entity.
+func (_u *UserUpdate) AddChatSessions(v ...*ChatSession) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChatSessionIDs(ids...)
+}
+
+// AddNotificationTokenIDs adds the "notification_tokens" edge to the NotificationToken entity by IDs.
+func (_u *UserUpdate) AddNotificationTokenIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddNotificationTokenIDs(ids...)
+	return _u
+}
+
+// AddNotificationTokens adds the "notification_tokens" edges to the NotificationToken entity.
+func (_u *UserUpdate) AddNotificationTokens(v ...*NotificationToken) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNotificationTokenIDs(ids...)
+}
+
+// AddFolderIDs adds the "folders" edge to the Folder entity by IDs.
+func (_u *UserUpdate) AddFolderIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddFolderIDs(ids...)
+	return _u
+}
+
+// AddFolders adds the "folders" edges to the Folder entity.
+func (_u *UserUpdate) AddFolders(v ...*Folder) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFolderIDs(ids...)
+}
+
+// AddGoalIDs adds the "goals" edge to the Goal entity by IDs.
+func (_u *UserUpdate) AddGoalIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddGoalIDs(ids...)
+	return _u
+}
+
+// AddGoals adds the "goals" edges to the Goal entity.
+func (_u *UserUpdate) AddGoals(v ...*Goal) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddGoalIDs(ids...)
+}
+
+// AddCalendarMeetingIDs adds the "calendar_meetings" edge to the CalendarMeeting entity by IDs.
+func (_u *UserUpdate) AddCalendarMeetingIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddCalendarMeetingIDs(ids...)
+	return _u
+}
+
+// AddCalendarMeetings adds the "calendar_meetings" edges to the CalendarMeeting entity.
+func (_u *UserUpdate) AddCalendarMeetings(v ...*CalendarMeeting) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCalendarMeetingIDs(ids...)
+}
+
+// AddCsatRatingIDs adds the "csat_ratings" edge to the CsatRating entity by IDs.
+func (_u *UserUpdate) AddCsatRatingIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddCsatRatingIDs(ids...)
+	return _u
+}
+
+// AddCsatRatings adds the "csat_ratings" edges to the CsatRating entity.
+func (_u *UserUpdate) AddCsatRatings(v ...*CsatRating) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCsatRatingIDs(ids...)
+}
+
+// AddChatFileIDs adds the "chat_files" edge to the ChatFile entity by IDs.
+func (_u *UserUpdate) AddChatFileIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddChatFileIDs(ids...)
+	return _u
+}
+
+// AddChatFiles adds the "chat_files" edges to the ChatFile entity.
+func (_u *UserUpdate) AddChatFiles(v ...*ChatFile) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChatFileIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -252,6 +580,174 @@ func (_u *UserUpdate) RemoveActionItems(v ...*ActionItem) *UserUpdate {
 	return _u.RemoveActionItemIDs(ids...)
 }
 
+// ClearChatMessages clears all "chat_messages" edges to the ChatMessage entity.
+func (_u *UserUpdate) ClearChatMessages() *UserUpdate {
+	_u.mutation.ClearChatMessages()
+	return _u
+}
+
+// RemoveChatMessageIDs removes the "chat_messages" edge to ChatMessage entities by IDs.
+func (_u *UserUpdate) RemoveChatMessageIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveChatMessageIDs(ids...)
+	return _u
+}
+
+// RemoveChatMessages removes "chat_messages" edges to ChatMessage entities.
+func (_u *UserUpdate) RemoveChatMessages(v ...*ChatMessage) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChatMessageIDs(ids...)
+}
+
+// ClearChatSessions clears all "chat_sessions" edges to the ChatSession entity.
+func (_u *UserUpdate) ClearChatSessions() *UserUpdate {
+	_u.mutation.ClearChatSessions()
+	return _u
+}
+
+// RemoveChatSessionIDs removes the "chat_sessions" edge to ChatSession entities by IDs.
+func (_u *UserUpdate) RemoveChatSessionIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveChatSessionIDs(ids...)
+	return _u
+}
+
+// RemoveChatSessions removes "chat_sessions" edges to ChatSession entities.
+func (_u *UserUpdate) RemoveChatSessions(v ...*ChatSession) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChatSessionIDs(ids...)
+}
+
+// ClearNotificationTokens clears all "notification_tokens" edges to the NotificationToken entity.
+func (_u *UserUpdate) ClearNotificationTokens() *UserUpdate {
+	_u.mutation.ClearNotificationTokens()
+	return _u
+}
+
+// RemoveNotificationTokenIDs removes the "notification_tokens" edge to NotificationToken entities by IDs.
+func (_u *UserUpdate) RemoveNotificationTokenIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveNotificationTokenIDs(ids...)
+	return _u
+}
+
+// RemoveNotificationTokens removes "notification_tokens" edges to NotificationToken entities.
+func (_u *UserUpdate) RemoveNotificationTokens(v ...*NotificationToken) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNotificationTokenIDs(ids...)
+}
+
+// ClearFolders clears all "folders" edges to the Folder entity.
+func (_u *UserUpdate) ClearFolders() *UserUpdate {
+	_u.mutation.ClearFolders()
+	return _u
+}
+
+// RemoveFolderIDs removes the "folders" edge to Folder entities by IDs.
+func (_u *UserUpdate) RemoveFolderIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveFolderIDs(ids...)
+	return _u
+}
+
+// RemoveFolders removes "folders" edges to Folder entities.
+func (_u *UserUpdate) RemoveFolders(v ...*Folder) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFolderIDs(ids...)
+}
+
+// ClearGoals clears all "goals" edges to the Goal entity.
+func (_u *UserUpdate) ClearGoals() *UserUpdate {
+	_u.mutation.ClearGoals()
+	return _u
+}
+
+// RemoveGoalIDs removes the "goals" edge to Goal entities by IDs.
+func (_u *UserUpdate) RemoveGoalIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveGoalIDs(ids...)
+	return _u
+}
+
+// RemoveGoals removes "goals" edges to Goal entities.
+func (_u *UserUpdate) RemoveGoals(v ...*Goal) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveGoalIDs(ids...)
+}
+
+// ClearCalendarMeetings clears all "calendar_meetings" edges to the CalendarMeeting entity.
+func (_u *UserUpdate) ClearCalendarMeetings() *UserUpdate {
+	_u.mutation.ClearCalendarMeetings()
+	return _u
+}
+
+// RemoveCalendarMeetingIDs removes the "calendar_meetings" edge to CalendarMeeting entities by IDs.
+func (_u *UserUpdate) RemoveCalendarMeetingIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveCalendarMeetingIDs(ids...)
+	return _u
+}
+
+// RemoveCalendarMeetings removes "calendar_meetings" edges to CalendarMeeting entities.
+func (_u *UserUpdate) RemoveCalendarMeetings(v ...*CalendarMeeting) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCalendarMeetingIDs(ids...)
+}
+
+// ClearCsatRatings clears all "csat_ratings" edges to the CsatRating entity.
+func (_u *UserUpdate) ClearCsatRatings() *UserUpdate {
+	_u.mutation.ClearCsatRatings()
+	return _u
+}
+
+// RemoveCsatRatingIDs removes the "csat_ratings" edge to CsatRating entities by IDs.
+func (_u *UserUpdate) RemoveCsatRatingIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveCsatRatingIDs(ids...)
+	return _u
+}
+
+// RemoveCsatRatings removes "csat_ratings" edges to CsatRating entities.
+func (_u *UserUpdate) RemoveCsatRatings(v ...*CsatRating) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCsatRatingIDs(ids...)
+}
+
+// ClearChatFiles clears all "chat_files" edges to the ChatFile entity.
+func (_u *UserUpdate) ClearChatFiles() *UserUpdate {
+	_u.mutation.ClearChatFiles()
+	return _u
+}
+
+// RemoveChatFileIDs removes the "chat_files" edge to ChatFile entities by IDs.
+func (_u *UserUpdate) RemoveChatFileIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveChatFileIDs(ids...)
+	return _u
+}
+
+// RemoveChatFiles removes "chat_files" edges to ChatFile entities.
+func (_u *UserUpdate) RemoveChatFiles(v ...*ChatFile) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChatFileIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *UserUpdate) Save(ctx context.Context) (int, error) {
 	_u.defaults()
@@ -290,6 +786,11 @@ func (_u *UserUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *UserUpdate) check() error {
+	if v, ok := _u.mutation.ExternalUID(); ok {
+		if err := user.ExternalUIDValidator(v); err != nil {
+			return &ValidationError{Name: "external_uid", err: fmt.Errorf(`ent: validator failed for field "User.external_uid": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Email(); ok {
 		if err := user.EmailValidator(v); err != nil {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
@@ -313,11 +814,74 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.ExternalUID(); ok {
+		_spec.SetField(user.FieldExternalUID, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Language(); ok {
+		_spec.SetField(user.FieldLanguage, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.TimeZone(); ok {
+		_spec.SetField(user.FieldTimeZone, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Onboarding(); ok {
+		_spec.SetField(user.FieldOnboarding, field.TypeJSON, value)
+	}
+	if _u.mutation.OnboardingCleared() {
+		_spec.ClearField(user.FieldOnboarding, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PrivateCloudSyncEnabled(); ok {
+		_spec.SetField(user.FieldPrivateCloudSyncEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.MeetingNoteScreenshotsEnabled(); ok {
+		_spec.SetField(user.FieldMeetingNoteScreenshotsEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.StoreRecordingPermission(); ok {
+		_spec.SetField(user.FieldStoreRecordingPermission, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DailySummaryEnabled(); ok {
+		_spec.SetField(user.FieldDailySummaryEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DailySummaryHourLocal(); ok {
+		_spec.SetField(user.FieldDailySummaryHourLocal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDailySummaryHourLocal(); ok {
+		_spec.AddField(user.FieldDailySummaryHourLocal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.MentorNotificationFrequency(); ok {
+		_spec.SetField(user.FieldMentorNotificationFrequency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedMentorNotificationFrequency(); ok {
+		_spec.AddField(user.FieldMentorNotificationFrequency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Integrations(); ok {
+		_spec.SetField(user.FieldIntegrations, field.TypeJSON, value)
+	}
+	if _u.mutation.IntegrationsCleared() {
+		_spec.ClearField(user.FieldIntegrations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.NotificationSettings(); ok {
+		_spec.SetField(user.FieldNotificationSettings, field.TypeJSON, value)
+	}
+	if _u.mutation.NotificationSettingsCleared() {
+		_spec.ClearField(user.FieldNotificationSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.AssistantSettings(); ok {
+		_spec.SetField(user.FieldAssistantSettings, field.TypeJSON, value)
+	}
+	if _u.mutation.AssistantSettingsCleared() {
+		_spec.ClearField(user.FieldAssistantSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.AiProfile(); ok {
+		_spec.SetField(user.FieldAiProfile, field.TypeJSON, value)
+	}
+	if _u.mutation.AiProfileCleared() {
+		_spec.ClearField(user.FieldAiProfile, field.TypeJSON)
 	}
 	if _u.mutation.DevicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -544,6 +1108,366 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChatMessagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChatMessagesIDs(); len(nodes) > 0 && !_u.mutation.ChatMessagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChatMessagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChatSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChatSessionsIDs(); len(nodes) > 0 && !_u.mutation.ChatSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChatSessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NotificationTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNotificationTokensIDs(); len(nodes) > 0 && !_u.mutation.NotificationTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NotificationTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FoldersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFoldersIDs(); len(nodes) > 0 && !_u.mutation.FoldersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FoldersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedGoalsIDs(); len(nodes) > 0 && !_u.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GoalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CalendarMeetingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCalendarMeetingsIDs(); len(nodes) > 0 && !_u.mutation.CalendarMeetingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CalendarMeetingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CsatRatingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCsatRatingsIDs(); len(nodes) > 0 && !_u.mutation.CsatRatingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CsatRatingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChatFilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChatFilesIDs(); len(nodes) > 0 && !_u.mutation.ChatFilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChatFilesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -567,6 +1491,20 @@ type UserUpdateOne struct {
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *UserUpdateOne) SetUpdatedAt(v time.Time) *UserUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetExternalUID sets the "external_uid" field.
+func (_u *UserUpdateOne) SetExternalUID(v string) *UserUpdateOne {
+	_u.mutation.SetExternalUID(v)
+	return _u
+}
+
+// SetNillableExternalUID sets the "external_uid" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableExternalUID(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetExternalUID(*v)
+	}
 	return _u
 }
 
@@ -595,6 +1533,192 @@ func (_u *UserUpdateOne) SetNillableName(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetName(*v)
 	}
+	return _u
+}
+
+// SetLanguage sets the "language" field.
+func (_u *UserUpdateOne) SetLanguage(v string) *UserUpdateOne {
+	_u.mutation.SetLanguage(v)
+	return _u
+}
+
+// SetNillableLanguage sets the "language" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableLanguage(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetLanguage(*v)
+	}
+	return _u
+}
+
+// SetTimeZone sets the "time_zone" field.
+func (_u *UserUpdateOne) SetTimeZone(v string) *UserUpdateOne {
+	_u.mutation.SetTimeZone(v)
+	return _u
+}
+
+// SetNillableTimeZone sets the "time_zone" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableTimeZone(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetTimeZone(*v)
+	}
+	return _u
+}
+
+// SetOnboarding sets the "onboarding" field.
+func (_u *UserUpdateOne) SetOnboarding(v map[string]interface{}) *UserUpdateOne {
+	_u.mutation.SetOnboarding(v)
+	return _u
+}
+
+// ClearOnboarding clears the value of the "onboarding" field.
+func (_u *UserUpdateOne) ClearOnboarding() *UserUpdateOne {
+	_u.mutation.ClearOnboarding()
+	return _u
+}
+
+// SetPrivateCloudSyncEnabled sets the "private_cloud_sync_enabled" field.
+func (_u *UserUpdateOne) SetPrivateCloudSyncEnabled(v bool) *UserUpdateOne {
+	_u.mutation.SetPrivateCloudSyncEnabled(v)
+	return _u
+}
+
+// SetNillablePrivateCloudSyncEnabled sets the "private_cloud_sync_enabled" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillablePrivateCloudSyncEnabled(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetPrivateCloudSyncEnabled(*v)
+	}
+	return _u
+}
+
+// SetMeetingNoteScreenshotsEnabled sets the "meeting_note_screenshots_enabled" field.
+func (_u *UserUpdateOne) SetMeetingNoteScreenshotsEnabled(v bool) *UserUpdateOne {
+	_u.mutation.SetMeetingNoteScreenshotsEnabled(v)
+	return _u
+}
+
+// SetNillableMeetingNoteScreenshotsEnabled sets the "meeting_note_screenshots_enabled" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableMeetingNoteScreenshotsEnabled(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetMeetingNoteScreenshotsEnabled(*v)
+	}
+	return _u
+}
+
+// SetStoreRecordingPermission sets the "store_recording_permission" field.
+func (_u *UserUpdateOne) SetStoreRecordingPermission(v bool) *UserUpdateOne {
+	_u.mutation.SetStoreRecordingPermission(v)
+	return _u
+}
+
+// SetNillableStoreRecordingPermission sets the "store_recording_permission" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableStoreRecordingPermission(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetStoreRecordingPermission(*v)
+	}
+	return _u
+}
+
+// SetDailySummaryEnabled sets the "daily_summary_enabled" field.
+func (_u *UserUpdateOne) SetDailySummaryEnabled(v bool) *UserUpdateOne {
+	_u.mutation.SetDailySummaryEnabled(v)
+	return _u
+}
+
+// SetNillableDailySummaryEnabled sets the "daily_summary_enabled" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableDailySummaryEnabled(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetDailySummaryEnabled(*v)
+	}
+	return _u
+}
+
+// SetDailySummaryHourLocal sets the "daily_summary_hour_local" field.
+func (_u *UserUpdateOne) SetDailySummaryHourLocal(v int) *UserUpdateOne {
+	_u.mutation.ResetDailySummaryHourLocal()
+	_u.mutation.SetDailySummaryHourLocal(v)
+	return _u
+}
+
+// SetNillableDailySummaryHourLocal sets the "daily_summary_hour_local" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableDailySummaryHourLocal(v *int) *UserUpdateOne {
+	if v != nil {
+		_u.SetDailySummaryHourLocal(*v)
+	}
+	return _u
+}
+
+// AddDailySummaryHourLocal adds value to the "daily_summary_hour_local" field.
+func (_u *UserUpdateOne) AddDailySummaryHourLocal(v int) *UserUpdateOne {
+	_u.mutation.AddDailySummaryHourLocal(v)
+	return _u
+}
+
+// SetMentorNotificationFrequency sets the "mentor_notification_frequency" field.
+func (_u *UserUpdateOne) SetMentorNotificationFrequency(v int) *UserUpdateOne {
+	_u.mutation.ResetMentorNotificationFrequency()
+	_u.mutation.SetMentorNotificationFrequency(v)
+	return _u
+}
+
+// SetNillableMentorNotificationFrequency sets the "mentor_notification_frequency" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableMentorNotificationFrequency(v *int) *UserUpdateOne {
+	if v != nil {
+		_u.SetMentorNotificationFrequency(*v)
+	}
+	return _u
+}
+
+// AddMentorNotificationFrequency adds value to the "mentor_notification_frequency" field.
+func (_u *UserUpdateOne) AddMentorNotificationFrequency(v int) *UserUpdateOne {
+	_u.mutation.AddMentorNotificationFrequency(v)
+	return _u
+}
+
+// SetIntegrations sets the "integrations" field.
+func (_u *UserUpdateOne) SetIntegrations(v map[string]interface{}) *UserUpdateOne {
+	_u.mutation.SetIntegrations(v)
+	return _u
+}
+
+// ClearIntegrations clears the value of the "integrations" field.
+func (_u *UserUpdateOne) ClearIntegrations() *UserUpdateOne {
+	_u.mutation.ClearIntegrations()
+	return _u
+}
+
+// SetNotificationSettings sets the "notification_settings" field.
+func (_u *UserUpdateOne) SetNotificationSettings(v map[string]interface{}) *UserUpdateOne {
+	_u.mutation.SetNotificationSettings(v)
+	return _u
+}
+
+// ClearNotificationSettings clears the value of the "notification_settings" field.
+func (_u *UserUpdateOne) ClearNotificationSettings() *UserUpdateOne {
+	_u.mutation.ClearNotificationSettings()
+	return _u
+}
+
+// SetAssistantSettings sets the "assistant_settings" field.
+func (_u *UserUpdateOne) SetAssistantSettings(v map[string]interface{}) *UserUpdateOne {
+	_u.mutation.SetAssistantSettings(v)
+	return _u
+}
+
+// ClearAssistantSettings clears the value of the "assistant_settings" field.
+func (_u *UserUpdateOne) ClearAssistantSettings() *UserUpdateOne {
+	_u.mutation.ClearAssistantSettings()
+	return _u
+}
+
+// SetAiProfile sets the "ai_profile" field.
+func (_u *UserUpdateOne) SetAiProfile(v map[string]interface{}) *UserUpdateOne {
+	_u.mutation.SetAiProfile(v)
+	return _u
+}
+
+// ClearAiProfile clears the value of the "ai_profile" field.
+func (_u *UserUpdateOne) ClearAiProfile() *UserUpdateOne {
+	_u.mutation.ClearAiProfile()
 	return _u
 }
 
@@ -671,6 +1795,126 @@ func (_u *UserUpdateOne) AddActionItems(v ...*ActionItem) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddActionItemIDs(ids...)
+}
+
+// AddChatMessageIDs adds the "chat_messages" edge to the ChatMessage entity by IDs.
+func (_u *UserUpdateOne) AddChatMessageIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddChatMessageIDs(ids...)
+	return _u
+}
+
+// AddChatMessages adds the "chat_messages" edges to the ChatMessage entity.
+func (_u *UserUpdateOne) AddChatMessages(v ...*ChatMessage) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChatMessageIDs(ids...)
+}
+
+// AddChatSessionIDs adds the "chat_sessions" edge to the ChatSession entity by IDs.
+func (_u *UserUpdateOne) AddChatSessionIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddChatSessionIDs(ids...)
+	return _u
+}
+
+// AddChatSessions adds the "chat_sessions" edges to the ChatSession entity.
+func (_u *UserUpdateOne) AddChatSessions(v ...*ChatSession) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChatSessionIDs(ids...)
+}
+
+// AddNotificationTokenIDs adds the "notification_tokens" edge to the NotificationToken entity by IDs.
+func (_u *UserUpdateOne) AddNotificationTokenIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddNotificationTokenIDs(ids...)
+	return _u
+}
+
+// AddNotificationTokens adds the "notification_tokens" edges to the NotificationToken entity.
+func (_u *UserUpdateOne) AddNotificationTokens(v ...*NotificationToken) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNotificationTokenIDs(ids...)
+}
+
+// AddFolderIDs adds the "folders" edge to the Folder entity by IDs.
+func (_u *UserUpdateOne) AddFolderIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddFolderIDs(ids...)
+	return _u
+}
+
+// AddFolders adds the "folders" edges to the Folder entity.
+func (_u *UserUpdateOne) AddFolders(v ...*Folder) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFolderIDs(ids...)
+}
+
+// AddGoalIDs adds the "goals" edge to the Goal entity by IDs.
+func (_u *UserUpdateOne) AddGoalIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddGoalIDs(ids...)
+	return _u
+}
+
+// AddGoals adds the "goals" edges to the Goal entity.
+func (_u *UserUpdateOne) AddGoals(v ...*Goal) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddGoalIDs(ids...)
+}
+
+// AddCalendarMeetingIDs adds the "calendar_meetings" edge to the CalendarMeeting entity by IDs.
+func (_u *UserUpdateOne) AddCalendarMeetingIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddCalendarMeetingIDs(ids...)
+	return _u
+}
+
+// AddCalendarMeetings adds the "calendar_meetings" edges to the CalendarMeeting entity.
+func (_u *UserUpdateOne) AddCalendarMeetings(v ...*CalendarMeeting) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCalendarMeetingIDs(ids...)
+}
+
+// AddCsatRatingIDs adds the "csat_ratings" edge to the CsatRating entity by IDs.
+func (_u *UserUpdateOne) AddCsatRatingIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddCsatRatingIDs(ids...)
+	return _u
+}
+
+// AddCsatRatings adds the "csat_ratings" edges to the CsatRating entity.
+func (_u *UserUpdateOne) AddCsatRatings(v ...*CsatRating) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCsatRatingIDs(ids...)
+}
+
+// AddChatFileIDs adds the "chat_files" edge to the ChatFile entity by IDs.
+func (_u *UserUpdateOne) AddChatFileIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddChatFileIDs(ids...)
+	return _u
+}
+
+// AddChatFiles adds the "chat_files" edges to the ChatFile entity.
+func (_u *UserUpdateOne) AddChatFiles(v ...*ChatFile) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChatFileIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -783,6 +2027,174 @@ func (_u *UserUpdateOne) RemoveActionItems(v ...*ActionItem) *UserUpdateOne {
 	return _u.RemoveActionItemIDs(ids...)
 }
 
+// ClearChatMessages clears all "chat_messages" edges to the ChatMessage entity.
+func (_u *UserUpdateOne) ClearChatMessages() *UserUpdateOne {
+	_u.mutation.ClearChatMessages()
+	return _u
+}
+
+// RemoveChatMessageIDs removes the "chat_messages" edge to ChatMessage entities by IDs.
+func (_u *UserUpdateOne) RemoveChatMessageIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveChatMessageIDs(ids...)
+	return _u
+}
+
+// RemoveChatMessages removes "chat_messages" edges to ChatMessage entities.
+func (_u *UserUpdateOne) RemoveChatMessages(v ...*ChatMessage) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChatMessageIDs(ids...)
+}
+
+// ClearChatSessions clears all "chat_sessions" edges to the ChatSession entity.
+func (_u *UserUpdateOne) ClearChatSessions() *UserUpdateOne {
+	_u.mutation.ClearChatSessions()
+	return _u
+}
+
+// RemoveChatSessionIDs removes the "chat_sessions" edge to ChatSession entities by IDs.
+func (_u *UserUpdateOne) RemoveChatSessionIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveChatSessionIDs(ids...)
+	return _u
+}
+
+// RemoveChatSessions removes "chat_sessions" edges to ChatSession entities.
+func (_u *UserUpdateOne) RemoveChatSessions(v ...*ChatSession) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChatSessionIDs(ids...)
+}
+
+// ClearNotificationTokens clears all "notification_tokens" edges to the NotificationToken entity.
+func (_u *UserUpdateOne) ClearNotificationTokens() *UserUpdateOne {
+	_u.mutation.ClearNotificationTokens()
+	return _u
+}
+
+// RemoveNotificationTokenIDs removes the "notification_tokens" edge to NotificationToken entities by IDs.
+func (_u *UserUpdateOne) RemoveNotificationTokenIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveNotificationTokenIDs(ids...)
+	return _u
+}
+
+// RemoveNotificationTokens removes "notification_tokens" edges to NotificationToken entities.
+func (_u *UserUpdateOne) RemoveNotificationTokens(v ...*NotificationToken) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNotificationTokenIDs(ids...)
+}
+
+// ClearFolders clears all "folders" edges to the Folder entity.
+func (_u *UserUpdateOne) ClearFolders() *UserUpdateOne {
+	_u.mutation.ClearFolders()
+	return _u
+}
+
+// RemoveFolderIDs removes the "folders" edge to Folder entities by IDs.
+func (_u *UserUpdateOne) RemoveFolderIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveFolderIDs(ids...)
+	return _u
+}
+
+// RemoveFolders removes "folders" edges to Folder entities.
+func (_u *UserUpdateOne) RemoveFolders(v ...*Folder) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFolderIDs(ids...)
+}
+
+// ClearGoals clears all "goals" edges to the Goal entity.
+func (_u *UserUpdateOne) ClearGoals() *UserUpdateOne {
+	_u.mutation.ClearGoals()
+	return _u
+}
+
+// RemoveGoalIDs removes the "goals" edge to Goal entities by IDs.
+func (_u *UserUpdateOne) RemoveGoalIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveGoalIDs(ids...)
+	return _u
+}
+
+// RemoveGoals removes "goals" edges to Goal entities.
+func (_u *UserUpdateOne) RemoveGoals(v ...*Goal) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveGoalIDs(ids...)
+}
+
+// ClearCalendarMeetings clears all "calendar_meetings" edges to the CalendarMeeting entity.
+func (_u *UserUpdateOne) ClearCalendarMeetings() *UserUpdateOne {
+	_u.mutation.ClearCalendarMeetings()
+	return _u
+}
+
+// RemoveCalendarMeetingIDs removes the "calendar_meetings" edge to CalendarMeeting entities by IDs.
+func (_u *UserUpdateOne) RemoveCalendarMeetingIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveCalendarMeetingIDs(ids...)
+	return _u
+}
+
+// RemoveCalendarMeetings removes "calendar_meetings" edges to CalendarMeeting entities.
+func (_u *UserUpdateOne) RemoveCalendarMeetings(v ...*CalendarMeeting) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCalendarMeetingIDs(ids...)
+}
+
+// ClearCsatRatings clears all "csat_ratings" edges to the CsatRating entity.
+func (_u *UserUpdateOne) ClearCsatRatings() *UserUpdateOne {
+	_u.mutation.ClearCsatRatings()
+	return _u
+}
+
+// RemoveCsatRatingIDs removes the "csat_ratings" edge to CsatRating entities by IDs.
+func (_u *UserUpdateOne) RemoveCsatRatingIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveCsatRatingIDs(ids...)
+	return _u
+}
+
+// RemoveCsatRatings removes "csat_ratings" edges to CsatRating entities.
+func (_u *UserUpdateOne) RemoveCsatRatings(v ...*CsatRating) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCsatRatingIDs(ids...)
+}
+
+// ClearChatFiles clears all "chat_files" edges to the ChatFile entity.
+func (_u *UserUpdateOne) ClearChatFiles() *UserUpdateOne {
+	_u.mutation.ClearChatFiles()
+	return _u
+}
+
+// RemoveChatFileIDs removes the "chat_files" edge to ChatFile entities by IDs.
+func (_u *UserUpdateOne) RemoveChatFileIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveChatFileIDs(ids...)
+	return _u
+}
+
+// RemoveChatFiles removes "chat_files" edges to ChatFile entities.
+func (_u *UserUpdateOne) RemoveChatFiles(v ...*ChatFile) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChatFileIDs(ids...)
+}
+
 // Where appends a list predicates to the UserUpdate builder.
 func (_u *UserUpdateOne) Where(ps ...predicate.User) *UserUpdateOne {
 	_u.mutation.Where(ps...)
@@ -834,6 +2246,11 @@ func (_u *UserUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *UserUpdateOne) check() error {
+	if v, ok := _u.mutation.ExternalUID(); ok {
+		if err := user.ExternalUIDValidator(v); err != nil {
+			return &ValidationError{Name: "external_uid", err: fmt.Errorf(`ent: validator failed for field "User.external_uid": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Email(); ok {
 		if err := user.EmailValidator(v); err != nil {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
@@ -874,11 +2291,74 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.ExternalUID(); ok {
+		_spec.SetField(user.FieldExternalUID, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Language(); ok {
+		_spec.SetField(user.FieldLanguage, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.TimeZone(); ok {
+		_spec.SetField(user.FieldTimeZone, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Onboarding(); ok {
+		_spec.SetField(user.FieldOnboarding, field.TypeJSON, value)
+	}
+	if _u.mutation.OnboardingCleared() {
+		_spec.ClearField(user.FieldOnboarding, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PrivateCloudSyncEnabled(); ok {
+		_spec.SetField(user.FieldPrivateCloudSyncEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.MeetingNoteScreenshotsEnabled(); ok {
+		_spec.SetField(user.FieldMeetingNoteScreenshotsEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.StoreRecordingPermission(); ok {
+		_spec.SetField(user.FieldStoreRecordingPermission, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DailySummaryEnabled(); ok {
+		_spec.SetField(user.FieldDailySummaryEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DailySummaryHourLocal(); ok {
+		_spec.SetField(user.FieldDailySummaryHourLocal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDailySummaryHourLocal(); ok {
+		_spec.AddField(user.FieldDailySummaryHourLocal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.MentorNotificationFrequency(); ok {
+		_spec.SetField(user.FieldMentorNotificationFrequency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedMentorNotificationFrequency(); ok {
+		_spec.AddField(user.FieldMentorNotificationFrequency, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Integrations(); ok {
+		_spec.SetField(user.FieldIntegrations, field.TypeJSON, value)
+	}
+	if _u.mutation.IntegrationsCleared() {
+		_spec.ClearField(user.FieldIntegrations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.NotificationSettings(); ok {
+		_spec.SetField(user.FieldNotificationSettings, field.TypeJSON, value)
+	}
+	if _u.mutation.NotificationSettingsCleared() {
+		_spec.ClearField(user.FieldNotificationSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.AssistantSettings(); ok {
+		_spec.SetField(user.FieldAssistantSettings, field.TypeJSON, value)
+	}
+	if _u.mutation.AssistantSettingsCleared() {
+		_spec.ClearField(user.FieldAssistantSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.AiProfile(); ok {
+		_spec.SetField(user.FieldAiProfile, field.TypeJSON, value)
+	}
+	if _u.mutation.AiProfileCleared() {
+		_spec.ClearField(user.FieldAiProfile, field.TypeJSON)
 	}
 	if _u.mutation.DevicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1098,6 +2578,366 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(actionitem.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChatMessagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChatMessagesIDs(); len(nodes) > 0 && !_u.mutation.ChatMessagesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChatMessagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChatSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChatSessionsIDs(); len(nodes) > 0 && !_u.mutation.ChatSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChatSessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NotificationTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNotificationTokensIDs(); len(nodes) > 0 && !_u.mutation.NotificationTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NotificationTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FoldersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFoldersIDs(); len(nodes) > 0 && !_u.mutation.FoldersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FoldersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedGoalsIDs(); len(nodes) > 0 && !_u.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GoalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CalendarMeetingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCalendarMeetingsIDs(); len(nodes) > 0 && !_u.mutation.CalendarMeetingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CalendarMeetingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CsatRatingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCsatRatingsIDs(); len(nodes) > 0 && !_u.mutation.CsatRatingsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CsatRatingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChatFilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChatFilesIDs(); len(nodes) > 0 && !_u.mutation.ChatFilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChatFilesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

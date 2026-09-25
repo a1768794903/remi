@@ -18,11 +18,12 @@ func (Device) Fields() []ent.Field {
 		field.String("firmware_version").Default(""),
 		field.Int("battery_level").Default(-1),
 		field.Time("last_seen_at").Optional().Nillable(),
+		field.Int("user_id").Optional().Nillable(),
 	}
 }
 
 func (Device) Edges() []ent.Edge {
-	return []ent.Edge{edge.From("user", User.Type).Ref("devices").Unique(), edge.To("conversations", Conversation.Type)}
+	return []ent.Edge{edge.From("user", User.Type).Ref("devices").Unique().Field("user_id"), edge.To("conversations", Conversation.Type)}
 }
 
 func (Device) Indexes() []ent.Index {

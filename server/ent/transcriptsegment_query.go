@@ -24,7 +24,6 @@ type TranscriptSegmentQuery struct {
 	inters           []Interceptor
 	predicates       []predicate.TranscriptSegment
 	withConversation *ConversationQuery
-	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -370,18 +369,11 @@ func (_q *TranscriptSegmentQuery) prepareQuery(ctx context.Context) error {
 func (_q *TranscriptSegmentQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TranscriptSegment, error) {
 	var (
 		nodes       = []*TranscriptSegment{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
 			_q.withConversation != nil,
 		}
 	)
-	if _q.withConversation != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, transcriptsegment.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*TranscriptSegment).scanValues(nil, columns)
 	}
@@ -413,10 +405,10 @@ func (_q *TranscriptSegmentQuery) loadConversation(ctx context.Context, query *C
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*TranscriptSegment)
 	for i := range nodes {
-		if nodes[i].conversation_transcript_segments == nil {
+		if nodes[i].ConversationID == nil {
 			continue
 		}
-		fk := *nodes[i].conversation_transcript_segments
+		fk := *nodes[i].ConversationID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -433,7 +425,7 @@ func (_q *TranscriptSegmentQuery) loadConversation(ctx context.Context, query *C
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "conversation_transcript_segments" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "conversation_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -466,6 +458,9 @@ func (_q *TranscriptSegmentQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != transcriptsegment.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withConversation != nil {
+			_spec.Node.AddColumnOnce(transcriptsegment.FieldConversationID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

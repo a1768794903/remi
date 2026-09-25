@@ -75,6 +75,16 @@ func Summary(v string) predicate.Conversation {
 	return predicate.Conversation(sql.FieldEQ(FieldSummary, v))
 }
 
+// Visibility applies equality check predicate on the "visibility" field. It's identical to VisibilityEQ.
+func Visibility(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldVisibility, v))
+}
+
+// Starred applies equality check predicate on the "starred" field. It's identical to StarredEQ.
+func Starred(v bool) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldStarred, v))
+}
+
 // StartedAt applies equality check predicate on the "started_at" field. It's identical to StartedAtEQ.
 func StartedAt(v time.Time) predicate.Conversation {
 	return predicate.Conversation(sql.FieldEQ(FieldStartedAt, v))
@@ -83,6 +93,21 @@ func StartedAt(v time.Time) predicate.Conversation {
 // EndedAt applies equality check predicate on the "ended_at" field. It's identical to EndedAtEQ.
 func EndedAt(v time.Time) predicate.Conversation {
 	return predicate.Conversation(sql.FieldEQ(FieldEndedAt, v))
+}
+
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldUserID, v))
+}
+
+// DeviceID applies equality check predicate on the "device_id" field. It's identical to DeviceIDEQ.
+func DeviceID(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldDeviceID, v))
+}
+
+// FolderID applies equality check predicate on the "folder_id" field. It's identical to FolderIDEQ.
+func FolderID(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldFolderID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -295,6 +320,81 @@ func SummaryContainsFold(v string) predicate.Conversation {
 	return predicate.Conversation(sql.FieldContainsFold(FieldSummary, v))
 }
 
+// VisibilityEQ applies the EQ predicate on the "visibility" field.
+func VisibilityEQ(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldVisibility, v))
+}
+
+// VisibilityNEQ applies the NEQ predicate on the "visibility" field.
+func VisibilityNEQ(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNEQ(FieldVisibility, v))
+}
+
+// VisibilityIn applies the In predicate on the "visibility" field.
+func VisibilityIn(vs ...string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldIn(FieldVisibility, vs...))
+}
+
+// VisibilityNotIn applies the NotIn predicate on the "visibility" field.
+func VisibilityNotIn(vs ...string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotIn(FieldVisibility, vs...))
+}
+
+// VisibilityGT applies the GT predicate on the "visibility" field.
+func VisibilityGT(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldGT(FieldVisibility, v))
+}
+
+// VisibilityGTE applies the GTE predicate on the "visibility" field.
+func VisibilityGTE(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldGTE(FieldVisibility, v))
+}
+
+// VisibilityLT applies the LT predicate on the "visibility" field.
+func VisibilityLT(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldLT(FieldVisibility, v))
+}
+
+// VisibilityLTE applies the LTE predicate on the "visibility" field.
+func VisibilityLTE(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldLTE(FieldVisibility, v))
+}
+
+// VisibilityContains applies the Contains predicate on the "visibility" field.
+func VisibilityContains(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldContains(FieldVisibility, v))
+}
+
+// VisibilityHasPrefix applies the HasPrefix predicate on the "visibility" field.
+func VisibilityHasPrefix(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldHasPrefix(FieldVisibility, v))
+}
+
+// VisibilityHasSuffix applies the HasSuffix predicate on the "visibility" field.
+func VisibilityHasSuffix(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldHasSuffix(FieldVisibility, v))
+}
+
+// VisibilityEqualFold applies the EqualFold predicate on the "visibility" field.
+func VisibilityEqualFold(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEqualFold(FieldVisibility, v))
+}
+
+// VisibilityContainsFold applies the ContainsFold predicate on the "visibility" field.
+func VisibilityContainsFold(v string) predicate.Conversation {
+	return predicate.Conversation(sql.FieldContainsFold(FieldVisibility, v))
+}
+
+// StarredEQ applies the EQ predicate on the "starred" field.
+func StarredEQ(v bool) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldStarred, v))
+}
+
+// StarredNEQ applies the NEQ predicate on the "starred" field.
+func StarredNEQ(v bool) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNEQ(FieldStarred, v))
+}
+
 // StartedAtEQ applies the EQ predicate on the "started_at" field.
 func StartedAtEQ(v time.Time) predicate.Conversation {
 	return predicate.Conversation(sql.FieldEQ(FieldStartedAt, v))
@@ -405,6 +505,116 @@ func StatusNotIn(vs ...Status) predicate.Conversation {
 	return predicate.Conversation(sql.FieldNotIn(FieldStatus, vs...))
 }
 
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// UserIDIsNil applies the IsNil predicate on the "user_id" field.
+func UserIDIsNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldIsNull(FieldUserID))
+}
+
+// UserIDNotNil applies the NotNil predicate on the "user_id" field.
+func UserIDNotNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotNull(FieldUserID))
+}
+
+// DeviceIDEQ applies the EQ predicate on the "device_id" field.
+func DeviceIDEQ(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldDeviceID, v))
+}
+
+// DeviceIDNEQ applies the NEQ predicate on the "device_id" field.
+func DeviceIDNEQ(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNEQ(FieldDeviceID, v))
+}
+
+// DeviceIDIn applies the In predicate on the "device_id" field.
+func DeviceIDIn(vs ...int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldIn(FieldDeviceID, vs...))
+}
+
+// DeviceIDNotIn applies the NotIn predicate on the "device_id" field.
+func DeviceIDNotIn(vs ...int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotIn(FieldDeviceID, vs...))
+}
+
+// DeviceIDIsNil applies the IsNil predicate on the "device_id" field.
+func DeviceIDIsNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldIsNull(FieldDeviceID))
+}
+
+// DeviceIDNotNil applies the NotNil predicate on the "device_id" field.
+func DeviceIDNotNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotNull(FieldDeviceID))
+}
+
+// FolderIDEQ applies the EQ predicate on the "folder_id" field.
+func FolderIDEQ(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldEQ(FieldFolderID, v))
+}
+
+// FolderIDNEQ applies the NEQ predicate on the "folder_id" field.
+func FolderIDNEQ(v int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNEQ(FieldFolderID, v))
+}
+
+// FolderIDIn applies the In predicate on the "folder_id" field.
+func FolderIDIn(vs ...int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldIn(FieldFolderID, vs...))
+}
+
+// FolderIDNotIn applies the NotIn predicate on the "folder_id" field.
+func FolderIDNotIn(vs ...int) predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotIn(FieldFolderID, vs...))
+}
+
+// FolderIDIsNil applies the IsNil predicate on the "folder_id" field.
+func FolderIDIsNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldIsNull(FieldFolderID))
+}
+
+// FolderIDNotNil applies the NotNil predicate on the "folder_id" field.
+func FolderIDNotNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotNull(FieldFolderID))
+}
+
+// AudioFilesIsNil applies the IsNil predicate on the "audio_files" field.
+func AudioFilesIsNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldIsNull(FieldAudioFiles))
+}
+
+// AudioFilesNotNil applies the NotNil predicate on the "audio_files" field.
+func AudioFilesNotNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotNull(FieldAudioFiles))
+}
+
+// ConversationAudioIsNil applies the IsNil predicate on the "conversation_audio" field.
+func ConversationAudioIsNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldIsNull(FieldConversationAudio))
+}
+
+// ConversationAudioNotNil applies the NotNil predicate on the "conversation_audio" field.
+func ConversationAudioNotNil() predicate.Conversation {
+	return predicate.Conversation(sql.FieldNotNull(FieldConversationAudio))
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.Conversation {
 	return predicate.Conversation(func(s *sql.Selector) {
@@ -443,6 +653,29 @@ func HasDevice() predicate.Conversation {
 func HasDeviceWith(preds ...predicate.Device) predicate.Conversation {
 	return predicate.Conversation(func(s *sql.Selector) {
 		step := newDeviceStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFolder applies the HasEdge predicate on the "folder" edge.
+func HasFolder() predicate.Conversation {
+	return predicate.Conversation(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, FolderTable, FolderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFolderWith applies the HasEdge predicate on the "folder" edge with a given conditions (other predicates).
+func HasFolderWith(preds ...predicate.Folder) predicate.Conversation {
+	return predicate.Conversation(func(s *sql.Selector) {
+		step := newFolderStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

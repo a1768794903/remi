@@ -9,6 +9,7 @@ import (
 	"remi/server/ent/actionitem"
 	"remi/server/ent/conversation"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
 	"remi/server/ent/memory"
 	"remi/server/ent/predicate"
 	"remi/server/ent/todo"
@@ -18,6 +19,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 )
 
@@ -64,6 +66,34 @@ func (_u *ConversationUpdate) SetSummary(v string) *ConversationUpdate {
 func (_u *ConversationUpdate) SetNillableSummary(v *string) *ConversationUpdate {
 	if v != nil {
 		_u.SetSummary(*v)
+	}
+	return _u
+}
+
+// SetVisibility sets the "visibility" field.
+func (_u *ConversationUpdate) SetVisibility(v string) *ConversationUpdate {
+	_u.mutation.SetVisibility(v)
+	return _u
+}
+
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_u *ConversationUpdate) SetNillableVisibility(v *string) *ConversationUpdate {
+	if v != nil {
+		_u.SetVisibility(*v)
+	}
+	return _u
+}
+
+// SetStarred sets the "starred" field.
+func (_u *ConversationUpdate) SetStarred(v bool) *ConversationUpdate {
+	_u.mutation.SetStarred(v)
+	return _u
+}
+
+// SetNillableStarred sets the "starred" field if the given value is not nil.
+func (_u *ConversationUpdate) SetNillableStarred(v *bool) *ConversationUpdate {
+	if v != nil {
+		_u.SetStarred(*v)
 	}
 	return _u
 }
@@ -116,17 +146,93 @@ func (_u *ConversationUpdate) SetNillableStatus(v *conversation.Status) *Convers
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *ConversationUpdate) SetUserID(id int) *ConversationUpdate {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *ConversationUpdate) SetUserID(v int) *ConversationUpdate {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *ConversationUpdate) SetNillableUserID(id *int) *ConversationUpdate {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *ConversationUpdate) SetNillableUserID(v *int) *ConversationUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *ConversationUpdate) ClearUserID() *ConversationUpdate {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetDeviceID sets the "device_id" field.
+func (_u *ConversationUpdate) SetDeviceID(v int) *ConversationUpdate {
+	_u.mutation.SetDeviceID(v)
+	return _u
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (_u *ConversationUpdate) SetNillableDeviceID(v *int) *ConversationUpdate {
+	if v != nil {
+		_u.SetDeviceID(*v)
+	}
+	return _u
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (_u *ConversationUpdate) ClearDeviceID() *ConversationUpdate {
+	_u.mutation.ClearDeviceID()
+	return _u
+}
+
+// SetFolderID sets the "folder_id" field.
+func (_u *ConversationUpdate) SetFolderID(v int) *ConversationUpdate {
+	_u.mutation.SetFolderID(v)
+	return _u
+}
+
+// SetNillableFolderID sets the "folder_id" field if the given value is not nil.
+func (_u *ConversationUpdate) SetNillableFolderID(v *int) *ConversationUpdate {
+	if v != nil {
+		_u.SetFolderID(*v)
+	}
+	return _u
+}
+
+// ClearFolderID clears the value of the "folder_id" field.
+func (_u *ConversationUpdate) ClearFolderID() *ConversationUpdate {
+	_u.mutation.ClearFolderID()
+	return _u
+}
+
+// SetAudioFiles sets the "audio_files" field.
+func (_u *ConversationUpdate) SetAudioFiles(v []map[string]interface{}) *ConversationUpdate {
+	_u.mutation.SetAudioFiles(v)
+	return _u
+}
+
+// AppendAudioFiles appends value to the "audio_files" field.
+func (_u *ConversationUpdate) AppendAudioFiles(v []map[string]interface{}) *ConversationUpdate {
+	_u.mutation.AppendAudioFiles(v)
+	return _u
+}
+
+// ClearAudioFiles clears the value of the "audio_files" field.
+func (_u *ConversationUpdate) ClearAudioFiles() *ConversationUpdate {
+	_u.mutation.ClearAudioFiles()
+	return _u
+}
+
+// SetConversationAudio sets the "conversation_audio" field.
+func (_u *ConversationUpdate) SetConversationAudio(v map[string]interface{}) *ConversationUpdate {
+	_u.mutation.SetConversationAudio(v)
+	return _u
+}
+
+// ClearConversationAudio clears the value of the "conversation_audio" field.
+func (_u *ConversationUpdate) ClearConversationAudio() *ConversationUpdate {
+	_u.mutation.ClearConversationAudio()
 	return _u
 }
 
@@ -135,23 +241,14 @@ func (_u *ConversationUpdate) SetUser(v *User) *ConversationUpdate {
 	return _u.SetUserID(v.ID)
 }
 
-// SetDeviceID sets the "device" edge to the Device entity by ID.
-func (_u *ConversationUpdate) SetDeviceID(id int) *ConversationUpdate {
-	_u.mutation.SetDeviceID(id)
-	return _u
-}
-
-// SetNillableDeviceID sets the "device" edge to the Device entity by ID if the given value is not nil.
-func (_u *ConversationUpdate) SetNillableDeviceID(id *int) *ConversationUpdate {
-	if id != nil {
-		_u = _u.SetDeviceID(*id)
-	}
-	return _u
-}
-
 // SetDevice sets the "device" edge to the Device entity.
 func (_u *ConversationUpdate) SetDevice(v *Device) *ConversationUpdate {
 	return _u.SetDeviceID(v.ID)
+}
+
+// SetFolder sets the "folder" edge to the Folder entity.
+func (_u *ConversationUpdate) SetFolder(v *Folder) *ConversationUpdate {
+	return _u.SetFolderID(v.ID)
 }
 
 // AddTranscriptSegmentIDs adds the "transcript_segments" edge to the TranscriptSegment entity by IDs.
@@ -228,6 +325,12 @@ func (_u *ConversationUpdate) ClearUser() *ConversationUpdate {
 // ClearDevice clears the "device" edge to the Device entity.
 func (_u *ConversationUpdate) ClearDevice() *ConversationUpdate {
 	_u.mutation.ClearDevice()
+	return _u
+}
+
+// ClearFolder clears the "folder" edge to the Folder entity.
+func (_u *ConversationUpdate) ClearFolder() *ConversationUpdate {
+	_u.mutation.ClearFolder()
 	return _u
 }
 
@@ -382,6 +485,12 @@ func (_u *ConversationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Summary(); ok {
 		_spec.SetField(conversation.FieldSummary, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Visibility(); ok {
+		_spec.SetField(conversation.FieldVisibility, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Starred(); ok {
+		_spec.SetField(conversation.FieldStarred, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.StartedAt(); ok {
 		_spec.SetField(conversation.FieldStartedAt, field.TypeTime, value)
 	}
@@ -393,6 +502,23 @@ func (_u *ConversationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(conversation.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AudioFiles(); ok {
+		_spec.SetField(conversation.FieldAudioFiles, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAudioFiles(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, conversation.FieldAudioFiles, value)
+		})
+	}
+	if _u.mutation.AudioFilesCleared() {
+		_spec.ClearField(conversation.FieldAudioFiles, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.ConversationAudio(); ok {
+		_spec.SetField(conversation.FieldConversationAudio, field.TypeJSON, value)
+	}
+	if _u.mutation.ConversationAudioCleared() {
+		_spec.ClearField(conversation.FieldConversationAudio, field.TypeJSON)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -445,6 +571,35 @@ func (_u *ConversationUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(device.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FolderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   conversation.FolderTable,
+			Columns: []string{conversation.FolderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FolderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   conversation.FolderTable,
+			Columns: []string{conversation.FolderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -686,6 +841,34 @@ func (_u *ConversationUpdateOne) SetNillableSummary(v *string) *ConversationUpda
 	return _u
 }
 
+// SetVisibility sets the "visibility" field.
+func (_u *ConversationUpdateOne) SetVisibility(v string) *ConversationUpdateOne {
+	_u.mutation.SetVisibility(v)
+	return _u
+}
+
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_u *ConversationUpdateOne) SetNillableVisibility(v *string) *ConversationUpdateOne {
+	if v != nil {
+		_u.SetVisibility(*v)
+	}
+	return _u
+}
+
+// SetStarred sets the "starred" field.
+func (_u *ConversationUpdateOne) SetStarred(v bool) *ConversationUpdateOne {
+	_u.mutation.SetStarred(v)
+	return _u
+}
+
+// SetNillableStarred sets the "starred" field if the given value is not nil.
+func (_u *ConversationUpdateOne) SetNillableStarred(v *bool) *ConversationUpdateOne {
+	if v != nil {
+		_u.SetStarred(*v)
+	}
+	return _u
+}
+
 // SetStartedAt sets the "started_at" field.
 func (_u *ConversationUpdateOne) SetStartedAt(v time.Time) *ConversationUpdateOne {
 	_u.mutation.SetStartedAt(v)
@@ -734,17 +917,93 @@ func (_u *ConversationUpdateOne) SetNillableStatus(v *conversation.Status) *Conv
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *ConversationUpdateOne) SetUserID(id int) *ConversationUpdateOne {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *ConversationUpdateOne) SetUserID(v int) *ConversationUpdateOne {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *ConversationUpdateOne) SetNillableUserID(id *int) *ConversationUpdateOne {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *ConversationUpdateOne) SetNillableUserID(v *int) *ConversationUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *ConversationUpdateOne) ClearUserID() *ConversationUpdateOne {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetDeviceID sets the "device_id" field.
+func (_u *ConversationUpdateOne) SetDeviceID(v int) *ConversationUpdateOne {
+	_u.mutation.SetDeviceID(v)
+	return _u
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (_u *ConversationUpdateOne) SetNillableDeviceID(v *int) *ConversationUpdateOne {
+	if v != nil {
+		_u.SetDeviceID(*v)
+	}
+	return _u
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (_u *ConversationUpdateOne) ClearDeviceID() *ConversationUpdateOne {
+	_u.mutation.ClearDeviceID()
+	return _u
+}
+
+// SetFolderID sets the "folder_id" field.
+func (_u *ConversationUpdateOne) SetFolderID(v int) *ConversationUpdateOne {
+	_u.mutation.SetFolderID(v)
+	return _u
+}
+
+// SetNillableFolderID sets the "folder_id" field if the given value is not nil.
+func (_u *ConversationUpdateOne) SetNillableFolderID(v *int) *ConversationUpdateOne {
+	if v != nil {
+		_u.SetFolderID(*v)
+	}
+	return _u
+}
+
+// ClearFolderID clears the value of the "folder_id" field.
+func (_u *ConversationUpdateOne) ClearFolderID() *ConversationUpdateOne {
+	_u.mutation.ClearFolderID()
+	return _u
+}
+
+// SetAudioFiles sets the "audio_files" field.
+func (_u *ConversationUpdateOne) SetAudioFiles(v []map[string]interface{}) *ConversationUpdateOne {
+	_u.mutation.SetAudioFiles(v)
+	return _u
+}
+
+// AppendAudioFiles appends value to the "audio_files" field.
+func (_u *ConversationUpdateOne) AppendAudioFiles(v []map[string]interface{}) *ConversationUpdateOne {
+	_u.mutation.AppendAudioFiles(v)
+	return _u
+}
+
+// ClearAudioFiles clears the value of the "audio_files" field.
+func (_u *ConversationUpdateOne) ClearAudioFiles() *ConversationUpdateOne {
+	_u.mutation.ClearAudioFiles()
+	return _u
+}
+
+// SetConversationAudio sets the "conversation_audio" field.
+func (_u *ConversationUpdateOne) SetConversationAudio(v map[string]interface{}) *ConversationUpdateOne {
+	_u.mutation.SetConversationAudio(v)
+	return _u
+}
+
+// ClearConversationAudio clears the value of the "conversation_audio" field.
+func (_u *ConversationUpdateOne) ClearConversationAudio() *ConversationUpdateOne {
+	_u.mutation.ClearConversationAudio()
 	return _u
 }
 
@@ -753,23 +1012,14 @@ func (_u *ConversationUpdateOne) SetUser(v *User) *ConversationUpdateOne {
 	return _u.SetUserID(v.ID)
 }
 
-// SetDeviceID sets the "device" edge to the Device entity by ID.
-func (_u *ConversationUpdateOne) SetDeviceID(id int) *ConversationUpdateOne {
-	_u.mutation.SetDeviceID(id)
-	return _u
-}
-
-// SetNillableDeviceID sets the "device" edge to the Device entity by ID if the given value is not nil.
-func (_u *ConversationUpdateOne) SetNillableDeviceID(id *int) *ConversationUpdateOne {
-	if id != nil {
-		_u = _u.SetDeviceID(*id)
-	}
-	return _u
-}
-
 // SetDevice sets the "device" edge to the Device entity.
 func (_u *ConversationUpdateOne) SetDevice(v *Device) *ConversationUpdateOne {
 	return _u.SetDeviceID(v.ID)
+}
+
+// SetFolder sets the "folder" edge to the Folder entity.
+func (_u *ConversationUpdateOne) SetFolder(v *Folder) *ConversationUpdateOne {
+	return _u.SetFolderID(v.ID)
 }
 
 // AddTranscriptSegmentIDs adds the "transcript_segments" edge to the TranscriptSegment entity by IDs.
@@ -846,6 +1096,12 @@ func (_u *ConversationUpdateOne) ClearUser() *ConversationUpdateOne {
 // ClearDevice clears the "device" edge to the Device entity.
 func (_u *ConversationUpdateOne) ClearDevice() *ConversationUpdateOne {
 	_u.mutation.ClearDevice()
+	return _u
+}
+
+// ClearFolder clears the "folder" edge to the Folder entity.
+func (_u *ConversationUpdateOne) ClearFolder() *ConversationUpdateOne {
+	_u.mutation.ClearFolder()
 	return _u
 }
 
@@ -1030,6 +1286,12 @@ func (_u *ConversationUpdateOne) sqlSave(ctx context.Context) (_node *Conversati
 	if value, ok := _u.mutation.Summary(); ok {
 		_spec.SetField(conversation.FieldSummary, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Visibility(); ok {
+		_spec.SetField(conversation.FieldVisibility, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Starred(); ok {
+		_spec.SetField(conversation.FieldStarred, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.StartedAt(); ok {
 		_spec.SetField(conversation.FieldStartedAt, field.TypeTime, value)
 	}
@@ -1041,6 +1303,23 @@ func (_u *ConversationUpdateOne) sqlSave(ctx context.Context) (_node *Conversati
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(conversation.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AudioFiles(); ok {
+		_spec.SetField(conversation.FieldAudioFiles, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAudioFiles(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, conversation.FieldAudioFiles, value)
+		})
+	}
+	if _u.mutation.AudioFilesCleared() {
+		_spec.ClearField(conversation.FieldAudioFiles, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.ConversationAudio(); ok {
+		_spec.SetField(conversation.FieldConversationAudio, field.TypeJSON, value)
+	}
+	if _u.mutation.ConversationAudioCleared() {
+		_spec.ClearField(conversation.FieldConversationAudio, field.TypeJSON)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1093,6 +1372,35 @@ func (_u *ConversationUpdateOne) sqlSave(ctx context.Context) (_node *Conversati
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(device.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FolderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   conversation.FolderTable,
+			Columns: []string{conversation.FolderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FolderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   conversation.FolderTable,
+			Columns: []string{conversation.FolderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

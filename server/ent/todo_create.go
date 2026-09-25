@@ -98,16 +98,30 @@ func (_c *TodoCreate) SetNillableStatus(v *todo.Status) *TodoCreate {
 	return _c
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_c *TodoCreate) SetUserID(id int) *TodoCreate {
-	_c.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_c *TodoCreate) SetUserID(v int) *TodoCreate {
+	_c.mutation.SetUserID(v)
 	return _c
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_c *TodoCreate) SetNillableUserID(id *int) *TodoCreate {
-	if id != nil {
-		_c = _c.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_c *TodoCreate) SetNillableUserID(v *int) *TodoCreate {
+	if v != nil {
+		_c.SetUserID(*v)
+	}
+	return _c
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_c *TodoCreate) SetConversationID(v int) *TodoCreate {
+	_c.mutation.SetConversationID(v)
+	return _c
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_c *TodoCreate) SetNillableConversationID(v *int) *TodoCreate {
+	if v != nil {
+		_c.SetConversationID(*v)
 	}
 	return _c
 }
@@ -115,20 +129,6 @@ func (_c *TodoCreate) SetNillableUserID(id *int) *TodoCreate {
 // SetUser sets the "user" edge to the User entity.
 func (_c *TodoCreate) SetUser(v *User) *TodoCreate {
 	return _c.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_c *TodoCreate) SetConversationID(id int) *TodoCreate {
-	_c.mutation.SetConversationID(id)
-	return _c
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_c *TodoCreate) SetNillableConversationID(id *int) *TodoCreate {
-	if id != nil {
-		_c = _c.SetConversationID(*id)
-	}
-	return _c
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.
@@ -280,7 +280,7 @@ func (_c *TodoCreate) createSpec() (*Todo, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_todos = &nodes[0]
+		_node.UserID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ConversationIDs(); len(nodes) > 0 {
@@ -297,7 +297,7 @@ func (_c *TodoCreate) createSpec() (*Todo, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.conversation_todos = &nodes[0]
+		_node.ConversationID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

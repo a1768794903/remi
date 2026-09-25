@@ -28,6 +28,8 @@ const (
 	FieldBatteryLevel = "battery_level"
 	// FieldLastSeenAt holds the string denoting the last_seen_at field in the database.
 	FieldLastSeenAt = "last_seen_at"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeConversations holds the string denoting the conversations edge name in mutations.
@@ -40,14 +42,14 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "user_devices"
+	UserColumn = "user_id"
 	// ConversationsTable is the table that holds the conversations relation/edge.
 	ConversationsTable = "conversations"
 	// ConversationsInverseTable is the table name for the Conversation entity.
 	// It exists in this package in order to avoid circular dependency with the "conversation" package.
 	ConversationsInverseTable = "conversations"
 	// ConversationsColumn is the table column denoting the conversations relation/edge.
-	ConversationsColumn = "device_conversations"
+	ConversationsColumn = "device_id"
 )
 
 // Columns holds all SQL columns for device fields.
@@ -60,23 +62,13 @@ var Columns = []string{
 	FieldFirmwareVersion,
 	FieldBatteryLevel,
 	FieldLastSeenAt,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "devices"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"user_devices",
+	FieldUserID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -141,6 +133,11 @@ func ByBatteryLevel(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSeenAt orders the results by the last_seen_at field.
 func ByLastSeenAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSeenAt, opts...).ToFunc()
+}
+
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

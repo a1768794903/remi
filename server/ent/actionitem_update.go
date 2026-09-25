@@ -402,37 +402,49 @@ func (_u *ActionItemUpdate) ClearAppleReminderID() *ActionItemUpdate {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *ActionItemUpdate) SetUserID(id int) *ActionItemUpdate {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *ActionItemUpdate) SetUserID(v int) *ActionItemUpdate {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *ActionItemUpdate) SetNillableUserID(id *int) *ActionItemUpdate {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *ActionItemUpdate) SetNillableUserID(v *int) *ActionItemUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *ActionItemUpdate) ClearUserID() *ActionItemUpdate {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_u *ActionItemUpdate) SetConversationID(v int) *ActionItemUpdate {
+	_u.mutation.SetConversationID(v)
+	return _u
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *ActionItemUpdate) SetNillableConversationID(v *int) *ActionItemUpdate {
+	if v != nil {
+		_u.SetConversationID(*v)
+	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *ActionItemUpdate) ClearConversationID() *ActionItemUpdate {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
 func (_u *ActionItemUpdate) SetUser(v *User) *ActionItemUpdate {
 	return _u.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *ActionItemUpdate) SetConversationID(id int) *ActionItemUpdate {
-	_u.mutation.SetConversationID(id)
-	return _u
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *ActionItemUpdate) SetNillableConversationID(id *int) *ActionItemUpdate {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
-	}
-	return _u
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.
@@ -1097,37 +1109,49 @@ func (_u *ActionItemUpdateOne) ClearAppleReminderID() *ActionItemUpdateOne {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *ActionItemUpdateOne) SetUserID(id int) *ActionItemUpdateOne {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *ActionItemUpdateOne) SetUserID(v int) *ActionItemUpdateOne {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *ActionItemUpdateOne) SetNillableUserID(id *int) *ActionItemUpdateOne {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *ActionItemUpdateOne) SetNillableUserID(v *int) *ActionItemUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *ActionItemUpdateOne) ClearUserID() *ActionItemUpdateOne {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_u *ActionItemUpdateOne) SetConversationID(v int) *ActionItemUpdateOne {
+	_u.mutation.SetConversationID(v)
+	return _u
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *ActionItemUpdateOne) SetNillableConversationID(v *int) *ActionItemUpdateOne {
+	if v != nil {
+		_u.SetConversationID(*v)
+	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *ActionItemUpdateOne) ClearConversationID() *ActionItemUpdateOne {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
 func (_u *ActionItemUpdateOne) SetUser(v *User) *ActionItemUpdateOne {
 	return _u.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *ActionItemUpdateOne) SetConversationID(id int) *ActionItemUpdateOne {
-	_u.mutation.SetConversationID(id)
-	return _u
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *ActionItemUpdateOne) SetNillableConversationID(id *int) *ActionItemUpdateOne {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
-	}
-	return _u
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.

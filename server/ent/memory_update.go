@@ -14,6 +14,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 )
 
@@ -46,6 +47,80 @@ func (_u *MemoryUpdate) SetType(v memory.Type) *MemoryUpdate {
 func (_u *MemoryUpdate) SetNillableType(v *memory.Type) *MemoryUpdate {
 	if v != nil {
 		_u.SetType(*v)
+	}
+	return _u
+}
+
+// SetCategory sets the "category" field.
+func (_u *MemoryUpdate) SetCategory(v string) *MemoryUpdate {
+	_u.mutation.SetCategory(v)
+	return _u
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *MemoryUpdate) SetNillableCategory(v *string) *MemoryUpdate {
+	if v != nil {
+		_u.SetCategory(*v)
+	}
+	return _u
+}
+
+// SetVisibility sets the "visibility" field.
+func (_u *MemoryUpdate) SetVisibility(v string) *MemoryUpdate {
+	_u.mutation.SetVisibility(v)
+	return _u
+}
+
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_u *MemoryUpdate) SetNillableVisibility(v *string) *MemoryUpdate {
+	if v != nil {
+		_u.SetVisibility(*v)
+	}
+	return _u
+}
+
+// SetTags sets the "tags" field.
+func (_u *MemoryUpdate) SetTags(v []string) *MemoryUpdate {
+	_u.mutation.SetTags(v)
+	return _u
+}
+
+// AppendTags appends value to the "tags" field.
+func (_u *MemoryUpdate) AppendTags(v []string) *MemoryUpdate {
+	_u.mutation.AppendTags(v)
+	return _u
+}
+
+// ClearTags clears the value of the "tags" field.
+func (_u *MemoryUpdate) ClearTags() *MemoryUpdate {
+	_u.mutation.ClearTags()
+	return _u
+}
+
+// SetIsRead sets the "is_read" field.
+func (_u *MemoryUpdate) SetIsRead(v bool) *MemoryUpdate {
+	_u.mutation.SetIsRead(v)
+	return _u
+}
+
+// SetNillableIsRead sets the "is_read" field if the given value is not nil.
+func (_u *MemoryUpdate) SetNillableIsRead(v *bool) *MemoryUpdate {
+	if v != nil {
+		_u.SetIsRead(*v)
+	}
+	return _u
+}
+
+// SetIsDismissed sets the "is_dismissed" field.
+func (_u *MemoryUpdate) SetIsDismissed(v bool) *MemoryUpdate {
+	_u.mutation.SetIsDismissed(v)
+	return _u
+}
+
+// SetNillableIsDismissed sets the "is_dismissed" field if the given value is not nil.
+func (_u *MemoryUpdate) SetNillableIsDismissed(v *bool) *MemoryUpdate {
+	if v != nil {
+		_u.SetIsDismissed(*v)
 	}
 	return _u
 }
@@ -105,37 +180,49 @@ func (_u *MemoryUpdate) ClearEventTime() *MemoryUpdate {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *MemoryUpdate) SetUserID(id int) *MemoryUpdate {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *MemoryUpdate) SetUserID(v int) *MemoryUpdate {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *MemoryUpdate) SetNillableUserID(id *int) *MemoryUpdate {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *MemoryUpdate) SetNillableUserID(v *int) *MemoryUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *MemoryUpdate) ClearUserID() *MemoryUpdate {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_u *MemoryUpdate) SetConversationID(v int) *MemoryUpdate {
+	_u.mutation.SetConversationID(v)
+	return _u
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *MemoryUpdate) SetNillableConversationID(v *int) *MemoryUpdate {
+	if v != nil {
+		_u.SetConversationID(*v)
+	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *MemoryUpdate) ClearConversationID() *MemoryUpdate {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
 func (_u *MemoryUpdate) SetUser(v *User) *MemoryUpdate {
 	return _u.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *MemoryUpdate) SetConversationID(id int) *MemoryUpdate {
-	_u.mutation.SetConversationID(id)
-	return _u
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *MemoryUpdate) SetNillableConversationID(id *int) *MemoryUpdate {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
-	}
-	return _u
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.
@@ -228,6 +315,29 @@ func (_u *MemoryUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(memory.FieldType, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Category(); ok {
+		_spec.SetField(memory.FieldCategory, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Visibility(); ok {
+		_spec.SetField(memory.FieldVisibility, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Tags(); ok {
+		_spec.SetField(memory.FieldTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, memory.FieldTags, value)
+		})
+	}
+	if _u.mutation.TagsCleared() {
+		_spec.ClearField(memory.FieldTags, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.IsRead(); ok {
+		_spec.SetField(memory.FieldIsRead, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsDismissed(); ok {
+		_spec.SetField(memory.FieldIsDismissed, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Content(); ok {
 		_spec.SetField(memory.FieldContent, field.TypeString, value)
@@ -342,6 +452,80 @@ func (_u *MemoryUpdateOne) SetNillableType(v *memory.Type) *MemoryUpdateOne {
 	return _u
 }
 
+// SetCategory sets the "category" field.
+func (_u *MemoryUpdateOne) SetCategory(v string) *MemoryUpdateOne {
+	_u.mutation.SetCategory(v)
+	return _u
+}
+
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *MemoryUpdateOne) SetNillableCategory(v *string) *MemoryUpdateOne {
+	if v != nil {
+		_u.SetCategory(*v)
+	}
+	return _u
+}
+
+// SetVisibility sets the "visibility" field.
+func (_u *MemoryUpdateOne) SetVisibility(v string) *MemoryUpdateOne {
+	_u.mutation.SetVisibility(v)
+	return _u
+}
+
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_u *MemoryUpdateOne) SetNillableVisibility(v *string) *MemoryUpdateOne {
+	if v != nil {
+		_u.SetVisibility(*v)
+	}
+	return _u
+}
+
+// SetTags sets the "tags" field.
+func (_u *MemoryUpdateOne) SetTags(v []string) *MemoryUpdateOne {
+	_u.mutation.SetTags(v)
+	return _u
+}
+
+// AppendTags appends value to the "tags" field.
+func (_u *MemoryUpdateOne) AppendTags(v []string) *MemoryUpdateOne {
+	_u.mutation.AppendTags(v)
+	return _u
+}
+
+// ClearTags clears the value of the "tags" field.
+func (_u *MemoryUpdateOne) ClearTags() *MemoryUpdateOne {
+	_u.mutation.ClearTags()
+	return _u
+}
+
+// SetIsRead sets the "is_read" field.
+func (_u *MemoryUpdateOne) SetIsRead(v bool) *MemoryUpdateOne {
+	_u.mutation.SetIsRead(v)
+	return _u
+}
+
+// SetNillableIsRead sets the "is_read" field if the given value is not nil.
+func (_u *MemoryUpdateOne) SetNillableIsRead(v *bool) *MemoryUpdateOne {
+	if v != nil {
+		_u.SetIsRead(*v)
+	}
+	return _u
+}
+
+// SetIsDismissed sets the "is_dismissed" field.
+func (_u *MemoryUpdateOne) SetIsDismissed(v bool) *MemoryUpdateOne {
+	_u.mutation.SetIsDismissed(v)
+	return _u
+}
+
+// SetNillableIsDismissed sets the "is_dismissed" field if the given value is not nil.
+func (_u *MemoryUpdateOne) SetNillableIsDismissed(v *bool) *MemoryUpdateOne {
+	if v != nil {
+		_u.SetIsDismissed(*v)
+	}
+	return _u
+}
+
 // SetContent sets the "content" field.
 func (_u *MemoryUpdateOne) SetContent(v string) *MemoryUpdateOne {
 	_u.mutation.SetContent(v)
@@ -397,37 +581,49 @@ func (_u *MemoryUpdateOne) ClearEventTime() *MemoryUpdateOne {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *MemoryUpdateOne) SetUserID(id int) *MemoryUpdateOne {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *MemoryUpdateOne) SetUserID(v int) *MemoryUpdateOne {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *MemoryUpdateOne) SetNillableUserID(id *int) *MemoryUpdateOne {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *MemoryUpdateOne) SetNillableUserID(v *int) *MemoryUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *MemoryUpdateOne) ClearUserID() *MemoryUpdateOne {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
+// SetConversationID sets the "conversation_id" field.
+func (_u *MemoryUpdateOne) SetConversationID(v int) *MemoryUpdateOne {
+	_u.mutation.SetConversationID(v)
+	return _u
+}
+
+// SetNillableConversationID sets the "conversation_id" field if the given value is not nil.
+func (_u *MemoryUpdateOne) SetNillableConversationID(v *int) *MemoryUpdateOne {
+	if v != nil {
+		_u.SetConversationID(*v)
+	}
+	return _u
+}
+
+// ClearConversationID clears the value of the "conversation_id" field.
+func (_u *MemoryUpdateOne) ClearConversationID() *MemoryUpdateOne {
+	_u.mutation.ClearConversationID()
 	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
 func (_u *MemoryUpdateOne) SetUser(v *User) *MemoryUpdateOne {
 	return _u.SetUserID(v.ID)
-}
-
-// SetConversationID sets the "conversation" edge to the Conversation entity by ID.
-func (_u *MemoryUpdateOne) SetConversationID(id int) *MemoryUpdateOne {
-	_u.mutation.SetConversationID(id)
-	return _u
-}
-
-// SetNillableConversationID sets the "conversation" edge to the Conversation entity by ID if the given value is not nil.
-func (_u *MemoryUpdateOne) SetNillableConversationID(id *int) *MemoryUpdateOne {
-	if id != nil {
-		_u = _u.SetConversationID(*id)
-	}
-	return _u
 }
 
 // SetConversation sets the "conversation" edge to the Conversation entity.
@@ -550,6 +746,29 @@ func (_u *MemoryUpdateOne) sqlSave(ctx context.Context) (_node *Memory, err erro
 	}
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(memory.FieldType, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Category(); ok {
+		_spec.SetField(memory.FieldCategory, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Visibility(); ok {
+		_spec.SetField(memory.FieldVisibility, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Tags(); ok {
+		_spec.SetField(memory.FieldTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, memory.FieldTags, value)
+		})
+	}
+	if _u.mutation.TagsCleared() {
+		_spec.ClearField(memory.FieldTags, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.IsRead(); ok {
+		_spec.SetField(memory.FieldIsRead, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsDismissed(); ok {
+		_spec.SetField(memory.FieldIsDismissed, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Content(); ok {
 		_spec.SetField(memory.FieldContent, field.TypeString, value)

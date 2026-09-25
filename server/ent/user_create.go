@@ -7,9 +7,17 @@ import (
 	"errors"
 	"fmt"
 	"remi/server/ent/actionitem"
+	"remi/server/ent/calendarmeeting"
+	"remi/server/ent/chatfile"
+	"remi/server/ent/chatmessage"
+	"remi/server/ent/chatsession"
 	"remi/server/ent/conversation"
+	"remi/server/ent/csatrating"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
+	"remi/server/ent/goal"
 	"remi/server/ent/memory"
+	"remi/server/ent/notificationtoken"
 	"remi/server/ent/todo"
 	"remi/server/ent/user"
 	"time"
@@ -53,6 +61,12 @@ func (_c *UserCreate) SetNillableUpdatedAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetExternalUID sets the "external_uid" field.
+func (_c *UserCreate) SetExternalUID(v string) *UserCreate {
+	_c.mutation.SetExternalUID(v)
+	return _c
+}
+
 // SetEmail sets the "email" field.
 func (_c *UserCreate) SetEmail(v string) *UserCreate {
 	_c.mutation.SetEmail(v)
@@ -70,6 +84,148 @@ func (_c *UserCreate) SetNillableName(v *string) *UserCreate {
 	if v != nil {
 		_c.SetName(*v)
 	}
+	return _c
+}
+
+// SetLanguage sets the "language" field.
+func (_c *UserCreate) SetLanguage(v string) *UserCreate {
+	_c.mutation.SetLanguage(v)
+	return _c
+}
+
+// SetNillableLanguage sets the "language" field if the given value is not nil.
+func (_c *UserCreate) SetNillableLanguage(v *string) *UserCreate {
+	if v != nil {
+		_c.SetLanguage(*v)
+	}
+	return _c
+}
+
+// SetTimeZone sets the "time_zone" field.
+func (_c *UserCreate) SetTimeZone(v string) *UserCreate {
+	_c.mutation.SetTimeZone(v)
+	return _c
+}
+
+// SetNillableTimeZone sets the "time_zone" field if the given value is not nil.
+func (_c *UserCreate) SetNillableTimeZone(v *string) *UserCreate {
+	if v != nil {
+		_c.SetTimeZone(*v)
+	}
+	return _c
+}
+
+// SetOnboarding sets the "onboarding" field.
+func (_c *UserCreate) SetOnboarding(v map[string]interface{}) *UserCreate {
+	_c.mutation.SetOnboarding(v)
+	return _c
+}
+
+// SetPrivateCloudSyncEnabled sets the "private_cloud_sync_enabled" field.
+func (_c *UserCreate) SetPrivateCloudSyncEnabled(v bool) *UserCreate {
+	_c.mutation.SetPrivateCloudSyncEnabled(v)
+	return _c
+}
+
+// SetNillablePrivateCloudSyncEnabled sets the "private_cloud_sync_enabled" field if the given value is not nil.
+func (_c *UserCreate) SetNillablePrivateCloudSyncEnabled(v *bool) *UserCreate {
+	if v != nil {
+		_c.SetPrivateCloudSyncEnabled(*v)
+	}
+	return _c
+}
+
+// SetMeetingNoteScreenshotsEnabled sets the "meeting_note_screenshots_enabled" field.
+func (_c *UserCreate) SetMeetingNoteScreenshotsEnabled(v bool) *UserCreate {
+	_c.mutation.SetMeetingNoteScreenshotsEnabled(v)
+	return _c
+}
+
+// SetNillableMeetingNoteScreenshotsEnabled sets the "meeting_note_screenshots_enabled" field if the given value is not nil.
+func (_c *UserCreate) SetNillableMeetingNoteScreenshotsEnabled(v *bool) *UserCreate {
+	if v != nil {
+		_c.SetMeetingNoteScreenshotsEnabled(*v)
+	}
+	return _c
+}
+
+// SetStoreRecordingPermission sets the "store_recording_permission" field.
+func (_c *UserCreate) SetStoreRecordingPermission(v bool) *UserCreate {
+	_c.mutation.SetStoreRecordingPermission(v)
+	return _c
+}
+
+// SetNillableStoreRecordingPermission sets the "store_recording_permission" field if the given value is not nil.
+func (_c *UserCreate) SetNillableStoreRecordingPermission(v *bool) *UserCreate {
+	if v != nil {
+		_c.SetStoreRecordingPermission(*v)
+	}
+	return _c
+}
+
+// SetDailySummaryEnabled sets the "daily_summary_enabled" field.
+func (_c *UserCreate) SetDailySummaryEnabled(v bool) *UserCreate {
+	_c.mutation.SetDailySummaryEnabled(v)
+	return _c
+}
+
+// SetNillableDailySummaryEnabled sets the "daily_summary_enabled" field if the given value is not nil.
+func (_c *UserCreate) SetNillableDailySummaryEnabled(v *bool) *UserCreate {
+	if v != nil {
+		_c.SetDailySummaryEnabled(*v)
+	}
+	return _c
+}
+
+// SetDailySummaryHourLocal sets the "daily_summary_hour_local" field.
+func (_c *UserCreate) SetDailySummaryHourLocal(v int) *UserCreate {
+	_c.mutation.SetDailySummaryHourLocal(v)
+	return _c
+}
+
+// SetNillableDailySummaryHourLocal sets the "daily_summary_hour_local" field if the given value is not nil.
+func (_c *UserCreate) SetNillableDailySummaryHourLocal(v *int) *UserCreate {
+	if v != nil {
+		_c.SetDailySummaryHourLocal(*v)
+	}
+	return _c
+}
+
+// SetMentorNotificationFrequency sets the "mentor_notification_frequency" field.
+func (_c *UserCreate) SetMentorNotificationFrequency(v int) *UserCreate {
+	_c.mutation.SetMentorNotificationFrequency(v)
+	return _c
+}
+
+// SetNillableMentorNotificationFrequency sets the "mentor_notification_frequency" field if the given value is not nil.
+func (_c *UserCreate) SetNillableMentorNotificationFrequency(v *int) *UserCreate {
+	if v != nil {
+		_c.SetMentorNotificationFrequency(*v)
+	}
+	return _c
+}
+
+// SetIntegrations sets the "integrations" field.
+func (_c *UserCreate) SetIntegrations(v map[string]interface{}) *UserCreate {
+	_c.mutation.SetIntegrations(v)
+	return _c
+}
+
+// SetNotificationSettings sets the "notification_settings" field.
+func (_c *UserCreate) SetNotificationSettings(v map[string]interface{}) *UserCreate {
+	_c.mutation.SetNotificationSettings(v)
+	return _c
+}
+
+// SetAssistantSettings sets the "assistant_settings" field.
+func (_c *UserCreate) SetAssistantSettings(v map[string]interface{}) *UserCreate {
+	_c.mutation.SetAssistantSettings(v)
+	return _c
+}
+
+// SetAiProfile sets the "ai_profile" field.
+func (_c *UserCreate) SetAiProfile(v map[string]interface{}) *UserCreate {
+	_c.mutation.SetAiProfile(v)
 	return _c
 }
 
@@ -148,6 +304,126 @@ func (_c *UserCreate) AddActionItems(v ...*ActionItem) *UserCreate {
 	return _c.AddActionItemIDs(ids...)
 }
 
+// AddChatMessageIDs adds the "chat_messages" edge to the ChatMessage entity by IDs.
+func (_c *UserCreate) AddChatMessageIDs(ids ...int) *UserCreate {
+	_c.mutation.AddChatMessageIDs(ids...)
+	return _c
+}
+
+// AddChatMessages adds the "chat_messages" edges to the ChatMessage entity.
+func (_c *UserCreate) AddChatMessages(v ...*ChatMessage) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChatMessageIDs(ids...)
+}
+
+// AddChatSessionIDs adds the "chat_sessions" edge to the ChatSession entity by IDs.
+func (_c *UserCreate) AddChatSessionIDs(ids ...int) *UserCreate {
+	_c.mutation.AddChatSessionIDs(ids...)
+	return _c
+}
+
+// AddChatSessions adds the "chat_sessions" edges to the ChatSession entity.
+func (_c *UserCreate) AddChatSessions(v ...*ChatSession) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChatSessionIDs(ids...)
+}
+
+// AddNotificationTokenIDs adds the "notification_tokens" edge to the NotificationToken entity by IDs.
+func (_c *UserCreate) AddNotificationTokenIDs(ids ...int) *UserCreate {
+	_c.mutation.AddNotificationTokenIDs(ids...)
+	return _c
+}
+
+// AddNotificationTokens adds the "notification_tokens" edges to the NotificationToken entity.
+func (_c *UserCreate) AddNotificationTokens(v ...*NotificationToken) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNotificationTokenIDs(ids...)
+}
+
+// AddFolderIDs adds the "folders" edge to the Folder entity by IDs.
+func (_c *UserCreate) AddFolderIDs(ids ...int) *UserCreate {
+	_c.mutation.AddFolderIDs(ids...)
+	return _c
+}
+
+// AddFolders adds the "folders" edges to the Folder entity.
+func (_c *UserCreate) AddFolders(v ...*Folder) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddFolderIDs(ids...)
+}
+
+// AddGoalIDs adds the "goals" edge to the Goal entity by IDs.
+func (_c *UserCreate) AddGoalIDs(ids ...int) *UserCreate {
+	_c.mutation.AddGoalIDs(ids...)
+	return _c
+}
+
+// AddGoals adds the "goals" edges to the Goal entity.
+func (_c *UserCreate) AddGoals(v ...*Goal) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddGoalIDs(ids...)
+}
+
+// AddCalendarMeetingIDs adds the "calendar_meetings" edge to the CalendarMeeting entity by IDs.
+func (_c *UserCreate) AddCalendarMeetingIDs(ids ...int) *UserCreate {
+	_c.mutation.AddCalendarMeetingIDs(ids...)
+	return _c
+}
+
+// AddCalendarMeetings adds the "calendar_meetings" edges to the CalendarMeeting entity.
+func (_c *UserCreate) AddCalendarMeetings(v ...*CalendarMeeting) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCalendarMeetingIDs(ids...)
+}
+
+// AddCsatRatingIDs adds the "csat_ratings" edge to the CsatRating entity by IDs.
+func (_c *UserCreate) AddCsatRatingIDs(ids ...int) *UserCreate {
+	_c.mutation.AddCsatRatingIDs(ids...)
+	return _c
+}
+
+// AddCsatRatings adds the "csat_ratings" edges to the CsatRating entity.
+func (_c *UserCreate) AddCsatRatings(v ...*CsatRating) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCsatRatingIDs(ids...)
+}
+
+// AddChatFileIDs adds the "chat_files" edge to the ChatFile entity by IDs.
+func (_c *UserCreate) AddChatFileIDs(ids ...int) *UserCreate {
+	_c.mutation.AddChatFileIDs(ids...)
+	return _c
+}
+
+// AddChatFiles adds the "chat_files" edges to the ChatFile entity.
+func (_c *UserCreate) AddChatFiles(v ...*ChatFile) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChatFileIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_c *UserCreate) Mutation() *UserMutation {
 	return _c.mutation
@@ -195,6 +471,38 @@ func (_c *UserCreate) defaults() {
 		v := user.DefaultName
 		_c.mutation.SetName(v)
 	}
+	if _, ok := _c.mutation.Language(); !ok {
+		v := user.DefaultLanguage
+		_c.mutation.SetLanguage(v)
+	}
+	if _, ok := _c.mutation.TimeZone(); !ok {
+		v := user.DefaultTimeZone
+		_c.mutation.SetTimeZone(v)
+	}
+	if _, ok := _c.mutation.PrivateCloudSyncEnabled(); !ok {
+		v := user.DefaultPrivateCloudSyncEnabled
+		_c.mutation.SetPrivateCloudSyncEnabled(v)
+	}
+	if _, ok := _c.mutation.MeetingNoteScreenshotsEnabled(); !ok {
+		v := user.DefaultMeetingNoteScreenshotsEnabled
+		_c.mutation.SetMeetingNoteScreenshotsEnabled(v)
+	}
+	if _, ok := _c.mutation.StoreRecordingPermission(); !ok {
+		v := user.DefaultStoreRecordingPermission
+		_c.mutation.SetStoreRecordingPermission(v)
+	}
+	if _, ok := _c.mutation.DailySummaryEnabled(); !ok {
+		v := user.DefaultDailySummaryEnabled
+		_c.mutation.SetDailySummaryEnabled(v)
+	}
+	if _, ok := _c.mutation.DailySummaryHourLocal(); !ok {
+		v := user.DefaultDailySummaryHourLocal
+		_c.mutation.SetDailySummaryHourLocal(v)
+	}
+	if _, ok := _c.mutation.MentorNotificationFrequency(); !ok {
+		v := user.DefaultMentorNotificationFrequency
+		_c.mutation.SetMentorNotificationFrequency(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -204,6 +512,14 @@ func (_c *UserCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "User.updated_at"`)}
+	}
+	if _, ok := _c.mutation.ExternalUID(); !ok {
+		return &ValidationError{Name: "external_uid", err: errors.New(`ent: missing required field "User.external_uid"`)}
+	}
+	if v, ok := _c.mutation.ExternalUID(); ok {
+		if err := user.ExternalUIDValidator(v); err != nil {
+			return &ValidationError{Name: "external_uid", err: fmt.Errorf(`ent: validator failed for field "User.external_uid": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Email(); !ok {
 		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "User.email"`)}
@@ -215,6 +531,30 @@ func (_c *UserCreate) check() error {
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "User.name"`)}
+	}
+	if _, ok := _c.mutation.Language(); !ok {
+		return &ValidationError{Name: "language", err: errors.New(`ent: missing required field "User.language"`)}
+	}
+	if _, ok := _c.mutation.TimeZone(); !ok {
+		return &ValidationError{Name: "time_zone", err: errors.New(`ent: missing required field "User.time_zone"`)}
+	}
+	if _, ok := _c.mutation.PrivateCloudSyncEnabled(); !ok {
+		return &ValidationError{Name: "private_cloud_sync_enabled", err: errors.New(`ent: missing required field "User.private_cloud_sync_enabled"`)}
+	}
+	if _, ok := _c.mutation.MeetingNoteScreenshotsEnabled(); !ok {
+		return &ValidationError{Name: "meeting_note_screenshots_enabled", err: errors.New(`ent: missing required field "User.meeting_note_screenshots_enabled"`)}
+	}
+	if _, ok := _c.mutation.StoreRecordingPermission(); !ok {
+		return &ValidationError{Name: "store_recording_permission", err: errors.New(`ent: missing required field "User.store_recording_permission"`)}
+	}
+	if _, ok := _c.mutation.DailySummaryEnabled(); !ok {
+		return &ValidationError{Name: "daily_summary_enabled", err: errors.New(`ent: missing required field "User.daily_summary_enabled"`)}
+	}
+	if _, ok := _c.mutation.DailySummaryHourLocal(); !ok {
+		return &ValidationError{Name: "daily_summary_hour_local", err: errors.New(`ent: missing required field "User.daily_summary_hour_local"`)}
+	}
+	if _, ok := _c.mutation.MentorNotificationFrequency(); !ok {
+		return &ValidationError{Name: "mentor_notification_frequency", err: errors.New(`ent: missing required field "User.mentor_notification_frequency"`)}
 	}
 	return nil
 }
@@ -250,6 +590,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
+	if value, ok := _c.mutation.ExternalUID(); ok {
+		_spec.SetField(user.FieldExternalUID, field.TypeString, value)
+		_node.ExternalUID = value
+	}
 	if value, ok := _c.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 		_node.Email = value
@@ -257,6 +601,58 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := _c.mutation.Language(); ok {
+		_spec.SetField(user.FieldLanguage, field.TypeString, value)
+		_node.Language = value
+	}
+	if value, ok := _c.mutation.TimeZone(); ok {
+		_spec.SetField(user.FieldTimeZone, field.TypeString, value)
+		_node.TimeZone = value
+	}
+	if value, ok := _c.mutation.Onboarding(); ok {
+		_spec.SetField(user.FieldOnboarding, field.TypeJSON, value)
+		_node.Onboarding = value
+	}
+	if value, ok := _c.mutation.PrivateCloudSyncEnabled(); ok {
+		_spec.SetField(user.FieldPrivateCloudSyncEnabled, field.TypeBool, value)
+		_node.PrivateCloudSyncEnabled = value
+	}
+	if value, ok := _c.mutation.MeetingNoteScreenshotsEnabled(); ok {
+		_spec.SetField(user.FieldMeetingNoteScreenshotsEnabled, field.TypeBool, value)
+		_node.MeetingNoteScreenshotsEnabled = value
+	}
+	if value, ok := _c.mutation.StoreRecordingPermission(); ok {
+		_spec.SetField(user.FieldStoreRecordingPermission, field.TypeBool, value)
+		_node.StoreRecordingPermission = value
+	}
+	if value, ok := _c.mutation.DailySummaryEnabled(); ok {
+		_spec.SetField(user.FieldDailySummaryEnabled, field.TypeBool, value)
+		_node.DailySummaryEnabled = value
+	}
+	if value, ok := _c.mutation.DailySummaryHourLocal(); ok {
+		_spec.SetField(user.FieldDailySummaryHourLocal, field.TypeInt, value)
+		_node.DailySummaryHourLocal = value
+	}
+	if value, ok := _c.mutation.MentorNotificationFrequency(); ok {
+		_spec.SetField(user.FieldMentorNotificationFrequency, field.TypeInt, value)
+		_node.MentorNotificationFrequency = value
+	}
+	if value, ok := _c.mutation.Integrations(); ok {
+		_spec.SetField(user.FieldIntegrations, field.TypeJSON, value)
+		_node.Integrations = value
+	}
+	if value, ok := _c.mutation.NotificationSettings(); ok {
+		_spec.SetField(user.FieldNotificationSettings, field.TypeJSON, value)
+		_node.NotificationSettings = value
+	}
+	if value, ok := _c.mutation.AssistantSettings(); ok {
+		_spec.SetField(user.FieldAssistantSettings, field.TypeJSON, value)
+		_node.AssistantSettings = value
+	}
+	if value, ok := _c.mutation.AiProfile(); ok {
+		_spec.SetField(user.FieldAiProfile, field.TypeJSON, value)
+		_node.AiProfile = value
 	}
 	if nodes := _c.mutation.DevicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -331,6 +727,134 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(actionitem.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChatMessagesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatMessagesTable,
+			Columns: []string{user.ChatMessagesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatmessage.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChatSessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatSessionsTable,
+			Columns: []string{user.ChatSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatsession.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.NotificationTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationTokensTable,
+			Columns: []string{user.NotificationTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationtoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FoldersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FoldersTable,
+			Columns: []string{user.FoldersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.GoalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CalendarMeetingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarMeetingsTable,
+			Columns: []string{user.CalendarMeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendarmeeting.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CsatRatingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CsatRatingsTable,
+			Columns: []string{user.CsatRatingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(csatrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChatFilesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChatFilesTable,
+			Columns: []string{user.ChatFilesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chatfile.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

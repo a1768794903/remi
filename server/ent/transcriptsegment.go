@@ -24,6 +24,12 @@ type TranscriptSegment struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Speaker holds the value of the "speaker" field.
 	Speaker string `json:"speaker,omitempty"`
+	// SpeakerID holds the value of the "speaker_id" field.
+	SpeakerID int `json:"speaker_id,omitempty"`
+	// IsUser holds the value of the "is_user" field.
+	IsUser bool `json:"is_user,omitempty"`
+	// PersonID holds the value of the "person_id" field.
+	PersonID *string `json:"person_id,omitempty"`
 	// Text holds the value of the "text" field.
 	Text string `json:"text,omitempty"`
 	// StartMs holds the value of the "start_ms" field.
@@ -32,11 +38,12 @@ type TranscriptSegment struct {
 	EndMs int64 `json:"end_ms,omitempty"`
 	// Source holds the value of the "source" field.
 	Source string `json:"source,omitempty"`
+	// ConversationID holds the value of the "conversation_id" field.
+	ConversationID *int `json:"conversation_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the TranscriptSegmentQuery when eager-loading is set.
-	Edges                            TranscriptSegmentEdges `json:"edges"`
-	conversation_transcript_segments *int
-	selectValues                     sql.SelectValues
+	Edges        TranscriptSegmentEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // TranscriptSegmentEdges holds the relations/edges for other nodes in the graph.
@@ -64,14 +71,14 @@ func (*TranscriptSegment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case transcriptsegment.FieldID, transcriptsegment.FieldStartMs, transcriptsegment.FieldEndMs:
+		case transcriptsegment.FieldIsUser:
+			values[i] = new(sql.NullBool)
+		case transcriptsegment.FieldID, transcriptsegment.FieldSpeakerID, transcriptsegment.FieldStartMs, transcriptsegment.FieldEndMs, transcriptsegment.FieldConversationID:
 			values[i] = new(sql.NullInt64)
-		case transcriptsegment.FieldSpeaker, transcriptsegment.FieldText, transcriptsegment.FieldSource:
+		case transcriptsegment.FieldSpeaker, transcriptsegment.FieldPersonID, transcriptsegment.FieldText, transcriptsegment.FieldSource:
 			values[i] = new(sql.NullString)
 		case transcriptsegment.FieldCreatedAt, transcriptsegment.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
-		case transcriptsegment.ForeignKeys[0]: // conversation_transcript_segments
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -111,6 +118,25 @@ func (_m *TranscriptSegment) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				_m.Speaker = value.String
 			}
+		case transcriptsegment.FieldSpeakerID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field speaker_id", values[i])
+			} else if value.Valid {
+				_m.SpeakerID = int(value.Int64)
+			}
+		case transcriptsegment.FieldIsUser:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_user", values[i])
+			} else if value.Valid {
+				_m.IsUser = value.Bool
+			}
+		case transcriptsegment.FieldPersonID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field person_id", values[i])
+			} else if value.Valid {
+				_m.PersonID = new(string)
+				*_m.PersonID = value.String
+			}
 		case transcriptsegment.FieldText:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field text", values[i])
@@ -135,12 +161,12 @@ func (_m *TranscriptSegment) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				_m.Source = value.String
 			}
-		case transcriptsegment.ForeignKeys[0]:
+		case transcriptsegment.FieldConversationID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field conversation_transcript_segments", value)
+				return fmt.Errorf("unexpected type %T for field conversation_id", values[i])
 			} else if value.Valid {
-				_m.conversation_transcript_segments = new(int)
-				*_m.conversation_transcript_segments = int(value.Int64)
+				_m.ConversationID = new(int)
+				*_m.ConversationID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -192,6 +218,17 @@ func (_m *TranscriptSegment) String() string {
 	builder.WriteString("speaker=")
 	builder.WriteString(_m.Speaker)
 	builder.WriteString(", ")
+	builder.WriteString("speaker_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SpeakerID))
+	builder.WriteString(", ")
+	builder.WriteString("is_user=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsUser))
+	builder.WriteString(", ")
+	if v := _m.PersonID; v != nil {
+		builder.WriteString("person_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("text=")
 	builder.WriteString(_m.Text)
 	builder.WriteString(", ")
@@ -203,6 +240,11 @@ func (_m *TranscriptSegment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("source=")
 	builder.WriteString(_m.Source)
+	builder.WriteString(", ")
+	if v := _m.ConversationID; v != nil {
+		builder.WriteString("conversation_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

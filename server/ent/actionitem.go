@@ -62,12 +62,14 @@ type ActionItem struct {
 	ExportPlatform *string `json:"export_platform,omitempty"`
 	// AppleReminderID holds the value of the "apple_reminder_id" field.
 	AppleReminderID *string `json:"apple_reminder_id,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID *int `json:"user_id,omitempty"`
+	// ConversationID holds the value of the "conversation_id" field.
+	ConversationID *int `json:"conversation_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ActionItemQuery when eager-loading is set.
-	Edges                     ActionItemEdges `json:"edges"`
-	conversation_action_items *int
-	user_action_items         *int
-	selectValues              sql.SelectValues
+	Edges        ActionItemEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // ActionItemEdges holds the relations/edges for other nodes in the graph.
@@ -114,16 +116,12 @@ func (*ActionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case actionitem.FieldDueConfidence:
 			values[i] = new(sql.NullFloat64)
-		case actionitem.FieldID, actionitem.FieldSortOrder, actionitem.FieldIndentLevel, actionitem.FieldRecurrenceParentID, actionitem.FieldSupersededBy:
+		case actionitem.FieldID, actionitem.FieldSortOrder, actionitem.FieldIndentLevel, actionitem.FieldRecurrenceParentID, actionitem.FieldSupersededBy, actionitem.FieldUserID, actionitem.FieldConversationID:
 			values[i] = new(sql.NullInt64)
 		case actionitem.FieldDescription, actionitem.FieldStatus, actionitem.FieldOwner, actionitem.FieldPriority, actionitem.FieldSource, actionitem.FieldRecurrenceRule, actionitem.FieldExportPlatform, actionitem.FieldAppleReminderID:
 			values[i] = new(sql.NullString)
 		case actionitem.FieldCreatedAt, actionitem.FieldUpdatedAt, actionitem.FieldDueAt, actionitem.FieldCompletedAt, actionitem.FieldExportDate:
 			values[i] = new(sql.NullTime)
-		case actionitem.ForeignKeys[0]: // conversation_action_items
-			values[i] = new(sql.NullInt64)
-		case actionitem.ForeignKeys[1]: // user_action_items
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -283,19 +281,19 @@ func (_m *ActionItem) assignValues(columns []string, values []any) error {
 				_m.AppleReminderID = new(string)
 				*_m.AppleReminderID = value.String
 			}
-		case actionitem.ForeignKeys[0]:
+		case actionitem.FieldUserID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field conversation_action_items", value)
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				_m.conversation_action_items = new(int)
-				*_m.conversation_action_items = int(value.Int64)
+				_m.UserID = new(int)
+				*_m.UserID = int(value.Int64)
 			}
-		case actionitem.ForeignKeys[1]:
+		case actionitem.FieldConversationID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_action_items", value)
+				return fmt.Errorf("unexpected type %T for field conversation_id", values[i])
 			} else if value.Valid {
-				_m.user_action_items = new(int)
-				*_m.user_action_items = int(value.Int64)
+				_m.ConversationID = new(int)
+				*_m.ConversationID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -424,6 +422,16 @@ func (_m *ActionItem) String() string {
 	if v := _m.AppleReminderID; v != nil {
 		builder.WriteString("apple_reminder_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ConversationID; v != nil {
+		builder.WriteString("conversation_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

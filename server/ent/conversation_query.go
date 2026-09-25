@@ -10,6 +10,7 @@ import (
 	"remi/server/ent/actionitem"
 	"remi/server/ent/conversation"
 	"remi/server/ent/device"
+	"remi/server/ent/folder"
 	"remi/server/ent/memory"
 	"remi/server/ent/predicate"
 	"remi/server/ent/todo"
@@ -31,11 +32,11 @@ type ConversationQuery struct {
 	predicates             []predicate.Conversation
 	withUser               *UserQuery
 	withDevice             *DeviceQuery
+	withFolder             *FolderQuery
 	withTranscriptSegments *TranscriptSegmentQuery
 	withMemories           *MemoryQuery
 	withTodos              *TodoQuery
 	withActionItems        *ActionItemQuery
-	withFKs                bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -109,6 +110,28 @@ func (_q *ConversationQuery) QueryDevice() *DeviceQuery {
 			sqlgraph.From(conversation.Table, conversation.FieldID, selector),
 			sqlgraph.To(device.Table, device.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, conversation.DeviceTable, conversation.DeviceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFolder chains the current query on the "folder" edge.
+func (_q *ConversationQuery) QueryFolder() *FolderQuery {
+	query := (&FolderClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(conversation.Table, conversation.FieldID, selector),
+			sqlgraph.To(folder.Table, folder.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, conversation.FolderTable, conversation.FolderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -398,6 +421,7 @@ func (_q *ConversationQuery) Clone() *ConversationQuery {
 		predicates:             append([]predicate.Conversation{}, _q.predicates...),
 		withUser:               _q.withUser.Clone(),
 		withDevice:             _q.withDevice.Clone(),
+		withFolder:             _q.withFolder.Clone(),
 		withTranscriptSegments: _q.withTranscriptSegments.Clone(),
 		withMemories:           _q.withMemories.Clone(),
 		withTodos:              _q.withTodos.Clone(),
@@ -427,6 +451,17 @@ func (_q *ConversationQuery) WithDevice(opts ...func(*DeviceQuery)) *Conversatio
 		opt(query)
 	}
 	_q.withDevice = query
+	return _q
+}
+
+// WithFolder tells the query-builder to eager-load the nodes that are connected to
+// the "folder" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ConversationQuery) WithFolder(opts ...func(*FolderQuery)) *ConversationQuery {
+	query := (&FolderClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withFolder = query
 	return _q
 }
 
@@ -551,23 +586,17 @@ func (_q *ConversationQuery) prepareQuery(ctx context.Context) error {
 func (_q *ConversationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Conversation, error) {
 	var (
 		nodes       = []*Conversation{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [7]bool{
 			_q.withUser != nil,
 			_q.withDevice != nil,
+			_q.withFolder != nil,
 			_q.withTranscriptSegments != nil,
 			_q.withMemories != nil,
 			_q.withTodos != nil,
 			_q.withActionItems != nil,
 		}
 	)
-	if _q.withUser != nil || _q.withDevice != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, conversation.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Conversation).scanValues(nil, columns)
 	}
@@ -595,6 +624,12 @@ func (_q *ConversationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	if query := _q.withDevice; query != nil {
 		if err := _q.loadDevice(ctx, query, nodes, nil,
 			func(n *Conversation, e *Device) { n.Edges.Device = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withFolder; query != nil {
+		if err := _q.loadFolder(ctx, query, nodes, nil,
+			func(n *Conversation, e *Folder) { n.Edges.Folder = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -635,10 +670,10 @@ func (_q *ConversationQuery) loadUser(ctx context.Context, query *UserQuery, nod
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Conversation)
 	for i := range nodes {
-		if nodes[i].user_conversations == nil {
+		if nodes[i].UserID == nil {
 			continue
 		}
-		fk := *nodes[i].user_conversations
+		fk := *nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -655,7 +690,7 @@ func (_q *ConversationQuery) loadUser(ctx context.Context, query *UserQuery, nod
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_conversations" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -667,10 +702,10 @@ func (_q *ConversationQuery) loadDevice(ctx context.Context, query *DeviceQuery,
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Conversation)
 	for i := range nodes {
-		if nodes[i].device_conversations == nil {
+		if nodes[i].DeviceID == nil {
 			continue
 		}
-		fk := *nodes[i].device_conversations
+		fk := *nodes[i].DeviceID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -687,7 +722,39 @@ func (_q *ConversationQuery) loadDevice(ctx context.Context, query *DeviceQuery,
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "device_conversations" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "device_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ConversationQuery) loadFolder(ctx context.Context, query *FolderQuery, nodes []*Conversation, init func(*Conversation), assign func(*Conversation, *Folder)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Conversation)
+	for i := range nodes {
+		if nodes[i].FolderID == nil {
+			continue
+		}
+		fk := *nodes[i].FolderID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(folder.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "folder_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -705,7 +772,9 @@ func (_q *ConversationQuery) loadTranscriptSegments(ctx context.Context, query *
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(transcriptsegment.FieldConversationID)
+	}
 	query.Where(predicate.TranscriptSegment(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(conversation.TranscriptSegmentsColumn), fks...))
 	}))
@@ -714,13 +783,13 @@ func (_q *ConversationQuery) loadTranscriptSegments(ctx context.Context, query *
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.conversation_transcript_segments
+		fk := n.ConversationID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "conversation_transcript_segments" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "conversation_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "conversation_transcript_segments" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "conversation_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -736,7 +805,9 @@ func (_q *ConversationQuery) loadMemories(ctx context.Context, query *MemoryQuer
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(memory.FieldConversationID)
+	}
 	query.Where(predicate.Memory(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(conversation.MemoriesColumn), fks...))
 	}))
@@ -745,13 +816,13 @@ func (_q *ConversationQuery) loadMemories(ctx context.Context, query *MemoryQuer
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.conversation_memories
+		fk := n.ConversationID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "conversation_memories" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "conversation_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "conversation_memories" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "conversation_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -767,7 +838,9 @@ func (_q *ConversationQuery) loadTodos(ctx context.Context, query *TodoQuery, no
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(todo.FieldConversationID)
+	}
 	query.Where(predicate.Todo(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(conversation.TodosColumn), fks...))
 	}))
@@ -776,13 +849,13 @@ func (_q *ConversationQuery) loadTodos(ctx context.Context, query *TodoQuery, no
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.conversation_todos
+		fk := n.ConversationID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "conversation_todos" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "conversation_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "conversation_todos" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "conversation_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -798,7 +871,9 @@ func (_q *ConversationQuery) loadActionItems(ctx context.Context, query *ActionI
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(actionitem.FieldConversationID)
+	}
 	query.Where(predicate.ActionItem(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(conversation.ActionItemsColumn), fks...))
 	}))
@@ -807,13 +882,13 @@ func (_q *ConversationQuery) loadActionItems(ctx context.Context, query *ActionI
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.conversation_action_items
+		fk := n.ConversationID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "conversation_action_items" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "conversation_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "conversation_action_items" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "conversation_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -844,6 +919,15 @@ func (_q *ConversationQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != conversation.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withUser != nil {
+			_spec.Node.AddColumnOnce(conversation.FieldUserID)
+		}
+		if _q.withDevice != nil {
+			_spec.Node.AddColumnOnce(conversation.FieldDeviceID)
+		}
+		if _q.withFolder != nil {
+			_spec.Node.AddColumnOnce(conversation.FieldFolderID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

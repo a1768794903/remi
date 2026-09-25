@@ -33,12 +33,14 @@ func (ActionItem) Fields() []ent.Field {
 		field.Time("export_date").Optional().Nillable(),
 		field.String("export_platform").Optional().Nillable(),
 		field.String("apple_reminder_id").Optional().Nillable(),
+		field.Int("user_id").Optional().Nillable(),
+		field.Int("conversation_id").Optional().Nillable(),
 	}
 }
 
 func (ActionItem) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", User.Type).Ref("action_items").Unique(),
-		edge.From("conversation", Conversation.Type).Ref("action_items").Unique(),
+		edge.From("user", User.Type).Ref("action_items").Unique().Field("user_id"),
+		edge.From("conversation", Conversation.Type).Ref("action_items").Unique().Field("conversation_id"),
 	}
 }

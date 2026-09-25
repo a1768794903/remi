@@ -26,7 +26,6 @@ type TodoQuery struct {
 	predicates       []predicate.Todo
 	withUser         *UserQuery
 	withConversation *ConversationQuery
-	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -406,19 +405,12 @@ func (_q *TodoQuery) prepareQuery(ctx context.Context) error {
 func (_q *TodoQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Todo, error) {
 	var (
 		nodes       = []*Todo{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
 			_q.withUser != nil,
 			_q.withConversation != nil,
 		}
 	)
-	if _q.withUser != nil || _q.withConversation != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, todo.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Todo).scanValues(nil, columns)
 	}
@@ -456,10 +448,10 @@ func (_q *TodoQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*To
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Todo)
 	for i := range nodes {
-		if nodes[i].user_todos == nil {
+		if nodes[i].UserID == nil {
 			continue
 		}
-		fk := *nodes[i].user_todos
+		fk := *nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -476,7 +468,7 @@ func (_q *TodoQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*To
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_todos" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -488,10 +480,10 @@ func (_q *TodoQuery) loadConversation(ctx context.Context, query *ConversationQu
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Todo)
 	for i := range nodes {
-		if nodes[i].conversation_todos == nil {
+		if nodes[i].ConversationID == nil {
 			continue
 		}
-		fk := *nodes[i].conversation_todos
+		fk := *nodes[i].ConversationID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -508,7 +500,7 @@ func (_q *TodoQuery) loadConversation(ctx context.Context, query *ConversationQu
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "conversation_todos" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "conversation_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -541,6 +533,12 @@ func (_q *TodoQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != todo.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withUser != nil {
+			_spec.Node.AddColumnOnce(todo.FieldUserID)
+		}
+		if _q.withConversation != nil {
+			_spec.Node.AddColumnOnce(todo.FieldConversationID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

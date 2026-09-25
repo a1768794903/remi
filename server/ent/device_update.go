@@ -119,17 +119,23 @@ func (_u *DeviceUpdate) ClearLastSeenAt() *DeviceUpdate {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *DeviceUpdate) SetUserID(id int) *DeviceUpdate {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *DeviceUpdate) SetUserID(v int) *DeviceUpdate {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *DeviceUpdate) SetNillableUserID(id *int) *DeviceUpdate {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *DeviceUpdate) SetNillableUserID(v *int) *DeviceUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *DeviceUpdate) ClearUserID() *DeviceUpdate {
+	_u.mutation.ClearUserID()
 	return _u
 }
 
@@ -450,17 +456,23 @@ func (_u *DeviceUpdateOne) ClearLastSeenAt() *DeviceUpdateOne {
 	return _u
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *DeviceUpdateOne) SetUserID(id int) *DeviceUpdateOne {
-	_u.mutation.SetUserID(id)
+// SetUserID sets the "user_id" field.
+func (_u *DeviceUpdateOne) SetUserID(v int) *DeviceUpdateOne {
+	_u.mutation.SetUserID(v)
 	return _u
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *DeviceUpdateOne) SetNillableUserID(id *int) *DeviceUpdateOne {
-	if id != nil {
-		_u = _u.SetUserID(*id)
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *DeviceUpdateOne) SetNillableUserID(v *int) *DeviceUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *DeviceUpdateOne) ClearUserID() *DeviceUpdateOne {
+	_u.mutation.ClearUserID()
 	return _u
 }
 
