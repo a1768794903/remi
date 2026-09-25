@@ -715,6 +715,7 @@ CREATE TABLE IF NOT EXISTS `conversations` (
     `audio_files` json NULL,
     `conversation_audio` json NULL,
     `structured` json NULL,
+    `calendar_event` json NULL,
     `photos` json NULL,
     `screenshot_sharing_enabled` boolean NOT NULL DEFAULT FALSE,
     `screen_frames_revision` bigint NOT NULL DEFAULT 0,

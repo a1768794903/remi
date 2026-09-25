@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -800,4 +802,157 @@ func (h Handler) SuggestedApps(w http.ResponseWriter, r *http.Request) {
 		result = append(result, item)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"suggested_apps": result, "conversation_id": conversationID})
+}
+
+type calendarEventLink struct {
+	EventID       string    `json:"event_id"`
+	Title         string    `json:"title"`
+	Attendees     []string  `json:"attendees"`
+	AttendeeEmail []string  `json:"attendee_emails"`
+	StartTime     time.Time `json:"start_time"`
+	EndTime       time.Time `json:"end_time"`
+	HTMLLink      string    `json:"html_link,omitempty"`
+}
+
+func (h Handler) calendarToken(ctx context.Context, uid string) (string, error) {
+	var raw []byte
+	if err := h.Service.DB.QueryRowContext(ctx, `SELECT COALESCE(u.integrations,JSON_OBJECT()) FROM users u WHERE u.external_uid=?`, uid).Scan(&raw); err != nil {
+		return "", err
+	}
+	var integrations map[string]any
+	if json.Unmarshal(raw, &integrations) != nil {
+		return "", errors.New("invalid integrations")
+	}
+	integration, _ := integrations["google_calendar"].(map[string]any)
+	connected, _ := integration["connected"].(bool)
+	token, _ := integration["access_token"].(string)
+	if !connected || strings.TrimSpace(token) == "" {
+		return "", errors.New("Google Calendar not connected")
+	}
+	return token, nil
+}
+
+func parseCalendarPoint(raw map[string]any) (time.Time, error) {
+	if value, ok := raw["dateTime"].(string); ok && value != "" {
+		return time.Parse(time.RFC3339, value)
+	}
+	if value, ok := raw["date"].(string); ok && value != "" {
+		return time.ParseInLocation("2006-01-02", value, time.UTC)
+	}
+	return time.Time{}, errors.New("calendar event has no valid time")
+}
+
+func fetchCalendarEvent(ctx context.Context, token, eventID string) (calendarEventLink, error) {
+	endpoint := "https://www.googleapis.com/calendar/v3/calendars/primary/events/" + url.PathEscape(eventID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return calendarEventLink{}, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	if err != nil {
+		return calendarEventLink{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return calendarEventLink{}, errors.New("Google Calendar authentication expired. Please reconnect.")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return calendarEventLink{}, fmt.Errorf("failed to fetch calendar event: %s", resp.Status)
+	}
+	var raw map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return calendarEventLink{}, err
+	}
+	startRaw, _ := raw["start"].(map[string]any)
+	endRaw, _ := raw["end"].(map[string]any)
+	start, err := parseCalendarPoint(startRaw)
+	if err != nil {
+		return calendarEventLink{}, err
+	}
+	end, err := parseCalendarPoint(endRaw)
+	if err != nil || !end.After(start) {
+		return calendarEventLink{}, errors.New("could not parse calendar event times")
+	}
+	link := calendarEventLink{EventID: stringValue(raw["id"]), Title: stringValue(raw["summary"]), StartTime: start, EndTime: end, HTMLLink: stringValue(raw["htmlLink"]), Attendees: []string{}, AttendeeEmail: []string{}}
+	if link.Title == "" {
+		link.Title = "Untitled Event"
+	}
+	if attendees, ok := raw["attendees"].([]any); ok {
+		for _, value := range attendees {
+			attendee, _ := value.(map[string]any)
+			if name := stringValue(attendee["displayName"]); name != "" {
+				link.Attendees = append(link.Attendees, name)
+			}
+			if email := stringValue(attendee["email"]); email != "" {
+				link.AttendeeEmail = append(link.AttendeeEmail, email)
+			}
+		}
+	}
+	return link, nil
+}
+
+func stringValue(value any) string {
+	result, _ := value.(string)
+	return result
+}
+
+func (h Handler) CalendarEvent(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if h.Service.DB == nil {
+		http.Error(w, "conversation storage is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	id := r.PathValue("conversation_id")
+	var exists int
+	if err = h.Service.DB.QueryRowContext(r.Context(), `SELECT 1 FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=?`, id, uid).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		http.NotFound(w, r)
+		return
+	} else if err != nil {
+		http.Error(w, "conversation lookup failed", http.StatusInternalServerError)
+		return
+	}
+	if r.Method == http.MethodDelete {
+		if _, err = h.Service.DB.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.calendar_event=NULL WHERE c.id=? AND u.external_uid=?`, id, uid); err != nil {
+			http.Error(w, "failed to unlink calendar event", http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "Ok"})
+		return
+	}
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var input struct {
+		EventID string `json:"event_id"`
+	}
+	if json.NewDecoder(r.Body).Decode(&input) != nil || strings.TrimSpace(input.EventID) == "" {
+		http.Error(w, "event_id is required", http.StatusBadRequest)
+		return
+	}
+	token, err := h.calendarToken(r.Context(), uid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	link, err := fetchCalendarEvent(r.Context(), token, input.EventID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "authentication expired") {
+			status = http.StatusUnauthorized
+		}
+		http.Error(w, err.Error(), status)
+		return
+	}
+	encoded, _ := json.Marshal(link)
+	if _, err = h.Service.DB.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.calendar_event=? WHERE c.id=? AND u.external_uid=?`, encoded, id, uid); err != nil {
+		http.Error(w, "failed to link calendar event", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, link)
 }

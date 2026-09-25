@@ -723,6 +723,8 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/conversations/merge", Handler: protected(http.HandlerFunc(conversationHandler.Merge)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/analytics", Handler: protected(http.HandlerFunc(conversationHandler.Analytics)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/suggested-apps", Handler: protected(http.HandlerFunc(conversationHandler.SuggestedApps)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/conversations/:conversation_id/calendar-event", Handler: protected(http.HandlerFunc(conversationHandler.CalendarEvent)).ServeHTTP},
+		{Method: http.MethodDelete, Path: "/v1/conversations/:conversation_id/calendar-event", Handler: protected(http.HandlerFunc(conversationHandler.CalendarEvent)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/conversations/:conversation_id/test-prompt", Handler: protected(http.HandlerFunc(conversationHandler.TestPrompt)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/dev/user/conversations/from-segments", Handler: protected(http.HandlerFunc(conversationHandler.FromSegments)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id", Handler: protected(http.HandlerFunc(conversationHandler.Item)).ServeHTTP},
