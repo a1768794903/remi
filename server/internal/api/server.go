@@ -51,6 +51,7 @@ import (
 	"remi/server/internal/metrics"
 	"remi/server/internal/mobilefeedback"
 	"remi/server/internal/notifications"
+	"remi/server/internal/oauthapp"
 	"remi/server/internal/payments"
 	"remi/server/internal/people"
 	"remi/server/internal/phonecalls"
@@ -100,7 +101,10 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	devKeyHandler := devkeys.Handler{Service: devkeys.Service{DB: db}}
 	developerHandler := developer.Handler{Actions: actionHandler.Service, Memories: memoryHandler.Service, Conversations: conversationHandler.Service}
 	oauthHandler := mcpkeys.OAuthHandler{Service: mcpkeys.Service{DB: db}, Verifier: verifier}
+	appOAuthHandler := oauthapp.Handler{DB: db, Verifier: verifier}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodGet, Path: "/v1/oauth/authorize", Handler: appOAuthHandler.Authorize},
+		{Method: http.MethodPost, Path: "/v1/oauth/token", Handler: appOAuthHandler.Token},
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/user/memories", Handler: externalapi.Handler{DB: db}.Memories},
 		{Method: http.MethodPost, Path: "/v2/integrations/:app_id/user/memories", Handler: externalapi.Handler{DB: db}.Memories},
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/user/conversations", Handler: externalapi.Handler{DB: db}.Conversations},
