@@ -146,25 +146,25 @@ func proxyRequestID(r *http.Request) string {
 	return uuid.NewString()
 }
 
-func (h Handler) recordAttempt(ctx context.Context, requestID, uid, provider, model, action, payer string, status int, outcome string, inputBytes, inputTokens, outputTokens, cachedTokens int64) {
+func (h Handler) recordAttempt(ctx context.Context, requestID string, retryOrdinal int, uid, provider, model, action, payer string, status int, outcome string, inputBytes, inputTokens, outputTokens, cachedTokens int64) {
 	if h.DB == nil {
 		return
 	}
-	_, _ = h.DB.ExecContext(ctx, `INSERT INTO llm_proxy_attempts(request_id,user_external_uid,caller,provider,model,api_surface,payer,outcome,upstream_status,input_bytes,input_tokens,output_tokens,cached_tokens,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE request_id=request_id`, requestID, nullString(uid), "desktop_proxy", provider, model, action, payer, outcome, status, inputBytes, inputTokens, outputTokens, cachedTokens)
+	_, _ = h.DB.ExecContext(ctx, `INSERT INTO llm_proxy_attempts(request_id,retry_ordinal,user_external_uid,caller,provider,model,api_surface,payer,outcome,upstream_status,input_bytes,input_tokens,output_tokens,cached_tokens,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE request_id=request_id,retry_ordinal=retry_ordinal`, requestID, retryOrdinal, nullString(uid), "desktop_proxy", provider, model, action, payer, outcome, status, inputBytes, inputTokens, outputTokens, cachedTokens)
 }
 
-func (h Handler) updateAttemptUsage(ctx context.Context, requestID string, usage usageCounts) {
+func (h Handler) updateAttemptUsage(ctx context.Context, requestID string, retryOrdinal int, usage usageCounts) {
 	if h.DB == nil || requestID == "" {
 		return
 	}
-	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET input_tokens=?,output_tokens=?,cached_tokens=? WHERE request_id=?`, usage.Input, usage.Output, usage.Cached, requestID)
+	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET input_tokens=?,output_tokens=?,cached_tokens=? WHERE request_id=? AND retry_ordinal=?`, usage.Input, usage.Output, usage.Cached, requestID, retryOrdinal)
 }
 
-func (h Handler) updateAttemptOutcome(ctx context.Context, requestID, outcome string) {
+func (h Handler) updateAttemptOutcome(ctx context.Context, requestID string, retryOrdinal int, outcome string) {
 	if h.DB == nil || requestID == "" || outcome == "" {
 		return
 	}
-	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET outcome=? WHERE request_id=?`, outcome, requestID)
+	_, _ = h.DB.ExecContext(ctx, `UPDATE llm_proxy_attempts SET outcome=? WHERE request_id=? AND retry_ordinal=?`, outcome, requestID, retryOrdinal)
 }
 
 func nullString(value string) any {
@@ -184,10 +184,13 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 	targets := append([]string{target}, fallback...)
 	var resp *http.Response
 	var err error
+	selectedOrdinal := 0
 	for index, candidate := range targets {
+		retryOrdinal := index
+		selectedOrdinal = index
 		u, parseErr := url.Parse(candidate)
 		if parseErr != nil {
-			h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "validation_rejected", int64(len(body)), 0, 0, 0)
+			h.recordAttempt(r.Context(), requestID, retryOrdinal, uid, provider, model, action, payer, 0, "validation_rejected", int64(len(body)), 0, 0, 0)
 			http.Error(w, "invalid provider endpoint", 500)
 			return
 		}
@@ -210,15 +213,22 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		}
 		resp, err = h.client().Do(req)
 		if err == nil && (!fallbackEligible(resp.StatusCode) || index == len(targets)-1) {
+			selectedOrdinal = index
 			break
 		}
 		if resp != nil {
+			_, code, _, _ := proxyStatus(resp.StatusCode)
+			outcome := code
+			if outcome == "" {
+				outcome = "provider_error"
+			}
+			h.recordAttempt(r.Context(), requestID, retryOrdinal, uid, provider, model, action, payer, resp.StatusCode, outcome, int64(len(body)), 0, 0, 0)
 			_, _ = io.Copy(io.Discard, resp.Body)
 			_ = resp.Body.Close()
 		}
 	}
 	if err != nil || resp == nil {
-		h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
+		h.recordAttempt(r.Context(), requestID, selectedOrdinal, uid, provider, model, action, payer, 0, "provider_unavailable", int64(len(body)), 0, 0, 0)
 		w.Header().Set("X-Omi-Request-Id", requestID)
 		w.Header().Set("X-Omi-Provider", provider)
 		w.Header().Set("X-Omi-Error-Class", "provider_unavailable")
@@ -253,7 +263,8 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 			outcome = "missing_terminal"
 		}
 	}
-	h.recordAttempt(r.Context(), requestID, uid, provider, model, action, payer, resp.StatusCode, outcome, int64(len(body)), usage.Input, usage.Output, usage.Cached)
+	finalOrdinal := selectedOrdinal
+	h.recordAttempt(r.Context(), requestID, finalOrdinal, uid, provider, model, action, payer, resp.StatusCode, outcome, int64(len(body)), usage.Input, usage.Output, usage.Cached)
 	if code != "" {
 		w.Header().Set("X-Omi-Error-Class", code)
 		w.Header().Set("X-Omi-Failure-Phase", "provider")
@@ -267,7 +278,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		_, _ = w.Write(responseBody)
 		return
 	}
-	observer := &usageReader{source: resp.Body, limit: maxGeminiBodyBytes * 2, usage: func(value usageCounts) { h.updateAttemptUsage(r.Context(), requestID, value) }, terminal: func(body []byte) {
+	observer := &usageReader{source: resp.Body, limit: maxGeminiBodyBytes * 2, usage: func(value usageCounts) { h.updateAttemptUsage(r.Context(), requestID, finalOrdinal, value) }, terminal: func(body []byte) {
 		_, terminal, hasError := geminiPayloadOutcome(body)
 		outcome := "empty_answer"
 		if hasError {
@@ -277,7 +288,7 @@ func (h Handler) forward(w http.ResponseWriter, r *http.Request, target string, 
 		} else {
 			outcome = "missing_terminal"
 		}
-		h.updateAttemptOutcome(r.Context(), requestID, outcome)
+		h.updateAttemptOutcome(r.Context(), requestID, finalOrdinal, outcome)
 	}}
 	_, _ = io.Copy(w, observer)
 }

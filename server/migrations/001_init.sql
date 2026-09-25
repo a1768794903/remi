@@ -522,6 +522,7 @@ ALTER TABLE `llm_usage` ADD COLUMN IF NOT EXISTS `output_tokens` bigint NOT NULL
 
 CREATE TABLE IF NOT EXISTS `llm_proxy_attempts` (
     `request_id` varchar(128) NOT NULL,
+    `retry_ordinal` int NOT NULL DEFAULT 0,
     `user_external_uid` varchar(255) NULL,
     `caller` varchar(64) NOT NULL,
     `provider` varchar(64) NOT NULL,
@@ -535,7 +536,7 @@ CREATE TABLE IF NOT EXISTS `llm_proxy_attempts` (
     `output_tokens` bigint NOT NULL DEFAULT 0,
     `cached_tokens` bigint NOT NULL DEFAULT 0,
     `created_at` datetime(6) NOT NULL,
-    PRIMARY KEY (`request_id`),
+    PRIMARY KEY (`request_id`,`retry_ordinal`),
     KEY `llm_proxy_attempts_user_created` (`user_external_uid`,`created_at`),
     KEY `llm_proxy_attempts_provider_created` (`provider`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
