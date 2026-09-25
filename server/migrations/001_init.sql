@@ -93,6 +93,21 @@ CREATE TABLE IF NOT EXISTS `hume_emotion_predictions` (
     CONSTRAINT `hume_predictions_callback` FOREIGN KEY (`job_id`) REFERENCES `hume_callbacks` (`job_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `hume_expression_jobs` (
+    `job_id` varchar(255) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `conversation_id` bigint NULL,
+    `task_action` varchar(64) NOT NULL DEFAULT 'hume_emotion_detection',
+    `status` varchar(32) NOT NULL DEFAULT 'queued',
+    `top_emotions` json NULL,
+    `follow_up_status` varchar(32) NOT NULL DEFAULT 'pending',
+    `created_at` datetime(6) NOT NULL,
+    `updated_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`job_id`),
+    KEY `hume_expression_jobs_user` (`user_external_uid`,`created_at`),
+    KEY `hume_expression_jobs_conversation` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `user_byok` (
     `user_external_uid` varchar(255) NOT NULL,
     `fingerprints` json NOT NULL,

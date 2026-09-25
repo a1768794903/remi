@@ -1,11 +1,13 @@
 package hume
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"sort"
+	"strings"
 )
 
 type Emotion struct {
@@ -35,6 +37,33 @@ type PredictionRow struct {
 	BeginSeconds float64
 	EndSeconds   float64
 	EmotionsJSON []byte
+}
+
+// FilterPredictionsToUserFrames mirrors the Python callback contract: a
+// prediction contributes only when its complete interval is inside one of the
+// user's transcript intervals. Partial overlap is deliberately excluded.
+func FilterPredictionsToUserFrames(predictions []Prediction, userFrames []Interval) []Prediction {
+	filtered := make([]Prediction, 0, len(predictions))
+	for _, prediction := range predictions {
+		if prediction.Time.Begin < 0 || prediction.Time.End <= prediction.Time.Begin {
+			continue
+		}
+		for _, frame := range userFrames {
+			if frame.Begin <= prediction.Time.Begin && prediction.Time.End <= frame.End {
+				filtered = append(filtered, prediction)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
+func AggregateTopEmotionNames(predictions []Prediction, k int, threshold float64) []string {
+	emotions := make([]Emotion, 0)
+	for _, prediction := range predictions {
+		emotions = append(emotions, prediction.Emotions...)
+	}
+	return TopEmotionNames(emotions, k, threshold)
 }
 
 func FlattenPredictions(callback Callback) ([]PredictionRow, error) {
@@ -179,10 +208,62 @@ func (h Handler) Callback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if err = persistExpressionJobOutcome(r.Context(), tx, callback); err != nil {
+		rollback()
+		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	if err = tx.Commit(); err != nil {
 		http.Error(w, "Hume callback storage unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{})
+}
+
+func persistExpressionJobOutcome(ctx context.Context, tx *sql.Tx, callback Callback) error {
+	var uid string
+	var conversationID sql.NullInt64
+	err := tx.QueryRowContext(ctx, `SELECT user_external_uid,conversation_id FROM hume_expression_jobs WHERE job_id=? FOR UPDATE`, callback.JobID).Scan(&uid, &conversationID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	status := strings.ToLower(strings.TrimSpace(callback.Status))
+	if status == "failed" {
+		_, err = tx.ExecContext(ctx, `UPDATE hume_expression_jobs SET status='error',updated_at=UTC_TIMESTAMP(6) WHERE job_id=?`, callback.JobID)
+		return err
+	}
+	if status != "completed" {
+		return nil
+	}
+	userFrames := make([]Interval, 0)
+	if conversationID.Valid {
+		rows, queryErr := tx.QueryContext(ctx, `SELECT start_ms,end_ms FROM transcript_segments WHERE conversation_id=? AND is_user=1 AND start_ms>=0 AND end_ms>start_ms ORDER BY start_ms ASC`, conversationID.Int64)
+		if queryErr != nil {
+			return queryErr
+		}
+		for rows.Next() {
+			var beginMS, endMS int64
+			if scanErr := rows.Scan(&beginMS, &endMS); scanErr != nil {
+				rows.Close()
+				return scanErr
+			}
+			userFrames = append(userFrames, Interval{Begin: float64(beginMS) / 1000, End: float64(endMS) / 1000})
+		}
+		if rowsErr := rows.Err(); rowsErr != nil {
+			rows.Close()
+			return rowsErr
+		}
+		rows.Close()
+	}
+	filtered := FilterPredictionsToUserFrames(callback.Predictions, userFrames)
+	top, marshalErr := json.Marshal(AggregateTopEmotionNames(filtered, 1, 0.5))
+	if marshalErr != nil {
+		return marshalErr
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE hume_expression_jobs SET status='done',top_emotions=?,updated_at=UTC_TIMESTAMP(6) WHERE job_id=?`, top, callback.JobID)
+	return err
 }

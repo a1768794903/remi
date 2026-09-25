@@ -47,6 +47,7 @@ var wipeSQLTables = []wipeSQLTable{
 	{"task_intelligence_control", "user_external_uid"}, {"task_recommendation_projections", "user_external_uid"},
 	{"task_interventions", "user_external_uid"}, {"task_feedback", "user_external_uid"},
 	{"task_outcomes", "user_external_uid"}, {"task_intelligence_snapshots", "user_external_uid"},
+	{"hume_expression_jobs", "user_external_uid"},
 }
 
 type WipeService struct {
