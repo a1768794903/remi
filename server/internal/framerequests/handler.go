@@ -56,7 +56,7 @@ var terminal = map[string]bool{"attached": true, "offline": true, "pruned": true
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	if strings.Contains(path, "/shared/screenshots") {
+	if strings.Contains(path, "/shared/screenshots") && !strings.HasSuffix(path, "/image") {
 		h.publicSharedScreenshots(w, r)
 		return
 	}
@@ -74,6 +74,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.listConversationScreenshots(w, r, uid)
 	case strings.Contains(path, "/screenshots/") && strings.HasSuffix(path, "/image") && r.Method == http.MethodGet:
 		h.photo(w, r, uid)
+	case strings.Contains(path, "/shared/screenshots/") && strings.HasSuffix(path, "/image") && r.Method == http.MethodGet:
+		h.publicPhoto(w, r)
 	case strings.Contains(path, "/screenshots/") && r.Method == http.MethodDelete:
 		h.deleteConversationScreenshot(w, r, uid)
 	case strings.HasSuffix(path, "/screenshots") && r.Method == http.MethodDelete:
@@ -181,7 +183,7 @@ func (h Handler) listConversationScreenshots(w http.ResponseWriter, r *http.Requ
 	if !visible {
 		photos = nil
 	}
-	writeJSON(w, screenFrameSet(id, photos, 0))
+	writeJSON(w, screenFrameSetForUID(uid, id, photos, 0, false))
 }
 
 func (h Handler) deleteConversationScreenshot(w http.ResponseWriter, r *http.Request, uid string) {
@@ -223,7 +225,7 @@ func (h Handler) deleteConversationScreenshot(w http.ResponseWriter, r *http.Req
 	if storageID != "" {
 		_ = h.remove(uid, storageID)
 	}
-	writeJSON(w, screenFrameSet(id, kept, 0))
+	writeJSON(w, screenFrameSetForUID(uid, id, kept, 0, false))
 }
 
 func (h Handler) deleteAllConversationScreenshots(w http.ResponseWriter, r *http.Request, uid string) {
@@ -246,7 +248,7 @@ func (h Handler) deleteAllConversationScreenshots(w http.ResponseWriter, r *http
 			_ = h.remove(uid, storageID)
 		}
 	}
-	writeJSON(w, screenFrameSet(id, nil, 0))
+	writeJSON(w, screenFrameSetForUID(uid, id, nil, 0, false))
 }
 
 func (h Handler) updateScreenshotSharing(w http.ResponseWriter, r *http.Request, uid string) {
@@ -271,7 +273,7 @@ func (h Handler) updateScreenshotSharing(w http.ResponseWriter, r *http.Request,
 	if !visible {
 		photos = nil
 	}
-	writeJSON(w, screenFrameSet(id, photos, 0))
+	writeJSON(w, screenFrameSetForUID(uid, id, photos, 0, false))
 }
 
 func (h Handler) publicSharedScreenshots(w http.ResponseWriter, r *http.Request) {
@@ -281,12 +283,60 @@ func (h Handler) publicSharedScreenshots(w http.ResponseWriter, r *http.Request)
 	var visibility string
 	err := h.DB.QueryRowContext(r.Context(), `SELECT COALESCE(c.photos,JSON_ARRAY()),c.screenshot_sharing_enabled,c.visibility,u.meeting_note_screenshots_enabled FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=?`, id).Scan(&raw, &sharing, &visibility, &enabled)
 	if err != nil || !sharing || !enabled || visibility == "private" {
-		writeJSON(w, screenFrameSet(id, nil, 0))
+		writeJSON(w, screenFrameSetForUID("", id, nil, 0, true))
 		return
 	}
 	photos := []map[string]any{}
 	_ = json.Unmarshal(raw, &photos)
-	writeJSON(w, screenFrameSet(id, photos, 0))
+	ownerUID := ""
+	_ = h.DB.QueryRowContext(r.Context(), `SELECT u.external_uid FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=?`, id).Scan(&ownerUID)
+	writeJSON(w, screenFrameSetForUID(ownerUID, id, photos, 0, true))
+}
+
+// publicPhoto serves the pixels referenced by the public shared screenshot
+// response. The URL is signed for the conversation owner, but the request is
+// still re-authorized against the current sharing and account gates so a
+// revoked share stops working immediately.
+func (h Handler) publicPhoto(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.Trim(pathWithoutQuery(r.URL.Path), "/"), "/")
+	if len(parts) != 7 || parts[0] != "v1" || parts[1] != "conversations" || parts[3] != "shared" || parts[4] != "screenshots" || parts[6] != "image" {
+		http.NotFound(w, r)
+		return
+	}
+	conversationID, photoID := parts[2], parts[5]
+	var ownerUID string
+	var raw []byte
+	var sharing, enabled bool
+	var visibility string
+	err := h.DB.QueryRowContext(r.Context(), `SELECT u.external_uid,COALESCE(c.photos,JSON_ARRAY()),c.screenshot_sharing_enabled,c.visibility,u.meeting_note_screenshots_enabled FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=?`, conversationID).Scan(&ownerUID, &raw, &sharing, &visibility, &enabled)
+	if err != nil || !sharing || !enabled || visibility == "private" || !signedurl.Verify(pathWithoutQuery(r.URL.Path), ownerUID, r.URL.Query(), time.Now().UTC()) {
+		http.NotFound(w, r)
+		return
+	}
+	photos := []map[string]any{}
+	_ = json.Unmarshal(raw, &photos)
+	storageID := ""
+	contentType := "image/jpeg"
+	for _, photo := range photos {
+		if photo["id"] == photoID {
+			storageID, _ = photo["storage_id"].(string)
+			if v, ok := photo["content_type"].(string); ok && v != "" {
+				contentType = v
+			}
+			break
+		}
+	}
+	if storageID == "" {
+		http.NotFound(w, r)
+		return
+	}
+	data, err := h.read(ownerUID, storageID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	_, _ = w.Write(data)
 }
 
 func (h Handler) create(w http.ResponseWriter, r *http.Request, uid string) {
@@ -725,11 +775,25 @@ func writeJSON(w http.ResponseWriter, v any) {
 }
 
 func screenFrameSet(conversationID string, photos []map[string]any, revision int) map[string]any {
+	return screenFrameSetForUID("", conversationID, photos, revision, false)
+}
+
+func screenFrameSetForUID(uid, conversationID string, photos []map[string]any, revision int, shared bool) map[string]any {
 	frames := make([]map[string]any, 0, len(photos))
 	for _, photo := range photos {
 		id, _ := photo["id"].(string)
 		if strings.TrimSpace(id) == "" {
 			continue
+		}
+		path := "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image"
+		if shared {
+			path = "/v1/conversations/" + conversationID + "/shared/screenshots/" + id + "/image"
+		}
+		contentURL := path
+		if uid != "" {
+			if signed, err := signedurl.Build(path, uid, time.Now().UTC().Add(time.Hour)); err == nil {
+				contentURL = signed
+			}
 		}
 		frame := map[string]any{
 			"id":            id,
@@ -737,8 +801,8 @@ func screenFrameSet(conversationID string, photos []map[string]any, revision int
 			"rank":          len(frames),
 			"caption":       "",
 			"labels":        []string{},
-			"content_url":   "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image",
-			"thumbnail_url": "/v1/conversations/" + conversationID + "/screenshots/" + id + "/image",
+			"content_url":   contentURL,
+			"thumbnail_url": contentURL,
 		}
 		if captured, ok := photo["captured_at"]; ok {
 			frame["captured_at"] = captured

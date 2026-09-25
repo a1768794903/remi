@@ -8,10 +8,13 @@ import (
 	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"remi/server/internal/signedurl"
 )
 
 func TestCanonicalImageBoundsAndJPEGOutput(t *testing.T) {
@@ -67,6 +70,26 @@ func TestScreenFrameResponseHidesStorageIdentity(t *testing.T) {
 	}
 	if frames[0]["content_url"] != "/v1/conversations/42/screenshots/frame-1/image" {
 		t.Fatalf("content_url = %#v", frames[0]["content_url"])
+	}
+}
+
+func TestSharedScreenFrameResponseUsesOwnerBoundSignedURL(t *testing.T) {
+	t.Setenv("SCREEN_FRAME_URL_SECRET", strings.Repeat("s", 32))
+	got := screenFrameSetForUID("owner-1", "conversation-1", []map[string]any{{"id": "frame-1"}}, 4, true)
+	frames := got["strip"].([]map[string]any)
+	contentURL := frames[0]["content_url"].(string)
+	parsed, err := url.Parse(contentURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Path != "/v1/conversations/conversation-1/shared/screenshots/frame-1/image" {
+		t.Fatalf("path = %q", parsed.Path)
+	}
+	if !signedurl.Verify(parsed.Path, "owner-1", parsed.Query(), time.Now().UTC()) {
+		t.Fatal("shared URL is not valid for its owner")
+	}
+	if signedurl.Verify(parsed.Path, "other-user", parsed.Query(), time.Now().UTC()) {
+		t.Fatal("shared URL must not be valid for another user")
 	}
 }
 

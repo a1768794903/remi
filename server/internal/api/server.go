@@ -387,6 +387,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodDelete, Path: "/v1/conversations/:conversation_id/screenshots", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/screenshot-sharing", Handler: protected(http.HandlerFunc(frameRequestHandler.ServeHTTP)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/shared/screenshots", Handler: frameRequestHandler.ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/shared/screenshots/:frame_id/image", Handler: frameRequestHandler.ServeHTTP},
 		{Method: http.MethodGet, Path: "/r/:code", Handler: http.HandlerFunc(referralHandler.Capture)},
 		{Method: http.MethodGet, Path: "/v1/paypal/payment-details", Handler: protected(http.HandlerFunc(payments.Handler{DB: db}.PayPal)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/paypal/payment-details", Handler: protected(http.HandlerFunc(payments.Handler{DB: db}.PayPal)).ServeHTTP},
