@@ -1,7 +1,9 @@
 package workstreams
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -500,4 +502,108 @@ func (h Handler) Intent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out(w, 201, map[string]any{"receipt_id": receiptID, "workstream_id": wsID, "task_id": taskID, "goal_id": goalID, "newly_created": newly, "created_at": now})
+}
+
+func (h Handler) ImportTaskGoalLinks(w http.ResponseWriter, r *http.Request) {
+	u, ok := h.uid(w, r)
+	if !ok {
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if key == "" || len(key) > 256 {
+		http.Error(w, "Idempotency-Key is required", 400)
+		return
+	}
+	generation := int64(0)
+	if raw := strings.TrimSpace(r.Header.Get("X-Account-Generation")); raw != "" {
+		v, e := strconv.ParseInt(raw, 10, 64)
+		if e != nil || v < 0 {
+			http.Error(w, "invalid account generation", 422)
+			return
+		}
+		generation = v
+	}
+	var in struct {
+		Links []struct {
+			TaskID string `json:"task_id"`
+			GoalID string `json:"goal_id"`
+		} `json:"links"`
+	}
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&in) != nil || len(in.Links) > 500 {
+		http.Error(w, "invalid task-goal link request", 422)
+		return
+	}
+	raw, _ := json.Marshal(in)
+	sum := sha256.Sum256(raw)
+	hash := hex.EncodeToString(sum[:])
+	var oldHash string
+	var oldResult []byte
+	if e := h.DB.QueryRowContext(r.Context(), `SELECT request_hash,result FROM task_goal_link_receipts WHERE user_external_uid=? AND account_generation=? AND idempotency_key=?`, u, generation, key).Scan(&oldHash, &oldResult); e == nil {
+		if oldHash != hash {
+			http.Error(w, "idempotency key was reused with different content", 409)
+			return
+		}
+		var result map[string]any
+		if json.Unmarshal(oldResult, &result) == nil {
+			out(w, 200, result)
+			return
+		}
+	}
+	tx, e := h.DB.BeginTx(r.Context(), nil)
+	if e != nil {
+		http.Error(w, "workstream storage unavailable", 503)
+		return
+	}
+	defer tx.Rollback()
+	imported, unchanged, failed := 0, 0, 0
+	failureIDs := []string{}
+	for _, link := range in.Links {
+		if strings.TrimSpace(link.TaskID) == "" || strings.TrimSpace(link.GoalID) == "" {
+			failed++
+			failureIDs = append(failureIDs, link.TaskID)
+			continue
+		}
+		var taskGoal sql.NullString
+		var workstream sql.NullString
+		if e := tx.QueryRowContext(r.Context(), `SELECT ai.goal_external_id,ai.workstream_id FROM action_items ai JOIN users u ON u.id=ai.user_id WHERE u.external_uid=? AND CAST(ai.id AS CHAR)=?`, u, link.TaskID).Scan(&taskGoal, &workstream); e != nil {
+			failed++
+			failureIDs = append(failureIDs, link.TaskID)
+			continue
+		}
+		var goalStatus string
+		if e := tx.QueryRowContext(r.Context(), `SELECT status FROM goals g JOIN users u ON u.id=g.user_id WHERE u.external_uid=? AND g.external_id=?`, u, link.GoalID).Scan(&goalStatus); e != nil || goalStatus == "achieved" || goalStatus == "abandoned" {
+			failed++
+			failureIDs = append(failureIDs, link.TaskID)
+			continue
+		}
+		if workstream.Valid && workstream.String != "" {
+			var wsGoal sql.NullString
+			if e := tx.QueryRowContext(r.Context(), `SELECT goal_id FROM workstreams WHERE user_external_uid=? AND id=?`, u, workstream.String).Scan(&wsGoal); e != nil || !wsGoal.Valid || wsGoal.String != link.GoalID {
+				failed++
+				failureIDs = append(failureIDs, link.TaskID)
+				continue
+			}
+		}
+		if taskGoal.Valid && taskGoal.String == link.GoalID {
+			unchanged++
+			continue
+		}
+		if _, e := tx.ExecContext(r.Context(), `UPDATE action_items ai JOIN users u ON u.id=ai.user_id SET ai.goal_external_id=?,ai.updated_at=UTC_TIMESTAMP(6) WHERE u.external_uid=? AND CAST(ai.id AS CHAR)=?`, link.GoalID, u, link.TaskID); e != nil {
+			failed++
+			failureIDs = append(failureIDs, link.TaskID)
+		} else {
+			imported++
+		}
+	}
+	result := map[string]any{"imported": imported, "unchanged": unchanged, "failed": failed, "failure_task_ids": failureIDs}
+	encoded, _ := json.Marshal(result)
+	if _, e = tx.ExecContext(r.Context(), `INSERT INTO task_goal_link_receipts(user_external_uid,account_generation,idempotency_key,request_hash,result,created_at) VALUES(?,?,?,?,?,UTC_TIMESTAMP(6))`, u, generation, key, hash, encoded); e != nil {
+		http.Error(w, "failed to store import receipt", 503)
+		return
+	}
+	if e = tx.Commit(); e != nil {
+		http.Error(w, "failed to commit import", 503)
+		return
+	}
+	out(w, 200, result)
 }

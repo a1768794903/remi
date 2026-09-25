@@ -91,6 +91,16 @@ CREATE TABLE IF NOT EXISTS `work_intent_receipts` (
     `created_at` datetime(6) NOT NULL,
     PRIMARY KEY (`receipt_id`), UNIQUE KEY `work_intent_idempotency` (`user_external_uid`,`account_generation`,`idempotency_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `task_goal_link_receipts` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL DEFAULT 0,
+    `idempotency_key` varchar(256) NOT NULL,
+    `request_hash` char(64) NOT NULL,
+    `result` json NOT NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`id`), UNIQUE KEY `task_goal_link_idempotency` (`user_external_uid`,`account_generation`,`idempotency_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `candidates` (
     `candidate_id` varchar(255) NOT NULL,
