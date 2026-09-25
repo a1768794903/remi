@@ -79,6 +79,29 @@ func requiresEntityCheck(block map[string]any) bool {
 	}
 }
 
+func subjectKindSupported(kind string) bool {
+	return kind == "task" || kind == "goal" || kind == "capture"
+}
+
+func (h Handler) subjectAvailable(ctx context.Context, uid string, subject map[string]any) bool {
+	kind, _ := subject["kind"].(string)
+	identity, _ := subject["id"].(string)
+	if !subjectKindSupported(kind) || strings.TrimSpace(identity) == "" || h.DB == nil {
+		return false
+	}
+	var one int
+	var query string
+	switch kind {
+	case "task":
+		query = `SELECT 1 FROM action_items a JOIN users u ON u.id=a.user_id WHERE u.external_uid=? AND CAST(a.id AS CHAR)=? AND a.is_locked=0 LIMIT 1`
+	case "goal":
+		query = `SELECT 1 FROM goals g JOIN users u ON u.id=g.user_id WHERE u.external_uid=? AND g.external_id=? LIMIT 1`
+	case "capture":
+		query = `SELECT 1 FROM conversations c JOIN users u ON u.id=c.user_id WHERE u.external_uid=? AND CAST(c.id AS CHAR)=? AND c.status='completed' LIMIT 1`
+	}
+	return h.DB.QueryRowContext(ctx, query, uid, identity).Scan(&one) == nil
+}
+
 func (h Handler) entityAvailable(ctx context.Context, uid string, item map[string]any) bool {
 	if h.DB == nil {
 		return false
@@ -269,6 +292,13 @@ func (h Handler) Validate(w http.ResponseWriter, r *http.Request) {
 				if requiresEntityCheck(item) && !h.entityAvailable(r.Context(), uid, item) {
 					result = validationResult{Code: "entity_unavailable"}
 					break
+				}
+				if kind, _ := item["type"].(string); kind == "questionCard" {
+					subject, ok := item["subject"].(map[string]any)
+					if !ok || !h.subjectAvailable(r.Context(), uid, subject) {
+						result = validationResult{Code: "entity_unavailable"}
+						break
+					}
 				}
 			}
 		}

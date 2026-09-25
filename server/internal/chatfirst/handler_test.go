@@ -48,6 +48,17 @@ func TestRequiresEntityCheckForBlocksWithIdentity(t *testing.T) {
 	}
 }
 
+func TestQuestionSubjectKindsAreRecognized(t *testing.T) {
+	for _, kind := range []string{"task", "goal", "capture"} {
+		if !subjectKindSupported(kind) {
+			t.Errorf("subject kind %q was rejected", kind)
+		}
+	}
+	if subjectKindSupported("cold_start") {
+		t.Fatal("cold-start subject must not be admitted through generic validation")
+	}
+}
+
 func TestJSONEquivalentIgnoresObjectKeyOrder(t *testing.T) {
 	if !jsonEquivalent([]byte(`{"subject":{"id":"x","kind":"task"}}`), []byte(`{"subject":{"kind":"task","id":"x"}}`)) {
 		t.Fatal("equivalent JSON was treated as different")
