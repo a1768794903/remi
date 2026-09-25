@@ -138,5 +138,12 @@ func (s Service) Rate(ctx context.Context, uid, id string, rating *int) error {
 		b.SetRating(*rating)
 	}
 	_, err = b.Save(ctx)
+	if err == nil && s.DB != nil {
+		value := any(nil)
+		if rating != nil {
+			value = *rating
+		}
+		_, err = s.DB.ExecContext(ctx, `INSERT INTO feedback_events(event_id,user_external_uid,surface,target_kind,target_id,value,created_at) VALUES(UUID(),?,?,?,?,?,UTC_TIMESTAMP(6))`, uid, "chat", "chat_message", id, value)
+	}
 	return err
 }

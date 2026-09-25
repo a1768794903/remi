@@ -29,6 +29,32 @@ CREATE TABLE IF NOT EXISTS `users` (
     UNIQUE KEY `users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `account_deletion_wipes` (
+    `job_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `status` varchar(32) NOT NULL DEFAULT 'pending',
+    `attempts` int NOT NULL DEFAULT 0,
+    `last_error` varchar(512) NULL,
+    `created_at` datetime(6) NOT NULL,
+    `updated_at` datetime(6) NOT NULL,
+    `completed_at` datetime(6) NULL,
+    PRIMARY KEY (`job_id`),
+    KEY `account_deletion_wipes_uid_status` (`user_external_uid`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `feedback_events` (
+    `event_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `surface` varchar(64) NOT NULL,
+    `target_kind` varchar(64) NOT NULL,
+    `target_id` varchar(255) NOT NULL,
+    `value` int NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`event_id`),
+    KEY `feedback_events_user_created` (`user_external_uid`,`created_at`),
+    KEY `feedback_events_target` (`target_kind`,`target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `user_byok` (
     `user_external_uid` varchar(255) NOT NULL,
     `fingerprints` json NOT NULL,

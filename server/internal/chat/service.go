@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ type GenerateInput struct {
 }
 type Service struct {
 	Client   *ent.Client
+	DB       *sql.DB
 	Provider Provider
 	Usage    UsageRecorder
 }

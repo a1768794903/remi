@@ -7,7 +7,10 @@ import (
 	"remi/server/internal/auth"
 )
 
-type Handler struct{ Service Service }
+type Handler struct {
+	Service Service
+	Wipe    WipeService
+}
 
 func (h Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	uid, e := auth.UserID(r.Context())

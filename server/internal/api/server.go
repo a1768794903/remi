@@ -107,6 +107,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 	appOAuthHandler := oauthapp.Handler{DB: db, Verifier: verifier}
 	notificationAPIHandler := notificationapi.Handler{DB: db}
 	server.AddRoutes([]rest.Route{
+		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/batch-requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Batch)).ServeHTTP},
@@ -124,6 +125,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/notification", Handler: notificationAPIHandler.Admin},
 		{Method: http.MethodPost, Path: "/v1/integrations/notification", Handler: notificationAPIHandler.Integration},
+		{Method: http.MethodPost, Path: "/v1/connectors/synthesize", Handler: protected(http.HandlerFunc(integrationHandler.Synthesize)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/oauth/authorize", Handler: appOAuthHandler.Authorize},
 		{Method: http.MethodPost, Path: "/v1/oauth/token", Handler: appOAuthHandler.Token},
 		{Method: http.MethodGet, Path: "/v2/integrations/:app_id/user/memories", Handler: externalapi.Handler{DB: db}.Memories},

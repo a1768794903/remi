@@ -24,6 +24,59 @@ type Handler struct {
 	Provider chat.Provider
 }
 
+type ConnectorSynthesisTask struct {
+	Description string `json:"description"`
+	Priority    string `json:"priority,omitempty"`
+	DueAt       string `json:"due_at,omitempty"`
+}
+
+type connectorSynthesisRequest struct {
+	Source           string   `json:"source"`
+	Items            []string `json:"items"`
+	ExistingMemories []string `json:"existing_memories,omitempty"`
+}
+
+type connectorSynthesisResponse struct {
+	Memories []string                 `json:"memories"`
+	Tasks    []ConnectorSynthesisTask `json:"tasks"`
+	Profile  string                   `json:"profile,omitempty"`
+}
+
+func (h Handler) Synthesize(w http.ResponseWriter, r *http.Request) {
+	uid, ok := h.uid(w, r)
+	if !ok {
+		return
+	}
+	var in connectorSynthesisRequest
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 256<<10)).Decode(&in) != nil || strings.TrimSpace(in.Source) == "" || len(in.Items) == 0 || len(in.Items) > 100 {
+		http.Error(w, "source and items are required", http.StatusUnprocessableEntity)
+		return
+	}
+	if h.Provider == nil {
+		http.Error(w, "connector synthesis provider is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	prompt, _ := json.Marshal(map[string]any{"source": in.Source, "items": in.Items, "existing_memories": in.ExistingMemories})
+	answer, err := h.Provider.Complete(r.Context(), []chat.Turn{{Role: "system", Content: "Return only JSON with memories (array of strings), tasks (array of objects with description, priority, due_at), and profile (string)."}, {Role: "user", Content: string(prompt)}})
+	if err != nil {
+		http.Error(w, "connector synthesis failed", http.StatusBadGateway)
+		return
+	}
+	var out connectorSynthesisResponse
+	if json.Unmarshal([]byte(answer), &out) != nil {
+		http.Error(w, "connector synthesis returned invalid JSON", http.StatusBadGateway)
+		return
+	}
+	for i := range out.Tasks {
+		if strings.TrimSpace(out.Tasks[i].Description) == "" || len(out.Tasks[i].Description) > 1000 {
+			http.Error(w, "connector synthesis returned invalid task", http.StatusBadGateway)
+			return
+		}
+	}
+	_ = uid // identity is deliberately resolved before provider dispatch for audit parity.
+	_ = json.NewEncoder(w).Encode(out)
+}
+
 func (h Handler) uid(w http.ResponseWriter, r *http.Request) (string, bool) {
 	u, e := auth.UserID(r.Context())
 	if e != nil {
