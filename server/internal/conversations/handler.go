@@ -636,3 +636,57 @@ func (h Handler) Item(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusMethodNotAllowed)
 }
+
+// Photos returns the conversation-owned photo metadata without exposing the
+// parent conversation envelope. This is the legacy mobile/web contract used
+// by clients that render conversation photos independently.
+func (h Handler) Photos(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	item, err := h.Service.Get(r.Context(), uid, r.PathValue("conversation_id"))
+	if errors.Is(err, ErrNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Error(w, "conversation photo lookup failed", http.StatusInternalServerError)
+		return
+	}
+	if item.Photos == nil {
+		item.Photos = []map[string]any{}
+	}
+	writeJSON(w, http.StatusOK, item.Photos)
+}
+
+// Recording reports whether a conversation has an uploaded recording. The
+// Python endpoint intentionally returns a small status object rather than
+// exposing storage details; preserve that boundary in Go.
+func (h Handler) Recording(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	item, err := h.Service.Get(r.Context(), uid, r.PathValue("conversation_id"))
+	if errors.Is(err, ErrNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Error(w, "conversation recording lookup failed", http.StatusInternalServerError)
+		return
+	}
+	hasRecording := len(item.AudioFiles) > 0 || len(item.ConversationAudio) > 0
+	writeJSON(w, http.StatusOK, map[string]bool{"has_recording": hasRecording})
+}
