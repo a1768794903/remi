@@ -46,6 +46,7 @@ import (
 	"remi/server/internal/hume"
 	"remi/server/internal/imports"
 	"remi/server/internal/integrations"
+	"remi/server/internal/jit"
 	"remi/server/internal/knowledgegraph"
 	"remi/server/internal/mcp"
 	"remi/server/internal/mcpkeys"
@@ -114,6 +115,12 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/account/cutover/control", Handler: protected(http.HandlerFunc(accountHandler.CutoverControl)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/account-deletion-wipes/run", Handler: accountHandler.RunWipe},
 		{Method: http.MethodPost, Path: "/v1/agents/hume/callback", Handler: hume.Handler{DB: db}.Callback},
+		{Method: http.MethodGet, Path: "/v1/jit/rollout-decision", Handler: protected(http.HandlerFunc(jit.Handler{}.RolloutDecision)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/jit/trigger-snapshot", Handler: protected(http.HandlerFunc(jit.Handler{}.TriggerSnapshot)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/jit/trigger-feedback", Handler: protected(http.HandlerFunc(jit.Handler{}.TriggerFeedback)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/jit/proactivity/reservations", Handler: protected(http.HandlerFunc(jit.Handler{}.Reservation)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/jit/knowledge-ledger/prompt-snapshot", Handler: protected(http.HandlerFunc(jit.Handler{}.PromptSnapshot)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/jit/knowledge-ledger/mirror-snapshot", Handler: protected(http.HandlerFunc(jit.Handler{}.MirrorSnapshot)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/ai-profile/synthesize", Handler: protected(http.HandlerFunc(userHandler.SynthesizeAIProfile)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
