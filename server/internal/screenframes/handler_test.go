@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,6 +51,23 @@ func TestHTTPJudgeValidatesStructuredDecision(t *testing.T) {
 	}
 	if err := validateJudgement(Judgement{Outcome: "approved_clean", RejectReason: stringPtr("email")}); err == nil {
 		t.Fatal("contradictory approval should fail")
+	}
+}
+
+func TestNormalizeJudgementMatchesPythonMetadataContract(t *testing.T) {
+	caption := strings.Repeat("x", 200)
+	labels := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i"}
+	judgement := Judgement{Outcome: "approved_clean", Caption: caption, Labels: labels, BannerSuitability: 0.5}
+	if err := normalizeJudgement(&judgement); err != nil {
+		t.Fatal(err)
+	}
+	if len([]rune(judgement.Caption)) != 160 || len(judgement.Labels) != 8 {
+		t.Fatalf("caption=%d labels=%d", len([]rune(judgement.Caption)), len(judgement.Labels))
+	}
+	badBadge := "people"
+	judgement.SourceBadge = &badBadge
+	if err := normalizeJudgement(&judgement); err == nil {
+		t.Fatal("invalid source badge should fail closed")
 	}
 }
 
