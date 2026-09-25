@@ -15,6 +15,36 @@ import (
 
 type Handler struct{ Service Service }
 
+// Analytics preserves the legacy mobile analytics contract, which sends the
+// message id and value as query parameters instead of the newer JSON rating
+// endpoint. A value of zero clears the rating.
+func (h Handler) Analytics(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	id := strings.TrimSpace(r.URL.Query().Get("message_id"))
+	raw := r.URL.Query().Get("value")
+	value, err := strconv.Atoi(raw)
+	if id == "" || err != nil || value < -1 || value > 1 {
+		http.Error(w, "message_id and value must be provided; value must be -1, 0, or 1", http.StatusBadRequest)
+		return
+	}
+	var rating *int
+	if value != 0 {
+		rating = &value
+	}
+	if err = h.Service.Rate(r.Context(), uid, id, rating); errors.Is(err, ErrNotFound) {
+		http.NotFound(w, r)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 func (h Handler) Messages(w http.ResponseWriter, r *http.Request) {
 	uid, err := auth.UserID(r.Context())
 	if err != nil {

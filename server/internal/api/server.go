@@ -109,6 +109,9 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Mutate)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/users/migration/requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Requests)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/users/migration/batch-requests", Handler: protected(http.HandlerFunc(migrationapi.Handler{DB: db}.Batch)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/users/analytics/chat_message", Handler: protected(http.HandlerFunc(chatHandler.Analytics)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/users/analytics/memory_summary", Handler: protected(http.HandlerFunc(legacyMemorySummaryAnalytics)).ServeHTTP},
 		{Method: http.MethodPost, Path: "/v1/notification", Handler: notificationAPIHandler.Admin},
 		{Method: http.MethodPost, Path: "/v1/integrations/notification", Handler: notificationAPIHandler.Integration},
 		{Method: http.MethodGet, Path: "/v1/oauth/authorize", Handler: appOAuthHandler.Authorize},
@@ -706,6 +709,18 @@ func deprecatedEndpoint(w http.ResponseWriter, r *http.Request) {
 		"message":   fmt.Sprintf("This endpoint (%s %s) is deprecated and no longer served by the desktop backend. See https://api.omi.me for supported endpoints.", r.Method, r.URL.Path),
 		"migration": "https://api.omi.me",
 	})
+}
+
+func legacyMemorySummaryAnalytics(w http.ResponseWriter, r *http.Request) {
+	// Python intentionally made the write side a no-op because this legacy UI
+	// has been unreachable since 2025-04-11. Preserve that 200 contract for
+	// old clients while keeping the read response shape stable.
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method == http.MethodGet {
+		_ = json.NewEncoder(w).Encode(map[string]any{"has_rating": false})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func writeJSONError(w http.ResponseWriter, status int, detail string) {
