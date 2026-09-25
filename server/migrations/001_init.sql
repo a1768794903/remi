@@ -77,6 +77,18 @@ CREATE TABLE IF NOT EXISTS `workstream_checkpoints` (
     `evidence_refs` json NULL, `updated_at` datetime(6) NOT NULL, PRIMARY KEY (`checkpoint_id`),
     UNIQUE KEY `workstream_checkpoint_runtime` (`workstream_id`,`runtime_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS `work_intent_receipts` (
+    `receipt_id` varchar(128) NOT NULL,
+    `user_external_uid` varchar(255) NOT NULL,
+    `account_generation` bigint NOT NULL DEFAULT 0,
+    `idempotency_key` varchar(256) NOT NULL,
+    `request_hash` char(36) NOT NULL,
+    `workstream_id` varchar(255) NOT NULL,
+    `task_id` varchar(255) NOT NULL,
+    `goal_external_id` varchar(64) NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`receipt_id`), UNIQUE KEY `work_intent_idempotency` (`user_external_uid`,`account_generation`,`idempotency_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `candidates` (
     `candidate_id` varchar(255) NOT NULL,
@@ -677,6 +689,8 @@ CREATE TABLE IF NOT EXISTS `transcript_segments` (
     `created_at` datetime(6) NOT NULL,
     `updated_at` datetime(6) NOT NULL,
     `conversation_id` bigint NULL,
+    `workstream_id` varchar(255) NULL,
+    `goal_external_id` varchar(64) NULL,
     PRIMARY KEY (`id`),
     KEY `transcript_segments_conversation_id` (`conversation_id`),
     CONSTRAINT `transcript_segments_conversations_segments` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE SET NULL

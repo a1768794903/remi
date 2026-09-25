@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -97,7 +98,54 @@ func (h Handler) Detail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	out(w, 200, map[string]any{"workstream": ws, "recent_events": []any{}, "tasks": []any{}, "artifacts": []any{}, "checkpoints": []any{}})
+	u, _ := auth.UserID(r.Context())
+	id := r.PathValue("workstream_id")
+	recentEvents := []any{}
+	if rows, err := h.DB.QueryContext(r.Context(), `SELECT event_id,sequence,kind,summary,evidence_refs,sensitivity,created_at FROM workstream_events WHERE user_external_uid=? AND workstream_id=? ORDER BY sequence DESC LIMIT 20`, u, id); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var eventID, kind, summary, sensitivity string
+			var sequence int
+			var refs []byte
+			var created time.Time
+			if rows.Scan(&eventID, &sequence, &kind, &summary, &refs, &sensitivity, &created) != nil {
+				continue
+			}
+			var evidence any
+			_ = json.Unmarshal(refs, &evidence)
+			recentEvents = append(recentEvents, map[string]any{"event_id": eventID, "workstream_id": id, "sequence": sequence, "kind": kind, "summary": summary, "evidence_refs": evidence, "sensitivity": sensitivity, "created_at": created})
+		}
+	}
+	artifacts := []any{}
+	if rows, err := h.DB.QueryContext(r.Context(), `SELECT artifact_id,logical_key,version,kind,uri,content_hash,status,created_at FROM workstream_artifacts WHERE user_external_uid=? AND workstream_id=? ORDER BY version DESC LIMIT 50`, u, id); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var artifactID, logicalKey, kind, uri, contentHash, status string
+			var version int
+			var created time.Time
+			if rows.Scan(&artifactID, &logicalKey, &version, &kind, &uri, &contentHash, &status, &created) != nil {
+				continue
+			}
+			artifacts = append(artifacts, map[string]any{"artifact_id": artifactID, "workstream_id": id, "logical_key": logicalKey, "version": version, "kind": kind, "uri": uri, "content_hash": contentHash, "status": status, "created_at": created})
+		}
+	}
+	checkpoints := []any{}
+	if rows, err := h.DB.QueryContext(r.Context(), `SELECT checkpoint_id,runtime_id,last_event_sequence,context_summary,evidence_refs,updated_at FROM workstream_checkpoints WHERE user_external_uid=? AND workstream_id=?`, u, id); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var checkpointID, runtimeID, summary string
+			var sequence int
+			var refs []byte
+			var updated time.Time
+			if rows.Scan(&checkpointID, &runtimeID, &sequence, &summary, &refs, &updated) != nil {
+				continue
+			}
+			var evidence any
+			_ = json.Unmarshal(refs, &evidence)
+			checkpoints = append(checkpoints, map[string]any{"checkpoint_id": checkpointID, "workstream_id": id, "runtime_id": runtimeID, "last_event_sequence": sequence, "context_summary": summary, "evidence_refs": evidence, "updated_at": updated})
+		}
+	}
+	out(w, 200, map[string]any{"workstream": ws, "recent_events": recentEvents, "tasks": []any{}, "artifacts": artifacts, "checkpoints": checkpoints})
 }
 func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 	ws, ok := h.get(w, r)
@@ -320,8 +368,136 @@ func (h Handler) Checkpoints(w http.ResponseWriter, r *http.Request) {
 	out(w, 200, map[string]any{"checkpoint_id": cid, "workstream_id": id, "runtime_id": runtime, "last_event_sequence": in.Last, "context_summary": in.Summary, "evidence_refs": in.Refs, "updated_at": now})
 }
 func (h Handler) Intent(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.uid(w, r); !ok {
+	u, ok := h.uid(w, r)
+	if !ok {
 		return
 	}
-	http.Error(w, "work intent requires canonical task integration", http.StatusServiceUnavailable)
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if key == "" || len(key) > 256 {
+		http.Error(w, "Idempotency-Key is required", 400)
+		return
+	}
+	generation := int64(0)
+	if raw := strings.TrimSpace(r.Header.Get("X-Account-Generation")); raw != "" {
+		v, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || v < 0 {
+			http.Error(w, "invalid account generation", 422)
+			return
+		}
+		generation = v
+	}
+	var in struct {
+		Origin                string `json:"origin"`
+		TaskID                string `json:"task_id"`
+		GoalID                string `json:"goal_id"`
+		Title                 string `json:"title"`
+		Objective             string `json:"objective"`
+		AnchorTaskDescription string `json:"anchor_task_description"`
+	}
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&in) != nil {
+		http.Error(w, "invalid work intent", 422)
+		return
+	}
+	if in.Origin != "task" && in.Origin != "goal" {
+		http.Error(w, "origin must be task or goal", 422)
+		return
+	}
+	now := time.Now().UTC()
+	receiptID := "intent_" + uuid.NewSHA1(uuid.NameSpaceURL, []byte(u+":"+strconv.FormatInt(generation, 10)+":"+key)).String()
+	var oldHash string
+	raw, _ := json.Marshal(in)
+	sum := uuid.NewSHA1(uuid.NameSpaceURL, raw).String()
+	if err := h.DB.QueryRowContext(r.Context(), `SELECT request_hash FROM work_intent_receipts WHERE user_external_uid=? AND account_generation=? AND idempotency_key=?`, u, generation, key).Scan(&oldHash); err == nil {
+		if oldHash != sum {
+			http.Error(w, "idempotency key was reused with another intent", 409)
+			return
+		}
+		var wsID, taskID, goalID string
+		var created time.Time
+		if e := h.DB.QueryRowContext(r.Context(), `SELECT workstream_id,task_id,COALESCE(goal_external_id,''),created_at FROM work_intent_receipts WHERE user_external_uid=? AND account_generation=? AND idempotency_key=?`, u, generation, key).Scan(&wsID, &taskID, &goalID, &created); e == nil {
+			out(w, 200, map[string]any{"receipt_id": receiptID, "workstream_id": wsID, "task_id": taskID, "goal_id": goalID, "newly_created": false, "created_at": created})
+			return
+		}
+	}
+	tx, err := h.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		http.Error(w, "workstream storage unavailable", 503)
+		return
+	}
+	defer tx.Rollback()
+	var wsID, taskID, goalID, title, objective string
+	newly := false
+	if in.Origin == "task" {
+		if _, err = strconv.ParseInt(in.TaskID, 10, 64); err != nil {
+			http.Error(w, "task not found", 404)
+			return
+		}
+		var existing sql.NullString
+		if err = tx.QueryRowContext(r.Context(), `SELECT CAST(ai.id AS CHAR),ai.description,COALESCE(ai.workstream_id,'') FROM action_items ai JOIN users u ON u.id=ai.user_id WHERE u.external_uid=? AND ai.id=?`, u, in.TaskID).Scan(&taskID, &objective, &existing); err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		wsID = existing.String
+		title = strings.TrimSpace(in.Title)
+		if title == "" {
+			title = objective
+		}
+		if strings.TrimSpace(in.Objective) != "" {
+			objective = in.Objective
+		}
+		if wsID == "" {
+			wsID = "ws_" + uuid.NewSHA1(uuid.NameSpaceURL, []byte(u+":"+in.TaskID)).String()
+			newly = true
+			if _, err = tx.ExecContext(r.Context(), `INSERT INTO workstreams(id,user_external_uid,title,objective,status,current_state_summary,next_review_at,last_meaningful_progress_at,latest_event_sequence,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, wsID, u, title, objective, "open", "", nil, now, 0, now, now); err != nil {
+				http.Error(w, "failed to create workstream", 503)
+				return
+			}
+			if _, err = tx.ExecContext(r.Context(), `UPDATE action_items SET workstream_id=? WHERE id=?`, wsID, in.TaskID); err != nil {
+				http.Error(w, "failed to link task", 503)
+				return
+			}
+		}
+	} else {
+		goalID = strings.TrimSpace(in.GoalID)
+		if goalID == "" || in.Title == "" || in.Objective == "" || in.AnchorTaskDescription == "" {
+			http.Error(w, "invalid goal work intent", 422)
+			return
+		}
+		var goalStatus string
+		if err = tx.QueryRowContext(r.Context(), `SELECT status FROM goals g JOIN users u ON u.id=g.user_id WHERE u.external_uid=? AND g.external_id=?`, u, goalID).Scan(&goalStatus); err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		if goalStatus == "achieved" || goalStatus == "abandoned" {
+			http.Error(w, "ended goal cannot receive new work", 409)
+			return
+		}
+		wsID = "ws_" + uuid.NewSHA1(uuid.NameSpaceURL, []byte(u+":"+goalID+":"+key)).String()
+		taskID = "intent-task_" + uuid.NewSHA1(uuid.NameSpaceURL, []byte(wsID)).String()
+		title = in.Title
+		objective = in.Objective
+		newly = true
+		if _, err = tx.ExecContext(r.Context(), `INSERT INTO workstreams(id,user_external_uid,goal_id,title,objective,status,current_state_summary,next_review_at,last_meaningful_progress_at,latest_event_sequence,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, wsID, u, goalID, title, objective, "open", "", nil, now, 0, now, now); err != nil {
+			http.Error(w, "failed to create workstream", 503)
+			return
+		}
+		var userID int64
+		if err = tx.QueryRowContext(r.Context(), `SELECT id FROM users WHERE external_uid=?`, u).Scan(&userID); err != nil {
+			http.Error(w, "user not found", 404)
+			return
+		}
+		if _, err = tx.ExecContext(r.Context(), `INSERT INTO action_items(description,status,owner,source,created_at,updated_at,user_id,workstream_id,goal_external_id) VALUES(?,?,?,?,?,?,?,?,?)`, in.AnchorTaskDescription, "active", "user", "explicit_goal_intent", now, now, userID, wsID, goalID); err != nil {
+			http.Error(w, "failed to create task", 503)
+			return
+		}
+	}
+	if _, err = tx.ExecContext(r.Context(), `INSERT INTO work_intent_receipts(receipt_id,user_external_uid,account_generation,idempotency_key,request_hash,workstream_id,task_id,goal_external_id,created_at) VALUES(?,?,?,?,?,?,?,?,?)`, receiptID, u, generation, key, sum, wsID, taskID, goalID, now); err != nil {
+		http.Error(w, "failed to store work intent", 503)
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "failed to commit work intent", 503)
+		return
+	}
+	out(w, 201, map[string]any{"receipt_id": receiptID, "workstream_id": wsID, "task_id": taskID, "goal_id": goalID, "newly_created": newly, "created_at": now})
 }
