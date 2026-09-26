@@ -3,8 +3,10 @@ package conversations
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -873,6 +875,149 @@ func (h Handler) ActionItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "Ok"})
+}
+
+func mutationFingerprint(baseRevision string, operation map[string]any) string {
+	encoded, _ := json.Marshal(map[string]any{"base_revision": baseRevision, "operation": operation})
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:])
+}
+
+func (h Handler) Mutations(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if h.Service.DB == nil {
+		http.Error(w, "conversation storage is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var input struct {
+		ClientMutationID string         `json:"client_mutation_id"`
+		BaseRevision     string         `json:"base_revision"`
+		Operation        map[string]any `json:"operation"`
+	}
+	if json.NewDecoder(r.Body).Decode(&input) != nil || strings.TrimSpace(input.ClientMutationID) == "" || strings.TrimSpace(input.BaseRevision) == "" || input.Operation == nil {
+		http.Error(w, "invalid conversation mutation", http.StatusBadRequest)
+		return
+	}
+	fingerprint := mutationFingerprint(input.BaseRevision, input.Operation)
+	conversationID := r.PathValue("conversation_id")
+	tx, err := h.Service.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		http.Error(w, "conversation mutation unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	defer tx.Rollback()
+	var priorFingerprint string
+	var priorResponse []byte
+	receiptErr := tx.QueryRowContext(r.Context(), `SELECT fingerprint,response FROM conversation_mutation_receipts WHERE user_external_uid=? AND conversation_id=? AND client_mutation_id=? FOR UPDATE`, uid, conversationID, input.ClientMutationID).Scan(&priorFingerprint, &priorResponse)
+	if receiptErr == nil {
+		if priorFingerprint != fingerprint {
+			_ = tx.Rollback()
+			writeJSON(w, http.StatusConflict, map[string]any{"status": "conflict", "code": "mutation_id_reused", "client_mutation_id": input.ClientMutationID, "conversation_id": conversationID, "conversation": nil})
+			return
+		}
+		var response map[string]any
+		if json.Unmarshal(priorResponse, &response) != nil {
+			_ = tx.Rollback()
+			http.Error(w, "conversation mutation receipt unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		_ = tx.Rollback()
+		writeJSON(w, http.StatusOK, response)
+		return
+	}
+	if !errors.Is(receiptErr, sql.ErrNoRows) {
+		http.Error(w, "conversation mutation lookup failed", http.StatusInternalServerError)
+		return
+	}
+	var title, visibility string
+	var starred bool
+	var folderID sql.NullInt64
+	var updatedAt time.Time
+	if err = tx.QueryRowContext(r.Context(), `SELECT c.title,c.visibility,c.starred,c.folder_id,c.updated_at FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=? FOR UPDATE`, conversationID, uid).Scan(&title, &visibility, &starred, &folderID, &updatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = tx.Rollback()
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, "conversation mutation lookup failed", http.StatusInternalServerError)
+		}
+		return
+	}
+	requestedRevision, err := time.Parse(time.RFC3339Nano, input.BaseRevision)
+	if err != nil {
+		http.Error(w, "invalid base_revision", http.StatusBadRequest)
+		return
+	}
+	requestedRevision = requestedRevision.UTC()
+	currentRevision := updatedAt.UTC()
+	conversation := map[string]any{"revision": currentRevision.Format(time.RFC3339Nano), "title": title, "starred": starred, "folder_id": nil, "visibility": visibility}
+	if folderID.Valid {
+		conversation["folder_id"] = folderID.Int64
+	}
+	response := map[string]any{"status": "ok", "client_mutation_id": input.ClientMutationID, "conversation_id": conversationID, "conversation": conversation}
+	if !requestedRevision.Equal(currentRevision) {
+		response["status"] = "conflict"
+		response["code"] = "base_revision_mismatch"
+		encoded, _ := json.Marshal(response)
+		if _, err = tx.ExecContext(r.Context(), `INSERT INTO conversation_mutation_receipts(user_external_uid,conversation_id,client_mutation_id,fingerprint,response,created_at) VALUES(?,?,?,?,?,UTC_TIMESTAMP(6))`, uid, conversationID, input.ClientMutationID, fingerprint, encoded); err != nil {
+			http.Error(w, "conversation mutation receipt unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			http.Error(w, "conversation mutation receipt unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		writeJSON(w, http.StatusConflict, response)
+		return
+	}
+	operationType, _ := input.Operation["type"].(string)
+	var changed bool
+	switch operationType {
+	case "set_title":
+		value, ok := input.Operation["title"].(string)
+		if !ok {
+			http.Error(w, "set_title requires title", http.StatusBadRequest)
+			return
+		}
+		if value != title {
+			title, changed = value, true
+		}
+	case "set_starred":
+		value, ok := input.Operation["starred"].(bool)
+		if !ok {
+			http.Error(w, "set_starred requires starred", http.StatusBadRequest)
+			return
+		}
+		if value != starred {
+			starred, changed = value, true
+		}
+	default:
+		http.Error(w, "unsupported conversation mutation", http.StatusBadRequest)
+		return
+	}
+	if changed {
+		if _, err = tx.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.title=?,c.starred=?,c.updated_at=UTC_TIMESTAMP(6) WHERE c.id=? AND u.external_uid=?`, title, starred, conversationID, uid); err != nil {
+			http.Error(w, "failed to apply conversation mutation", http.StatusInternalServerError)
+			return
+		}
+		currentRevision = time.Now().UTC()
+		conversation["revision"] = currentRevision.Format(time.RFC3339Nano)
+		conversation["title"] = title
+		conversation["starred"] = starred
+	}
+	encoded, _ := json.Marshal(response)
+	if _, err = tx.ExecContext(r.Context(), `INSERT INTO conversation_mutation_receipts(user_external_uid,conversation_id,client_mutation_id,fingerprint,response,created_at) VALUES(?,?,?,?,?,UTC_TIMESTAMP(6))`, uid, conversationID, input.ClientMutationID, fingerprint, encoded); err != nil {
+		http.Error(w, "conversation mutation receipt unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "conversation mutation unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 // SuggestedApps projects the app ids selected during conversation

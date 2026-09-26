@@ -732,6 +732,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/photos", Handler: protected(http.HandlerFunc(conversationHandler.Photos)).ServeHTTP},
 		{Method: http.MethodGet, Path: "/v1/conversations/:conversation_id/recording", Handler: protected(http.HandlerFunc(conversationHandler.Recording)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/events", Handler: protected(http.HandlerFunc(conversationHandler.Events)).ServeHTTP},
+		{Method: http.MethodPost, Path: "/v1/conversations/:conversation_id/mutations", Handler: protected(http.HandlerFunc(conversationHandler.Mutations)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/action-items", Handler: protected(http.HandlerFunc(conversationHandler.ActionItems)).ServeHTTP},
 		{Method: http.MethodPatch, Path: "/v1/conversations/:conversation_id/action-items/:action_item_idx", Handler: protected(http.HandlerFunc(conversationHandler.ActionItems)).ServeHTTP},
 		{Method: http.MethodDelete, Path: "/v1/conversations/:conversation_id/action-items", Handler: protected(http.HandlerFunc(conversationHandler.ActionItems)).ServeHTTP},

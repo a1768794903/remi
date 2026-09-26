@@ -750,6 +750,17 @@ CREATE TABLE IF NOT EXISTS `conversations` (
     CONSTRAINT `conversations_folders_conversations` FOREIGN KEY (`folder_id`) REFERENCES `folders` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `conversation_mutation_receipts` (
+    `user_external_uid` varchar(255) NOT NULL,
+    `conversation_id` varchar(128) NOT NULL,
+    `client_mutation_id` varchar(255) NOT NULL,
+    `fingerprint` char(64) NOT NULL,
+    `response` json NOT NULL,
+    `created_at` datetime(6) NOT NULL,
+    PRIMARY KEY (`user_external_uid`,`conversation_id`,`client_mutation_id`),
+    KEY `conversation_mutation_receipts_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `screen_frame_adjudication_attempts` (
     `user_external_uid` varchar(255) NOT NULL,
     `purpose` varchar(64) NOT NULL,
