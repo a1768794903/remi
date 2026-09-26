@@ -758,6 +758,123 @@ func (h Handler) Events(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "Ok"})
 }
 
+func (h Handler) ActionItems(w http.ResponseWriter, r *http.Request) {
+	uid, err := auth.UserID(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if h.Service.DB == nil {
+		http.Error(w, "conversation storage is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	conversationID := r.PathValue("conversation_id")
+	var raw []byte
+	var createdAt time.Time
+	if err := h.Service.DB.QueryRowContext(r.Context(), `SELECT COALESCE(c.structured,JSON_OBJECT()),c.created_at FROM conversations c JOIN users u ON u.id=c.user_id WHERE c.id=? AND u.external_uid=?`, conversationID, uid).Scan(&raw, &createdAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, "conversation action item lookup failed", http.StatusInternalServerError)
+		}
+		return
+	}
+	var structured map[string]any
+	if json.Unmarshal(raw, &structured) != nil || structured == nil {
+		structured = map[string]any{}
+	}
+	items, _ := structured["action_items"].([]any)
+	if r.Method == http.MethodPatch && r.PathValue("action_item_idx") == "" {
+		var input struct {
+			ItemsIdx []int  `json:"items_idx"`
+			Values   []bool `json:"values"`
+		}
+		if json.NewDecoder(r.Body).Decode(&input) != nil || len(input.ItemsIdx) != len(input.Values) {
+			http.Error(w, "items_idx and values must have the same length", http.StatusUnprocessableEntity)
+			return
+		}
+		now := time.Now().UTC()
+		for i, index := range input.ItemsIdx {
+			if index < 0 || index >= len(items) {
+				continue
+			}
+			item, ok := items[index].(map[string]any)
+			if !ok {
+				continue
+			}
+			completed := input.Values[i]
+			item["completed"] = completed
+			if _, ok := item["created_at"]; !ok || item["created_at"] == nil {
+				item["created_at"] = createdAt.UTC().Format(time.RFC3339Nano)
+			}
+			if completed {
+				item["completed_at"] = now.Format(time.RFC3339Nano)
+			} else {
+				item["completed_at"] = nil
+			}
+		}
+	} else if r.Method == http.MethodPatch && r.PathValue("action_item_idx") != "" {
+		index, parseErr := strconv.Atoi(r.PathValue("action_item_idx"))
+		var input struct {
+			OldDescription string `json:"old_description"`
+			Description    string `json:"description"`
+		}
+		if parseErr != nil || json.NewDecoder(r.Body).Decode(&input) != nil || strings.TrimSpace(input.Description) == "" {
+			http.Error(w, "invalid action item update", http.StatusBadRequest)
+			return
+		}
+		if index < 0 || index >= len(items) {
+			http.NotFound(w, r)
+			return
+		}
+		item, ok := items[index].(map[string]any)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		old := input.OldDescription
+		if old == "" {
+			old, _ = item["description"].(string)
+		}
+		if item["description"] != old {
+			http.NotFound(w, r)
+			return
+		}
+		item["description"] = input.Description
+	} else if r.Method == http.MethodDelete {
+		var input struct {
+			Description string `json:"description"`
+		}
+		if json.NewDecoder(r.Body).Decode(&input) != nil || strings.TrimSpace(input.Description) == "" {
+			http.Error(w, "description is required", http.StatusBadRequest)
+			return
+		}
+		filtered := make([]any, 0, len(items))
+		for _, value := range items {
+			item, ok := value.(map[string]any)
+			if ok && item["description"] == input.Description {
+				continue
+			}
+			filtered = append(filtered, value)
+		}
+		items = filtered
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	structured["action_items"] = items
+	encoded, err := json.Marshal(structured)
+	if err != nil {
+		http.Error(w, "failed to encode conversation action items", http.StatusInternalServerError)
+		return
+	}
+	if _, err = h.Service.DB.ExecContext(r.Context(), `UPDATE conversations c JOIN users u ON u.id=c.user_id SET c.structured=? WHERE c.id=? AND u.external_uid=?`, encoded, conversationID, uid); err != nil {
+		http.Error(w, "failed to update conversation action items", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "Ok"})
+}
+
 // SuggestedApps projects the app ids selected during conversation
 // summarization into the current app catalog. Missing, disabled, or no longer
 // visible apps are omitted just like the Python implementation.
