@@ -22,7 +22,11 @@ const (
 )
 
 type Handler struct {
-	DB             *sql.DB
+	DB *sql.DB
+	// EnforceQuota is called before a usage report is accepted. It is kept as
+	// a dependency so the HTTP surface can share the production subscription
+	// gate without coupling this provider-facing package to user storage.
+	EnforceQuota   func(context.Context, string) error
 	OpenAIKey      string
 	GeminiKey      string
 	OpenAIEndpoint string
@@ -121,8 +125,25 @@ func (h Handler) Usage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "invalid request body", "bad_request", false)
 		return
 	}
-	if in.Provider != "openai" && in.Provider != "gemini" {
-		writeError(w, 400, "provider is invalid", "bad_provider", false)
+	enforceQuota := h.EnforceQuota
+	if enforceQuota == nil && h.DB != nil {
+		enforceQuota = SQLQuotaEnforcer(h.DB)
+	}
+	if enforceQuota != nil {
+		if err := enforceQuota(r.Context(), uid); err != nil {
+			if quota, ok := err.(quotaError); ok {
+				writeJSON(w, quota.Status, quota.Body)
+			} else {
+				writeError(w, 500, "desktop quota check failed", "quota_check_failed", true)
+			}
+			return
+		}
+	}
+	// The Python endpoint accepts the provider field as telemetry input, but
+	// always prices against the model issued by Mint. Unknown provider values
+	// therefore follow the historical Gemini fallback in client_reported_cost.
+	if in.Provider == "" {
+		writeError(w, 422, "provider is required", "validation_error", false)
 		return
 	}
 	u := usage{InputText: max0(in.InputText), InputAudio: max0(in.InputAudio), CachedText: min(max0(in.Cached), max0(in.InputText)), OutputText: max0(in.OutputText), OutputAudio: max0(in.OutputAudio)}
@@ -132,21 +153,129 @@ func (h Handler) Usage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	model := in.Model
-	if model == "" {
-		_, _, model = h.provider(in.Provider)
-	}
+	model := issuedModel(in.Provider)
 	cents := cost(in.Provider, model, u)
 	if h.DB == nil {
 		writeError(w, 503, "realtime usage storage is not configured", "usage_storage_unavailable", true)
 		return
 	}
-	_, err = h.DB.ExecContext(r.Context(), "INSERT INTO realtime_usage (user_external_uid, turn_id, provider, model, input_tokens, output_tokens, cached_tokens, cost_micro_usd, created_at) VALUES (?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE turn_id = turn_id", uid, in.TurnID, in.Provider, model, u.InputText+u.InputAudio, u.OutputText+u.OutputAudio, u.CachedText+u.CachedAudio, cents)
+	_, err = recordUsage(r.Context(), h.DB, uid, in, u, total, cents)
 	if err != nil {
 		writeError(w, 502, "realtime usage record failed", "usage_storage_error", true)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type quotaError struct {
+	Status int
+	Body   map[string]any
+}
+
+func (e quotaError) Error() string { return "desktop chat quota exceeded" }
+
+// SQLQuotaEnforcer is the MySQL counterpart of Python's
+// enforce_desktop_chat_quota(..., byok_exempt=False). Realtime tokens are
+// always Omi-managed credentials, so BYOK never bypasses this gate.
+func SQLQuotaEnforcer(db *sql.DB) func(context.Context, string) error {
+	return func(ctx context.Context, uid string) error {
+		if db == nil {
+			return fmt.Errorf("quota storage is not configured")
+		}
+		plan := "basic"
+		status := ""
+		err := db.QueryRowContext(ctx, "SELECT plan,status FROM subscriptions WHERE user_external_uid=?", uid).Scan(&plan, &status)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if status == "canceled" || strings.TrimSpace(plan) == "" {
+			plan = "basic"
+		}
+		var questions int64
+		var costMicroUSD int64
+		if err := db.QueryRowContext(ctx, "SELECT COALESCE(SUM(questions),0),COALESCE(SUM(cost_micro_usd),0) FROM llm_usage WHERE user_external_uid=? AND created_at>=DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-01')", uid).Scan(&questions, &costMicroUSD); err != nil {
+			return err
+		}
+		unit, limit := quotaSpec(plan)
+		used := questions
+		if unit == "cost_usd" {
+			used = costMicroUSD
+		}
+		// Architect is the only current overage plan. It remains callable past
+		// the included cost and is billed by the normal usage ledger.
+		if plan == "architect" {
+			return nil
+		}
+		if limit != nil && used >= *limit {
+			return quotaError{Status: http.StatusPaymentRequired, Body: map[string]any{
+				"error": "quota_exceeded", "plan": plan, "plan_type": plan,
+				"unit": unit, "used": used, "limit": *limit,
+			}}
+		}
+		return nil
+	}
+}
+
+func quotaSpec(plan string) (string, *int64) {
+	switch strings.ToLower(strings.TrimSpace(plan)) {
+	case "operator":
+		v := int64(500)
+		return "questions", &v
+	case "neo":
+		v := int64(200)
+		return "questions", &v
+	case "architect":
+		v := int64(400_000_000)
+		return "cost_usd", &v
+	default:
+		v := int64(30)
+		return "questions", &v
+	}
+}
+
+// recordUsage mirrors the Python _record_usage transaction. A client turn id
+// is the idempotency key: duplicate reports do not create another llm_usage
+// row, while reports from older clients without a turn id remain additive.
+func recordUsage(ctx context.Context, db *sql.DB, uid string, report usageRequest, u usage, total, costMicroUSD int64) (bool, error) {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	rollback := func(err error) (bool, error) {
+		_ = tx.Rollback()
+		return false, err
+	}
+	result, err := tx.ExecContext(ctx, "INSERT INTO realtime_usage (user_external_uid, turn_id, provider, model, input_tokens, output_tokens, cached_tokens, cost_micro_usd, created_at) VALUES (?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE turn_id = turn_id", uid, report.TurnID, report.Provider, issuedModel(report.Provider), u.InputText+u.InputAudio, u.OutputText+u.OutputAudio, u.CachedText+u.CachedAudio, costMicroUSD)
+	if err != nil {
+		return rollback(err)
+	}
+	// MySQL reports zero affected rows for the no-op duplicate update. This is
+	// what prevents a retried turn from charging the quota ledger twice.
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return rollback(err)
+	}
+	if rows == 0 {
+		if err := tx.Commit(); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	_, err = tx.ExecContext(ctx, "INSERT INTO llm_usage (user_external_uid,allocation,feature,input_tokens,output_tokens,questions,cost_micro_usd,created_at) VALUES (?, 'desktop_chat', 'desktop_chat_realtime', ?, ?, 1, ?, UTC_TIMESTAMP(6))", uid, u.InputText+u.InputAudio, u.OutputText+u.OutputAudio, costMicroUSD)
+	if err != nil {
+		return rollback(err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func issuedModel(provider string) string {
+	if provider == "openai" {
+		return openAIModel
+	}
+	return geminiModel
 }
 
 type upstreamError struct {
