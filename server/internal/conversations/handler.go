@@ -816,21 +816,95 @@ type calendarEventLink struct {
 }
 
 func (h Handler) calendarToken(ctx context.Context, uid string) (string, error) {
-	var raw []byte
-	if err := h.Service.DB.QueryRowContext(ctx, `SELECT COALESCE(u.integrations,JSON_OBJECT()) FROM users u WHERE u.external_uid=?`, uid).Scan(&raw); err != nil {
+	integration, err := h.calendarIntegration(ctx, uid)
+	if err != nil {
 		return "", err
 	}
-	var integrations map[string]any
-	if json.Unmarshal(raw, &integrations) != nil {
-		return "", errors.New("invalid integrations")
-	}
-	integration, _ := integrations["google_calendar"].(map[string]any)
 	connected, _ := integration["connected"].(bool)
 	token, _ := integration["access_token"].(string)
 	if !connected || strings.TrimSpace(token) == "" {
 		return "", errors.New("Google Calendar not connected")
 	}
 	return token, nil
+}
+
+func (h Handler) calendarIntegration(ctx context.Context, uid string) (map[string]any, error) {
+	var raw []byte
+	if err := h.Service.DB.QueryRowContext(ctx, `SELECT COALESCE(u.integrations,JSON_OBJECT()) FROM users u WHERE u.external_uid=?`, uid).Scan(&raw); err != nil {
+		return nil, err
+	}
+	var integrations map[string]any
+	if json.Unmarshal(raw, &integrations) != nil {
+		return nil, errors.New("invalid integrations")
+	}
+	integration, _ := integrations["google_calendar"].(map[string]any)
+	if integration == nil {
+		return map[string]any{}, nil
+	}
+	return integration, nil
+}
+
+func (h Handler) refreshCalendarToken(ctx context.Context, uid string) (string, error) {
+	integration, err := h.calendarIntegration(ctx, uid)
+	if err != nil {
+		return "", err
+	}
+	refreshToken, _ := integration["refresh_token"].(string)
+	clientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+	clientSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
+	if refreshToken == "" || clientID == "" || clientSecret == "" {
+		return "", errors.New("Google Calendar refresh is not configured")
+	}
+	form := url.Values{"client_id": {clientID}, "client_secret": {clientSecret}, "refresh_token": {refreshToken}, "grant_type": {"refresh_token"}}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth2.googleapis.com/token", strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", errors.New("Google Calendar token refresh failed")
+	}
+	var refreshed struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int    `json:"expires_in"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&refreshed); err != nil || strings.TrimSpace(refreshed.AccessToken) == "" {
+		return "", errors.New("Google Calendar refresh response missing access token")
+	}
+	if refreshed.RefreshToken == "" {
+		refreshed.RefreshToken = refreshToken
+	}
+	integration["access_token"] = refreshed.AccessToken
+	integration["refresh_token"] = refreshed.RefreshToken
+	integration["token_type"] = refreshed.TokenType
+	integration["expires_in"] = refreshed.ExpiresIn
+	integration["connected"] = true
+	encoded, _ := json.Marshal(integration)
+	var integrationsRaw []byte
+	if err := h.Service.DB.QueryRowContext(ctx, `SELECT COALESCE(u.integrations,JSON_OBJECT()) FROM users u WHERE u.external_uid=?`, uid).Scan(&integrationsRaw); err != nil {
+		return "", err
+	}
+	var integrations map[string]any
+	if err := json.Unmarshal(integrationsRaw, &integrations); err != nil {
+		return "", errors.New("invalid integrations")
+	}
+	var saved map[string]any
+	if json.Unmarshal(encoded, &saved) != nil {
+		return "", errors.New("invalid refreshed integration")
+	}
+	integrations["google_calendar"] = saved
+	all, _ := json.Marshal(integrations)
+	if _, err := h.Service.DB.ExecContext(ctx, `UPDATE users SET integrations=? WHERE external_uid=?`, all, uid); err != nil {
+		return "", err
+	}
+	return refreshed.AccessToken, nil
 }
 
 func parseCalendarPoint(raw map[string]any) (time.Time, error) {
@@ -989,6 +1063,14 @@ func (h Handler) CalendarEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	link, err := fetchCalendarEvent(r.Context(), token, input.EventID)
 	if err != nil {
+		if strings.Contains(err.Error(), "authentication expired") {
+			if refreshed, refreshErr := h.refreshCalendarToken(r.Context(), uid); refreshErr == nil {
+				token = refreshed
+				link, err = fetchCalendarEvent(r.Context(), token, input.EventID)
+			}
+		}
+	}
+	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "authentication expired") {
 			status = http.StatusUnauthorized
@@ -1036,22 +1118,35 @@ func (h Handler) AutoCalendarEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := url.Values{"timeMin": []string{start.UTC().Format(time.RFC3339)}, "timeMax": []string{end.UTC().Format(time.RFC3339)}, "singleEvents": []string{"true"}, "orderBy": []string{"startTime"}, "maxResults": []string{"50"}}
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, "https://www.googleapis.com/calendar/v3/calendars/primary/events?"+query.Encode(), nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	calendarClient := &http.Client{Timeout: 20 * time.Second}
+	fetchEvents := func(accessToken string) (*http.Response, error) {
+		req, requestErr := http.NewRequestWithContext(r.Context(), http.MethodGet, "https://www.googleapis.com/calendar/v3/calendars/primary/events?"+query.Encode(), nil)
+		if requestErr != nil {
+			return nil, requestErr
+		}
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+		return calendarClient.Do(req)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	resp, err := fetchEvents(token)
 	if err != nil {
 		http.Error(w, "failed to fetch calendar events", http.StatusBadGateway)
 		return
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
-		http.Error(w, "Google Calendar authentication expired. Please reconnect.", http.StatusUnauthorized)
-		return
+		_ = resp.Body.Close()
+		if refreshed, refreshErr := h.refreshCalendarToken(r.Context(), uid); refreshErr == nil {
+			token = refreshed
+			resp, err = fetchEvents(token)
+			if err != nil {
+				http.Error(w, "failed to fetch calendar events", http.StatusBadGateway)
+				return
+			}
+		} else {
+			http.Error(w, "Google Calendar authentication expired. Please reconnect.", http.StatusUnauthorized)
+			return
+		}
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		http.Error(w, "failed to fetch calendar events", http.StatusInternalServerError)
 		return
