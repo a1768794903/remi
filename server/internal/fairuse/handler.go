@@ -189,6 +189,43 @@ func (h Handler) caseLookup(w http.ResponseWriter, r *http.Request, ref string) 
 	}
 	writeJSON(w, map[string]any{"uid": uid, "event_id": event, "case_ref": ref, "stage": stage, "support_email": supportEmail})
 }
+
+func (h Handler) PublicCaseStatus(w http.ResponseWriter, r *http.Request) {
+	if h.DB == nil {
+		writeError(w, http.StatusServiceUnavailable, "fair-use storage is not configured")
+		return
+	}
+	ref := strings.TrimSpace(r.PathValue("case_ref"))
+	if ref == "" {
+		writeError(w, http.StatusBadRequest, "case reference is required")
+		return
+	}
+	var uid, stage string
+	var createdAt, resolvedAt sql.NullTime
+	err := h.DB.QueryRowContext(r.Context(), `SELECT e.user_external_uid,COALESCE(s.stage,e.stage),e.created_at,e.resolved_at FROM fair_use_events e LEFT JOIN fair_use_state s ON s.user_external_uid=e.user_external_uid WHERE e.case_ref=? ORDER BY e.created_at DESC LIMIT 1`, ref).Scan(&uid, &stage, &createdAt, &resolvedAt)
+	if err == sql.ErrNoRows {
+		writeError(w, http.StatusNotFound, "case not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "fair-use lookup failed")
+		return
+	}
+	_ = uid
+	updatedAt := createdAt
+	if resolvedAt.Valid {
+		updatedAt = resolvedAt
+	}
+	var createdValue any
+	var updatedValue any
+	if createdAt.Valid {
+		createdValue = createdAt.Time
+	}
+	if updatedAt.Valid {
+		updatedValue = updatedAt.Time
+	}
+	writeJSON(w, map[string]any{"case_ref": ref, "stage": stage, "message": message(stage, ref), "created_at": createdValue, "updated_at": updatedValue, "support_email": supportEmail})
+}
 func (h Handler) admin(w http.ResponseWriter, r *http.Request) bool {
 	expected := os.Getenv("ADMIN_KEY")
 	got := r.Header.Get("X-Admin-Key")

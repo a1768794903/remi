@@ -181,6 +181,7 @@ func BuildServer(cfg config.Config, db *sql.DB, redisClient *redis.Client, audio
 		{Method: http.MethodPost, Path: "/v1/proxy/deepgram/ws/v1/listen", Handler: deprecatedEndpoint},
 		{Method: http.MethodGet, Path: "/v1/announcements/changelogs", Handler: announcements.Handler{DB: db}.Public},
 		{Method: http.MethodGet, Path: "/v1/fair-use/status", Handler: protected(http.HandlerFunc(fairuse.Handler{DB: db}.Status)).ServeHTTP},
+		{Method: http.MethodGet, Path: "/v1/fair-use/case/:case_ref/status", Handler: fairuse.Handler{DB: db}.PublicCaseStatus},
 		{Method: http.MethodGet, Path: "/v1/admin/fair-use/flagged", Handler: fairuse.Handler{DB: db}.Admin},
 		{Method: http.MethodGet, Path: "/v1/admin/fair-use/user/:uid", Handler: fairuse.Handler{DB: db}.Admin},
 		{Method: http.MethodPost, Path: "/v1/admin/fair-use/user/:uid/reset", Handler: fairuse.Handler{DB: db}.Admin},
